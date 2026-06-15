@@ -563,6 +563,15 @@ body:not(.public-mode) td,body:not(.public-mode) th{word-break:break-word}
 .flow-actions .action{margin:0;min-height:56px;display:flex;align-items:center;gap:10px;justify-content:flex-start;text-align:left;white-space:normal}
 .flow-actions .action span{width:28px;height:28px;border-radius:9px;background:rgba(255,255,255,.09);display:grid;place-items:center;flex:0 0 28px;font-weight:950}
 .flow-report-button{justify-self:start}
+.flow-step-panel{border:1px solid #1f2d44;border-radius:16px;background:linear-gradient(180deg,rgba(12,24,42,.92),rgba(7,15,27,.98));padding:16px;min-height:130px}
+.flow-step-card{display:grid;gap:14px}
+.flow-step-card small{color:#77a8ff;font-size:11px;font-weight:950;text-transform:uppercase;letter-spacing:.08em}
+.flow-step-card h3{margin:0;color:#fff;font-size:20px;line-height:1.2}
+.flow-step-card p{margin:0;color:#b8c7dc;line-height:1.55;max-width:760px}
+.flow-step-card label{display:grid;gap:7px;color:#dbe7fb;font-weight:800}
+.flow-step-card input,.flow-step-card textarea{width:100%;box-sizing:border-box;border:1px solid #24344d;border-radius:12px;background:#07111f;color:#f5f8ff;padding:11px 12px;font:inherit;line-height:1.35}
+.flow-step-card textarea{resize:vertical;min-height:120px}
+.flow-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 @media(max-width:800px){
   .ai-report{grid-template-columns:1fr}
   .ai-section.status{grid-column:span 1}
@@ -574,7 +583,7 @@ body:not(.public-mode) td,body:not(.public-mode) th{word-break:break-word}
   .dashboard-flow .ops-budget-summary{grid-template-columns:1fr}
   .project-numbers{grid-template-columns:1fr}
   .person-meta{grid-template-columns:1fr}
-  .case-flow-head,.case-flow-steps,.flow-actions{grid-template-columns:1fr}
+  .case-flow-head,.case-flow-steps,.flow-actions,.flow-form-grid{grid-template-columns:1fr}
   .case-step{grid-template-columns:38px minmax(0,1fr)}
   .case-step span{grid-column:2}
 }
