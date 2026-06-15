@@ -49,6 +49,7 @@ function setOutputError(el,error,fallback){if(el)el.textContent=customerError(er
 function showDrawer(title,html){
   let el=document.getElementById('drawer');
   if(!el)return;
+  el.style.display='block';
   el.className='drawer show';
   el.setAttribute('tabindex','-1');
   el.innerHTML=`<button class="x" onclick="hideDrawer()">Lukk</button><h2>${esc(title)}</h2>${html}`;
@@ -58,7 +59,10 @@ function showDrawer(title,html){
     if(first)first.focus({preventScroll:true});
   });
 }
-function hideDrawer(){let el=document.getElementById('drawer');el.className='drawer';el.innerHTML=''}
+function closeTransientPanels(){
+  document.querySelectorAll('.drawer').forEach(el=>{el.className='drawer';el.innerHTML='';el.style.display='none'});
+}
+function hideDrawer(){closeTransientPanels()}
 function setStatus(text,kind=''){let el=document.getElementById('status');if(el){el.className='status '+kind;el.textContent=text}}
 function showNotice(message,kind='ok'){
   setStatus(message,kind);
@@ -95,11 +99,11 @@ function renderShell(){
 }
 function openModule(id){
   if(!canOpenModule(id)){setStatus('Denne rollen har ikke tilgang til denne menyen.','bad');return}
-  hideDrawer();
+  closeTransientPanels();
   DP.module=id;DP.tab='';render()
 }
 async function switchProperty(id){
-  hideDrawer();
+  closeTransientPanels();
   DP.propertyId=id;
   await hydrateAll();
   render();
@@ -209,6 +213,9 @@ function LandingPage(){
 }
 function showLogin(){showDrawer('Logg inn',publicLoginPanel())}
 document.addEventListener('click',e=>{
+  if(e.target.closest('#sideNav button,.side button')){
+    closeTransientPanels();
+  }
   if(e.target.closest('[data-login-submit]'))login();
   if(e.target.closest('[data-login-test]'))testLoginConnection();
   const purchaseButton=e.target.closest('[data-purchase-plan]');
