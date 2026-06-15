@@ -77,7 +77,7 @@ async function finishAction(message,module){
   showNotice(message||'Lagret.', 'ok');
   window.scrollTo({top:0,behavior:'smooth'});
 }
-function propSelect(){return `<select onchange="DP.propertyId=this.value;hydrateAll().then(render)">${DP.properties.map(p=>`<option value="${p.id}" ${p.id===DP.propertyId?'selected':''}>${esc(p.name)}</option>`).join('')}</select>`}
+function propSelect(){return `<select onchange="switchProperty(this.value)">${DP.properties.map(p=>`<option value="${p.id}" ${p.id===DP.propertyId?'selected':''}>${esc(p.name)}</option>`).join('')}</select>`}
 function table(headers,rows,empty='Ingen data registrert.'){return `<table><tr>${headers.map(h=>`<th>${esc(h)}</th>`).join('')}</tr>${rows.length?rows.join(''):`<tr><td colspan="${headers.length}">${esc(empty)}</td></tr>`}</table>`}
 async function safe(label,fn){try{return await fn()}catch(e){console.warn(label,e);setStatus(customerError(e),'bad');return null}}
 async function insertActivity(action,entity='activity',caseId='-'){
@@ -95,7 +95,15 @@ function renderShell(){
 }
 function openModule(id){
   if(!canOpenModule(id)){setStatus('Denne rollen har ikke tilgang til denne menyen.','bad');return}
+  hideDrawer();
   DP.module=id;DP.tab='';render()
+}
+async function switchProperty(id){
+  hideDrawer();
+  DP.propertyId=id;
+  await hydrateAll();
+  render();
+  showNotice('Eiendom byttet.','ok');
 }
 function render(){
   if(!DP.session){renderPublic();return}
