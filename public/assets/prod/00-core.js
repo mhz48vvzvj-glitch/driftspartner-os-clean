@@ -49,6 +49,7 @@ function setOutputError(el,error,fallback){if(el)el.textContent=customerError(er
 function showDrawer(title,html){
   let el=document.getElementById('drawer');
   if(!el)return;
+  el.style.display='block';
   el.className='drawer show';
   el.setAttribute('tabindex','-1');
   el.innerHTML=`<button class="x" onclick="hideDrawer()">Lukk</button><h2>${esc(title)}</h2>${html}`;
@@ -58,9 +59,29 @@ function showDrawer(title,html){
     if(first)first.focus({preventScroll:true});
   });
 }
-function hideDrawer(){let el=document.getElementById('drawer');el.className='drawer';el.innerHTML=''}
+function closeTransientPanels(){
+  document.querySelectorAll('.drawer').forEach(el=>{el.className='drawer';el.innerHTML='';el.style.display='none'});
+}
+function hideDrawer(){closeTransientPanels()}
 function setStatus(text,kind=''){let el=document.getElementById('status');if(el){el.className='status '+kind;el.textContent=text}}
-function propSelect(){return `<select onchange="DP.propertyId=this.value;hydrateAll().then(render)">${DP.properties.map(p=>`<option value="${p.id}" ${p.id===DP.propertyId?'selected':''}>${esc(p.name)}</option>`).join('')}</select>`}
+function showNotice(message,kind='ok'){
+  setStatus(message,kind);
+  let el=document.getElementById('dpNotice');
+  if(!el){el=document.createElement('div');el.id='dpNotice';document.body.appendChild(el)}
+  el.className='dp-notice '+kind;
+  el.textContent=message;
+  clearTimeout(DP.noticeTimer);
+  DP.noticeTimer=setTimeout(()=>{if(el)el.className='dp-notice'},3600);
+}
+async function finishAction(message,module){
+  hideDrawer();
+  if(module&&canOpenModule(module))DP.module=module;
+  await hydrateAll();
+  render();
+  showNotice(message||'Lagret.', 'ok');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function propSelect(){return `<select onchange="switchProperty(this.value)">${DP.properties.map(p=>`<option value="${p.id}" ${p.id===DP.propertyId?'selected':''}>${esc(p.name)}</option>`).join('')}</select>`}
 function table(headers,rows,empty='Ingen data registrert.'){return `<table><tr>${headers.map(h=>`<th>${esc(h)}</th>`).join('')}</tr>${rows.length?rows.join(''):`<tr><td colspan="${headers.length}">${esc(empty)}</td></tr>`}</table>`}
 async function safe(label,fn){try{return await fn()}catch(e){console.warn(label,e);setStatus(customerError(e),'bad');return null}}
 async function insertActivity(action,entity='activity',caseId='-'){
@@ -78,15 +99,27 @@ function renderShell(){
 }
 function openModule(id){
   if(!canOpenModule(id)){setStatus('Denne rollen har ikke tilgang til denne menyen.','bad');return}
-  DP.module=id;DP.tab='';render()
+  DP.closePanelsOnRender=true;
+  closeTransientPanels();
+  DP.module=id;DP.tab='';render();closeTransientPanels();
+}
+async function switchProperty(id){
+  DP.closePanelsOnRender=true;
+  closeTransientPanels();
+  DP.propertyId=id;
+  await hydrateAll();
+  render();
+  showNotice('Eiendom byttet.','ok');
 }
 function render(){
   if(!DP.session){renderPublic();return}
+  if(DP.closePanelsOnRender)closeTransientPanels();
   renderShell();
   const map={dashboard:DashboardPage,property:PropertyPage,people:PeoplePage,cases:CasesPage,documents:DocumentsPage,finance:FinancePage,market:MarketPage,admin:AdminPage};
   document.getElementById('title').textContent=(DP.menus.find(m=>m[0]===DP.module)||['','Dashboard'])[1];
   document.getElementById('tabs').innerHTML='';
   document.getElementById('content').innerHTML=(map[DP.module]||DashboardPage)();
+  if(DP.closePanelsOnRender){closeTransientPanels();DP.closePanelsOnRender=false}
 }
 function renderPublic(){
   document.body.classList.add('public-mode');
@@ -136,7 +169,7 @@ async function sendDemoRequest(){
     }
     const data=await readJsonResponse(res,'E-postfunksjonen svarte ikke riktig. Publiser siste pakke og prøv igjen.');
     if(!res.ok||!data.ok)throw new Error(data.message||'E-post ble ikke sendt.');
-    if(out)out.textContent='Demoforespørsel sendt til post@driftspartnernord.no.';
+    hideDrawer();showNotice('Demoforespørsel er sendt. Vi tar kontakt.','ok');
   }catch(e){setOutputError(out,e,'Sendingen kunne ikke fullføres akkurat nå. Prøv igjen, eller kontakt Driftspartner Nord.');}
 }
 function purchasePanel(plan){
@@ -176,7 +209,7 @@ async function sendPurchaseRequest(){
     }
     const data=await readJsonResponse(res,'E-postfunksjonen svarte ikke riktig. Publiser siste pakke og prøv igjen.');
     if(!res.ok||!data.ok)throw new Error(data.message||'Bestilling ble ikke sendt.');
-    if(out)out.textContent='Bestilling sendt til post@driftspartnernord.no.';
+    hideDrawer();showNotice('Bestilling er sendt. Vi tar kontakt for oppstart.','ok');
   }catch(e){setOutputError(out,e,'Sendingen kunne ikke fullføres akkurat nå. Prøv igjen, eller kontakt Driftspartner Nord.');}
 }
 function LandingPage(){
@@ -184,11 +217,19 @@ function LandingPage(){
 }
 function showLogin(){showDrawer('Logg inn',publicLoginPanel())}
 document.addEventListener('click',e=>{
+  if(e.target.closest('#sideNav button,.side button')){
+    closeTransientPanels();
+  }
   if(e.target.closest('[data-login-submit]'))login();
   if(e.target.closest('[data-login-test]'))testLoginConnection();
   const purchaseButton=e.target.closest('[data-purchase-plan]');
   if(purchaseButton){e.preventDefault();showPurchaseForm(purchaseButton.dataset.purchasePlan||'Pro');}
 });
+document.addEventListener('pointerdown',e=>{
+  if(e.target.closest('#sideNav button,.side button')){
+    closeTransientPanels();
+  }
+},true);
 document.addEventListener('keydown',e=>{
   if(e.key==='Enter'&&(e.target?.id==='loginEmail'||e.target?.id==='loginPassword'))login();
 });
