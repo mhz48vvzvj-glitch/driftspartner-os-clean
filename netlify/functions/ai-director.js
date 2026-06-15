@@ -109,7 +109,7 @@ exports.handler = async (event) => {
 
     const payload = JSON.parse(event.body || "{}");
     const propertyId = String(payload.property_id || "").trim();
-    const question = String(payload.question || "Hva bor prioriteres na?").trim().slice(0, 600);
+    const question = String(payload.question || "Hva bør prioriteres nå?").trim().slice(0, 600);
     const mode = String(payload.mode || "prioritering").trim().slice(0, 80);
     if (!propertyId) return json(400, { ok: false, message: "Mangler valgt eiendom." });
 
@@ -214,16 +214,16 @@ exports.handler = async (event) => {
 
     const instructions = [
       "Du er AI Director i Driftspartner OS for norske borettslag og sameier.",
-      "Bruk kun dataene du far i denne foresporselen. Ikke finn pa tall, dokumenter eller hendelser.",
+      "Bruk kun dataene du får i denne forespørselen. Ikke finn på tall, dokumenter eller hendelser.",
       "Svar pa norsk, kort og konkret.",
       "Gi styret praktiske anbefalinger med begrunnelse og neste handling.",
-      "Marker usikkerhet nar data mangler.",
-      "AI-svar er veiledende og ikke juridisk, teknisk eller okonomisk radgivning."
+      "Marker usikkerhet når data mangler.",
+      "AI-svar er veiledende og ikke juridisk, teknisk eller økonomisk rådgivning."
     ].join("\n");
 
     const input = [
       `Modus: ${mode}`,
-      `Sporsmal: ${question}`,
+      `Spørsmål: ${question}`,
       "Live eiendomsdata:",
       JSON.stringify(context, null, 2),
       "Svar med denne strukturen:",
