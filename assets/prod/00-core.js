@@ -99,10 +99,12 @@ function renderShell(){
 }
 function openModule(id){
   if(!canOpenModule(id)){setStatus('Denne rollen har ikke tilgang til denne menyen.','bad');return}
+  DP.closePanelsOnRender=true;
   closeTransientPanels();
-  DP.module=id;DP.tab='';render()
+  DP.module=id;DP.tab='';render();closeTransientPanels();
 }
 async function switchProperty(id){
+  DP.closePanelsOnRender=true;
   closeTransientPanels();
   DP.propertyId=id;
   await hydrateAll();
@@ -111,11 +113,13 @@ async function switchProperty(id){
 }
 function render(){
   if(!DP.session){renderPublic();return}
+  if(DP.closePanelsOnRender)closeTransientPanels();
   renderShell();
   const map={dashboard:DashboardPage,property:PropertyPage,people:PeoplePage,cases:CasesPage,documents:DocumentsPage,finance:FinancePage,market:MarketPage,admin:AdminPage};
   document.getElementById('title').textContent=(DP.menus.find(m=>m[0]===DP.module)||['','Dashboard'])[1];
   document.getElementById('tabs').innerHTML='';
   document.getElementById('content').innerHTML=(map[DP.module]||DashboardPage)();
+  if(DP.closePanelsOnRender){closeTransientPanels();DP.closePanelsOnRender=false}
 }
 function renderPublic(){
   document.body.classList.add('public-mode');
@@ -221,6 +225,11 @@ document.addEventListener('click',e=>{
   const purchaseButton=e.target.closest('[data-purchase-plan]');
   if(purchaseButton){e.preventDefault();showPurchaseForm(purchaseButton.dataset.purchasePlan||'Pro');}
 });
+document.addEventListener('pointerdown',e=>{
+  if(e.target.closest('#sideNav button,.side button')){
+    closeTransientPanels();
+  }
+},true);
 document.addEventListener('keydown',e=>{
   if(e.key==='Enter'&&(e.target?.id==='loginEmail'||e.target?.id==='loginPassword'))login();
 });
