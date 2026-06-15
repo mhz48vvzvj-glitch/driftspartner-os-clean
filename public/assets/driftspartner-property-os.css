@@ -523,6 +523,17 @@ body:not(.public-mode) td,body:not(.public-mode) th{word-break:break-word}
 .empty-state strong{display:block;color:#fff;font-size:15px}
 .empty-state span{display:block;color:#9aa8bc;line-height:1.45}
 .empty-state .action{justify-self:start;margin-top:4px}
+.row-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.row-actions .action{margin:0}
+.project-list{display:grid;gap:12px}
+.project-item{border:1px solid #1f2d44;border-radius:14px;background:#081220;padding:14px;display:grid;gap:12px}
+.project-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.project-head strong{display:block;color:#fff;font-size:15px;line-height:1.25;overflow-wrap:anywhere}
+.project-head small{display:block;color:#9aa8bc;margin-top:4px}
+.project-numbers{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.project-numbers div{border:1px solid #1f2d44;border-radius:10px;background:#0c1524;padding:9px;min-width:0}
+.project-numbers small{display:block;color:#93a4bb;font-size:10px;text-transform:uppercase;letter-spacing:.04em}
+.project-numbers b{display:block;color:#fff;margin-top:4px;font-size:14px;overflow-wrap:anywhere}
 @media(max-width:800px){
   .ai-report{grid-template-columns:1fr}
   .ai-section.status{grid-column:span 1}
@@ -532,4 +543,5 @@ body:not(.public-mode) td,body:not(.public-mode) th{word-break:break-word}
   .executive-hero{display:block}
   .executive-actions{justify-content:flex-start;margin-top:14px}
   .dashboard-flow .ops-budget-summary{grid-template-columns:1fr}
+  .project-numbers{grid-template-columns:1fr}
 }
