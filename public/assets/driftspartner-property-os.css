@@ -492,6 +492,20 @@ body:not(.public-mode):has(.ops-presentation) .main{padding:24px;max-width:none}
 .soft-pill.bad{background:#45151b;color:#ff8b93}
 .soft-pill.neutral{background:#172033;color:#c7d2e5}
 .empty-state{border:1px dashed #2a3a53;border-radius:12px;background:#081220;color:#9aa8bc;padding:18px;text-align:center}
+body:not(.public-mode) .card{min-width:0;overflow:hidden}
+body:not(.public-mode) .dash-title{align-items:flex-start;gap:12px;flex-wrap:wrap}
+body:not(.public-mode) .dash-title>div{min-width:0;max-width:100%}
+body:not(.public-mode) .dash-title .action{white-space:normal}
+body:not(.public-mode) table{display:block;max-width:100%;overflow-x:auto}
+body:not(.public-mode) td,body:not(.public-mode) th{word-break:break-word}
+.dashboard-page .dashboard-metric,.finance-page .finance-metric{min-width:0;overflow:hidden}
+.dashboard-page .dashboard-metric small,.finance-page .finance-metric small{white-space:normal;overflow-wrap:anywhere}
+.dashboard-page .dashboard-metric strong,.finance-page .finance-metric strong{max-width:100%;overflow-wrap:anywhere}
+.dashboard-page .dashboard-metric span,.finance-page .finance-metric span{max-width:100%;white-space:normal;line-height:1.25}
+.clean-row{min-width:0}
+.clean-row>div{min-width:0}
+.clean-row strong,.clean-row small{overflow:hidden;text-overflow:ellipsis}
+.soft-pill{max-width:45%;overflow:hidden;text-overflow:ellipsis}
 @media(max-width:800px){
   .ai-report{grid-template-columns:1fr}
   .ai-section.status{grid-column:span 1}

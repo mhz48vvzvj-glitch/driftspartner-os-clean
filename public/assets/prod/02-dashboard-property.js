@@ -17,7 +17,7 @@
   </div>`;
 }
 function dashboardMetric(label,value,caption,type='info'){
-  return `<button class="card s2 dashboard-metric ${type}" onclick="${dashboardMetricAction(label)}"><small>${esc(label)}</small><strong>${esc(value)}</strong><span>${esc(caption)}</span></button>`;
+  return `<button class="card s4 dashboard-metric ${type}" onclick="${dashboardMetricAction(label)}"><small>${esc(label)}</small><strong>${esc(value)}</strong><span>${esc(caption)}</span></button>`;
 }
 function dashboardMetricAction(label){
   if(label.includes('avvik')||label.includes('Arbeidsordre'))return "openModule('cases')";
