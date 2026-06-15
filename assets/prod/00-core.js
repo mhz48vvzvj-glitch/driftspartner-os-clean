@@ -76,8 +76,9 @@ function showNotice(message,kind='ok'){
 async function finishAction(message,module){
   hideDrawer();
   if(module&&canOpenModule(module))DP.module=module;
-  await hydrateAll();
-  render();
+  try{await hydrateAll()}catch(e){console.warn('Oppdatering etter lagring feilet',e)}
+  try{render()}catch(e){console.warn('Visning etter lagring feilet',e)}
+  hideDrawer();
   showNotice(message||'Lagret.', 'ok');
   window.scrollTo({top:0,behavior:'smooth'});
 }

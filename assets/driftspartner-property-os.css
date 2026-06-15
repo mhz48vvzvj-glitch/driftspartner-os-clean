@@ -681,3 +681,7 @@ body:not(.public-mode) td,body:not(.public-mode) th{word-break:break-word}
   .case-step{grid-template-columns:38px minmax(0,1fr)}
   .case-step span{grid-column:2}
 }
+.lookup-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:end}
+.lookup-row input{margin-top:7px}
+.lookup-row .action{margin:7px 0 0;white-space:nowrap}
+@media(max-width:700px){.lookup-row{grid-template-columns:1fr}.lookup-row .action{width:100%;white-space:normal}}
