@@ -54,6 +54,38 @@ function outputText(data) {
   return parts.join("\n").trim();
 }
 
+function envInt(name, fallback) {
+  const value = Number(process.env[name]);
+  return Number.isFinite(value) && value >= 0 ? value : fallback;
+}
+
+function normalizePlan(value) {
+  const plan = String(value || "").trim().toLowerCase();
+  if (plan.includes("premium")) return "premium";
+  if (plan.includes("start")) return "start";
+  return "pro";
+}
+
+function limitForPlan(plan, property) {
+  const explicit = Number(property?.ai_monthly_limit);
+  if (Number.isFinite(explicit) && explicit >= 0) return explicit;
+  const limits = {
+    start: envInt("AI_MONTHLY_LIMIT_START", 50),
+    pro: envInt("AI_MONTHLY_LIMIT_PRO", 250),
+    premium: envInt("AI_MONTHLY_LIMIT_PREMIUM", 1000)
+  };
+  return limits[plan] ?? limits.pro;
+}
+
+function monthStartIso() {
+  const now = new Date();
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0)).toISOString();
+}
+
+function estimateTokens(text) {
+  return Math.ceil(String(text || "").length / 4);
+}
+
 exports.handler = async (event) => {
   if (event.httpMethod === "OPTIONS") return json(204, { ok: true });
   if (event.httpMethod !== "POST") return json(405, { ok: false, message: "Method not allowed. Use POST." });
@@ -61,7 +93,7 @@ exports.handler = async (event) => {
   const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
   const openaiKey = process.env.OPENAI_API_KEY;
-  const model = process.env.OPENAI_MODEL || "gpt-4.1-mini";
+  const model = process.env.OPENAI_MODEL || "gpt-5.4-nano";
 
   if (!supabaseUrl || !serviceKey) {
     return json(200, { ok: false, message: "Netlify mangler SUPABASE_URL eller SUPABASE_SERVICE_ROLE_KEY." });
@@ -77,7 +109,7 @@ exports.handler = async (event) => {
 
     const payload = JSON.parse(event.body || "{}");
     const propertyId = String(payload.property_id || "").trim();
-    const question = String(payload.question || "Hva bør prioriteres nå?").trim().slice(0, 600);
+    const question = String(payload.question || "Hva bor prioriteres na?").trim().slice(0, 600);
     const mode = String(payload.mode || "prioritering").trim().slice(0, 80);
     if (!propertyId) return json(400, { ok: false, message: "Mangler valgt eiendom." });
 
@@ -102,9 +134,24 @@ exports.handler = async (event) => {
       if (!access?.length) return json(403, { ok: false, message: "Brukeren har ikke tilgang til valgt eiendom." });
     }
 
-    const properties = await supabaseFetch(`/rest/v1/properties?id=eq.${propertyId}&select=*,customers(name)&limit=1`, { serviceKey, supabaseUrl });
+    const properties = await supabaseFetch(`/rest/v1/properties?id=eq.${propertyId}&select=*,customers(*)&limit=1`, { serviceKey, supabaseUrl });
     const property = properties?.[0];
     if (!property) return json(404, { ok: false, message: "Fant ikke valgt eiendom." });
+
+    const plan = normalizePlan(property.subscription_plan || property.plan || property.package || property.customers?.subscription_plan || property.customers?.plan);
+    const monthlyLimit = limitForPlan(plan, property);
+    const usageRows = await supabaseFetch(
+      `/rest/v1/ai_agent_runs?property_id=eq.${encodeURIComponent(propertyId)}&created_at=gte.${encodeURIComponent(monthStartIso())}&select=id`,
+      { serviceKey, supabaseUrl }
+    ).catch(() => []);
+    const monthlyUsed = usageRows?.length || 0;
+    if (monthlyLimit > 0 && monthlyUsed >= monthlyLimit && !role.includes("admin")) {
+      return json(200, {
+        ok: false,
+        message: `AI-kvoten for denne eiendommen er brukt opp denne maneden (${monthlyUsed}/${monthlyLimit}). Oppgrader pakke eller ok kvoten.`,
+        usage: { plan, monthly_used: monthlyUsed, monthly_limit: monthlyLimit }
+      });
+    }
 
     const enc = encodeURIComponent(propertyId);
     const [
@@ -139,6 +186,9 @@ exports.handler = async (event) => {
         address: property.address,
         type: property.property_type,
         units_count: property.units_count,
+        subscription_plan: plan,
+        ai_monthly_used: monthlyUsed,
+        ai_monthly_limit: monthlyLimit,
         technical_summary: property.technical_summary
       },
       counts: {
@@ -164,23 +214,23 @@ exports.handler = async (event) => {
 
     const instructions = [
       "Du er AI Director i Driftspartner OS for norske borettslag og sameier.",
-      "Bruk kun dataene du får i denne forespørselen. Ikke finn på tall, dokumenter eller hendelser.",
-      "Svar på norsk, kort og konkret.",
+      "Bruk kun dataene du far i denne foresporselen. Ikke finn pa tall, dokumenter eller hendelser.",
+      "Svar pa norsk, kort og konkret.",
       "Gi styret praktiske anbefalinger med begrunnelse og neste handling.",
-      "Marker usikkerhet når data mangler.",
-      "AI-svar er veiledende og ikke juridisk, teknisk eller økonomisk rådgivning."
+      "Marker usikkerhet nar data mangler.",
+      "AI-svar er veiledende og ikke juridisk, teknisk eller okonomisk radgivning."
     ].join("\n");
 
     const input = [
       `Modus: ${mode}`,
-      `Spørsmål: ${question}`,
+      `Sporsmal: ${question}`,
       "Live eiendomsdata:",
       JSON.stringify(context, null, 2),
       "Svar med denne strukturen:",
       "1. Kort status",
       "2. Topp 3 prioriteringer",
       "3. Risiko/mangler",
-      "4. Foreslått neste handling",
+      "4. Foreslatt neste handling",
       "5. Data som mangler"
     ].join("\n\n");
 
@@ -194,7 +244,7 @@ exports.handler = async (event) => {
         model,
         instructions,
         input,
-        max_output_tokens: 900,
+        max_output_tokens: envInt("AI_MAX_OUTPUT_TOKENS", 650),
         temperature: 0.2,
         store: false
       })
@@ -202,16 +252,37 @@ exports.handler = async (event) => {
     const aiData = await readJson(aiRes);
     if (!aiRes.ok) throw new Error(aiData?.error?.message || aiData?.message || "OpenAI svarte ikke riktig.");
     const answer = outputText(aiData);
+    const usageEstimate = {
+      input_tokens_estimate: estimateTokens(input + instructions),
+      output_tokens_estimate: estimateTokens(answer),
+      monthly_used_before: monthlyUsed,
+      monthly_limit: monthlyLimit,
+      plan
+    };
 
     await supabaseFetch("/rest/v1/ai_agent_runs", {
       method: "POST",
       serviceKey,
       supabaseUrl,
       headers: { Prefer: "return=minimal" },
-      body: { property_id: propertyId, agent: "AI Director", input: { mode, question }, output: { answer }, status: "completed" }
+      body: {
+        property_id: propertyId,
+        agent: "AI Director",
+        model,
+        input: { mode, question },
+        output: { answer },
+        usage_estimate: usageEstimate,
+        status: "completed"
+      }
     }).catch(() => null);
 
-    return json(200, { ok: true, answer, model, property: { id: property.id, name: property.name } });
+    return json(200, {
+      ok: true,
+      answer,
+      model,
+      property: { id: property.id, name: property.name },
+      usage: { plan, monthly_used: monthlyUsed + 1, monthly_limit: monthlyLimit }
+    });
   } catch (error) {
     return json(500, { ok: false, message: error.message });
   }
