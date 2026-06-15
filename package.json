@@ -3,6 +3,6 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "build": "echo Driftspartner OS build OK"
+    "build": "node scripts/check-production-package.js"
   }
 }
