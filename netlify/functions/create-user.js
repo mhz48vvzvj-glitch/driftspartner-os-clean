@@ -10,6 +10,15 @@ const json = (statusCode, body) => ({
 });
 
 const cleanEmail = (email) => String(email || "").trim().toLowerCase();
+const normalizeRole = (role) => {
+  const value = String(role || "beboer").trim().toLowerCase();
+  if (value === "leverandør") return "leverandor";
+  if (value === "caretaker") return "vaktmester";
+  if (value === "resident") return "beboer";
+  if (value === "vendor") return "leverandor";
+  return value;
+};
+const allowedRoles = new Set(["superadmin", "forvalter", "styreleder", "styremedlem", "beboer", "vaktmester", "leverandor"]);
 const randomPassword = () => {
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!#%";
   return Array.from({ length: 18 }, () => alphabet[Math.floor(Math.random() * alphabet.length)]).join("");
@@ -68,7 +77,7 @@ async function upsertAppUserProfile({ supabaseUrl, serviceKey, authUserId, name,
       return request(fallbackBody);
     }
     if (message.includes("invalid input value for enum") || message.includes("app_role")) {
-      throw new Error("Rollefeltet i app_users er laast som enum. Kjor driftspartner-live-users-roles.sql slik at rollene superadmin, styreleder, styremedlem, beboer, vaktmester og leverandor kan brukes.");
+      throw new Error("Rollen finnes ikke i rollelisten i databasen. Kjor supabase-app-roles-v1.sql i Supabase, og prov igjen.");
     }
     throw error;
   }
@@ -113,7 +122,7 @@ exports.handler = async (event) => {
     const payload = JSON.parse(event.body || "{}");
     const email = cleanEmail(payload.email);
     const name = String(payload.name || "").trim();
-    const role = String(payload.role || "beboer").trim();
+    const role = normalizeRole(payload.role);
     const phone = String(payload.phone || "").trim();
     const propertyId = String(payload.property_id || "").trim();
     const accessRole = String(payload.access_role || "member").trim();
@@ -121,6 +130,9 @@ exports.handler = async (event) => {
 
     if (!email.includes("@") || !name || !propertyId) {
       return json(400, { ok: false, message: "Mangler navn, e-post eller eiendom." });
+    }
+    if (!allowedRoles.has(role)) {
+      return json(400, { ok: false, message: `Ugyldig rolle: ${role}. Velg en av rollene i listen.` });
     }
 
     let authUser;
