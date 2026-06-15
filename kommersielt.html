@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="no">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Driftspartner OS - kommersiell pakke</title>
+  <style>
+    :root{
+      color-scheme:dark;
+      --bg:#050912;--panel:#0b1422;--panel2:#0e1a2b;--line:#21324a;
+      --text:#eef5ff;--muted:#aebbd0;--soft:#cbd7e9;--blue:#176bff;--green:#24d46b;--purple:#9b5cff;
+    }
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{margin:0;background:radial-gradient(circle at 80% 8%,rgba(23,107,255,.20),transparent 30%),radial-gradient(circle at 12% 24%,rgba(155,92,255,.12),transparent 26%),linear-gradient(180deg,#030914,#07111f 58%,#050912);color:var(--text);font-family:Arial,Helvetica,sans-serif;line-height:1.6}
+    a{color:#78adff}
+    .wrap{max-width:1160px;margin:0 auto;padding:24px 22px 70px}
+    .topnav{position:sticky;top:0;z-index:5;margin:0 -22px 46px;padding:14px 22px;background:rgba(3,9,20,.82);backdrop-filter:blur(16px);border-bottom:1px solid rgba(255,255,255,.08)}
+    .topnav-inner{max-width:1160px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:20px}
+    .brand{display:flex;align-items:center;gap:12px;font-size:20px;font-weight:950;white-space:nowrap}
+    .brand img{width:42px;height:42px;border-radius:10px;object-fit:cover;box-shadow:0 0 0 1px rgba(255,255,255,.12)}
+    .navlinks{display:flex;gap:16px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+    .navlinks a{color:#dbe7fb;text-decoration:none;font-size:14px;font-weight:800}
+    .hero{display:grid;grid-template-columns:1fr 380px;gap:28px;align-items:stretch;margin-bottom:26px}
+    .eyebrow{display:inline-flex;border:1px solid #1f4e91;background:rgba(13,107,255,.11);color:#58a0ff;border-radius:999px;padding:7px 13px;font-size:12px;font-weight:950;letter-spacing:.06em;text-transform:uppercase}
+    h1{font-size:clamp(42px,5.5vw,68px);line-height:1.03;margin:20px 0 12px;letter-spacing:0}
+    h2{font-size:30px;margin:0 0 14px}
+    h3{font-size:20px;margin:18px 0 8px}
+    p{color:var(--soft);margin:0 0 14px}
+    .lead{font-size:19px;max-width:720px}
+    .card{border:1px solid var(--line);border-radius:16px;background:linear-gradient(180deg,rgba(13,24,40,.95),rgba(8,17,30,.96));padding:24px;margin:18px 0;box-shadow:0 18px 55px rgba(0,0,0,.18)}
+    .contact-card{display:flex;flex-direction:column;justify-content:space-between}
+    .notice{border-left:4px solid var(--blue);background:rgba(23,107,255,.10);padding:14px 16px;border-radius:10px;color:#dce9ff;margin-top:12px}
+    .cta-row{display:flex;gap:12px;flex-wrap:wrap;margin-top:22px}
+    .btn{display:inline-flex;align-items:center;justify-content:center;border:0;border-radius:9px;background:linear-gradient(135deg,#0d6bff,#1554ff);color:#fff;font-weight:900;padding:13px 18px;text-decoration:none;box-shadow:0 14px 34px rgba(21,84,255,.28)}
+    .btn.secondary{background:rgba(255,255,255,.07);border:1px solid #28384f;box-shadow:none}
+    .section{scroll-margin-top:92px}
+    .grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+    .price{position:relative;min-height:100%;display:flex;flex-direction:column}
+    .price.featured{border-color:#176bff;box-shadow:0 0 0 1px #176bff,0 22px 60px rgba(23,107,255,.16)}
+    .badge{display:inline-flex;width:max-content;border:1px solid rgba(255,255,255,.14);border-radius:999px;padding:5px 10px;color:#bcd2ff;font-size:12px;font-weight:900;margin-bottom:12px}
+    .price strong{display:block;font-size:32px;color:#fff;margin:10px 0 2px}
+    .price small{color:var(--muted)}
+    .list{margin:16px 0 0;padding:0;list-style:none;color:#dce7f8}
+    .list li{margin:8px 0;padding-left:24px;position:relative}
+    .list li:before{content:"✓";position:absolute;left:0;color:var(--green);font-weight:900}
+    table{width:100%;border-collapse:collapse;margin-top:12px;overflow:hidden;border-radius:12px}
+    th,td{border-bottom:1px solid var(--line);padding:13px 12px;text-align:left;vertical-align:top}
+    th{color:#fff;background:rgba(255,255,255,.04)}
+    td{color:#cbd7e9}
+    tr:last-child td{border-bottom:0}
+    .twocol{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+    .pill-list{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+    .pill{border:1px solid #263850;background:#0d1726;border-radius:999px;padding:8px 12px;color:#dce7f8;font-weight:800;font-size:13px}
+    .muted{color:var(--muted)}
+    footer{margin-top:34px;color:#8fa1ba;font-size:13px}
+    @media(max-width:920px){
+      .hero,.grid3,.twocol{grid-template-columns:1fr}
+      .navlinks{display:none}
+      .wrap{padding-left:16px;padding-right:16px}
+      .topnav{margin-left:-16px;margin-right:-16px}
+      .card{padding:20px}
+      h1{font-size:42px}
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <nav class="topnav">
+      <div class="topnav-inner">
+        <div class="brand"><img src="assets/logo-os.jpg" alt="Driftspartner Nord logo"><span>Driftspartner OS</span></div>
+        <div class="navlinks">
+          <a href="#vilkar">Vilkår</a>
+          <a href="#personvern">Personvern</a>
+          <a href="#dpa">Databehandleravtale</a>
+          <a href="#support">Support</a>
+          <a href="#backup">Backup/eksport</a>
+          <a href="#bestilling">Bestilling</a>
+          <a href="driftspartner-property-os.html">Til forsiden</a>
+        </div>
+      </div>
+    </nav>
+
+    <section class="hero">
+      <div class="card">
+        <span class="eyebrow">Kommersiell pakke</span>
+        <h1>Alt kunden trenger før oppstart.</h1>
+        <p class="lead">Dette er en praktisk salgs- og onboardingpakke for Driftspartner OS. Den gir styret oversikt over vilkår, personvern, databehandling, support, backup, eksport og hvordan bestilling håndteres.</p>
+        <div class="cta-row">
+          <a class="btn" href="#bestilling">Kom i gang</a>
+          <a class="btn secondary" href="mailto:post@driftspartnernord.no">Send e-post</a>
+        </div>
+      </div>
+      <aside class="card contact-card">
+        <div>
+          <span class="badge">Kontakt</span>
+          <h2>Driftspartner Nord</h2>
+          <p>E-post: <a href="mailto:post@driftspartnernord.no">post@driftspartnernord.no</a></p>
+        </div>
+        <p class="notice">Endelig juridisk tekst bør kvalitetssikres av jurist før større kundesignering.</p>
+      </aside>
+    </section>
+
+    <section id="bestilling" class="section card">
+      <span class="eyebrow">Pris og bestilling</span>
+      <h2>Velg pakken som passer eiendommen.</h2>
+      <div class="grid3">
+        <article class="card price">
+          <span class="badge">Start</span>
+          <h3>Start</h3>
+          <strong>990 kr/mnd</strong>
+          <small>Faktureres årlig</small>
+          <ul class="list"><li>FDV-arkiv</li><li>Dokumenthåndtering</li><li>Avvikshåndtering</li><li>Styreportal</li><li>Mobiltilgang</li></ul>
+        </article>
+        <article class="card price featured">
+          <span class="badge">Mest valgt</span>
+          <h3>Pro</h3>
+          <strong>1 990 kr/mnd</strong>
+          <small>Faktureres årlig</small>
+          <ul class="list"><li>Alt i Start</li><li>Arbeidsordre</li><li>Leverandørregister</li><li>Budsjettoversikt</li><li>Avansert rapportering</li></ul>
+        </article>
+        <article class="card price">
+          <span class="badge">Premium</span>
+          <h3>Premium</h3>
+          <strong>3 990 kr/mnd</strong>
+          <small>Faktureres årlig</small>
+          <ul class="list"><li>Alt i Pro</li><li>Tilbudsinnhenting</li><li>Flere eiendommer</li><li>Property Brain AI</li><li>Prioritert support</li></ul>
+        </article>
+      </div>
+      <p class="notice">Bestilling gjøres via “Kom i gang” på forsiden eller ved e-post til <a href="mailto:post@driftspartnernord.no">post@driftspartnernord.no</a>. Endelig avtale bekreftes skriftlig før oppstart.</p>
+    </section>
+
+    <section id="vilkar" class="section card">
+      <span class="eyebrow">Vilkår</span>
+      <h2>Forutsigbare rammer for bruk.</h2>
+      <table>
+        <tr><th>Punkt</th><th>Innhold</th></tr>
+        <tr><td>Avtale</td><td>Abonnementet gir kunden tilgang til Driftspartner OS for registrerte eiendommer, brukere og moduler i valgt pakke.</td></tr>
+        <tr><td>Oppstart</td><td>Kunden leverer nødvendige grunndata. Driftspartner Nord bistår med oppsett etter avtalt onboarding.</td></tr>
+        <tr><td>Betaling</td><td>Pris faktureres årlig. Manglende betaling kan medføre sperret tilgang etter skriftlig varsel.</td></tr>
+        <tr><td>Bruk</td><td>Kunden er ansvarlig for at brukere har riktig rolle og at informasjon som legges inn er korrekt.</td></tr>
+        <tr><td>Oppsigelse</td><td>Oppsigelse må skje skriftlig. Data kan eksporteres før avslutning etter backup-/eksport-rutinen.</td></tr>
+        <tr><td>Avtaletid</td><td>Avtaletid og eventuell bindingstid avtales skriftlig ved bestilling.</td></tr>
+        <tr><td>Prisjustering</td><td>Priser kan justeres ved fornyelse eller ved vesentlige endringer i leveransekostnader, funksjonalitet eller omfang.</td></tr>
+        <tr><td>Ansvarsbegrensning</td><td>Tjenesten er et drifts- og dokumentasjonsverktøy. Kunden er ansvarlig for endelige beslutninger, bestillinger og faglige vurderinger.</td></tr>
+        <tr><td>Force majeure</td><td>Partene er ikke ansvarlige for forsinkelser eller mangler som skyldes forhold utenfor rimelig kontroll.</td></tr>
+      </table>
+    </section>
+
+    <section id="personvern" class="section card">
+      <span class="eyebrow">Personvern</span>
+      <h2>Data behandles for trygg eiendomsdrift.</h2>
+      <p>Driftspartner OS behandler personopplysninger som navn, e-post, telefonnummer, rolle, eiendomstilknytning, aktivitetshistorikk og dokumentmetadata.</p>
+      <div class="twocol">
+        <div>
+          <h3>Personopplysninger</h3>
+          <div class="pill-list"><span class="pill">Navn</span><span class="pill">E-post</span><span class="pill">Telefonnummer</span><span class="pill">Rolle</span><span class="pill">Eiendomstilknytning</span><span class="pill">Aktivitetshistorikk</span><span class="pill">Dokumentmetadata</span></div>
+        </div>
+        <div>
+          <h3>Formål</h3>
+          <div class="pill-list"><span class="pill">FDV</span><span class="pill">Avvik</span><span class="pill">Arbeidsordre</span><span class="pill">Styrearbeid</span><span class="pill">Dokumentarkiv</span><span class="pill">Leverandøroppfølging</span></div>
+        </div>
+      </div>
+      <ul class="list">
+        <li>Behandlingsgrunnlag er avtale og berettiget interesse.</li>
+        <li>Tilgang styres rollebasert og knyttes til eiendom.</li>
+        <li>Data deles ikke med uvedkommende tredjeparter.</li>
+        <li>Kunden kan be om innsyn, retting, sletting og eksport.</li>
+        <li>Hendelser logges for sporbarhet og sikkerhet.</li>
+      </ul>
+    </section>
+
+    <section id="dpa" class="section card">
+      <span class="eyebrow">Databehandleravtale</span>
+      <h2>Roller, sikkerhet og underleverandører.</h2>
+      <p>Kunden er behandlingsansvarlig for egne eiendoms- og brukerdata. Driftspartner Nord er databehandler og behandler data etter kundens instruks og for å levere tjenesten.</p>
+      <table>
+        <tr><th>Punkt</th><th>Innhold</th></tr>
+        <tr><td>Formål</td><td>Drift, FDV, avvik, arbeidsordre, dokumenthåndtering, økonomioversikt og styrearbeid.</td></tr>
+        <tr><td>Datatyper</td><td>Kontaktdata, rolle, eiendomstilknytning, dokumenter, avvik, oppgaver, aktivitet og systemlogger.</td></tr>
+        <tr><td>Underdatabehandlere</td><td>Sky-, database-, lagrings-, AI- og e-postleverandører brukt for å levere tjenesten.</td></tr>
+        <tr><td>Sikkerhet</td><td>Rollebasert tilgang, logging, tilgang per eiendom og sikker lagring.</td></tr>
+        <tr><td>Sletting/retur</td><td>Ved avsluttet kundeforhold kan kunden få eksport og be om sletting etter avtalt rutine.</td></tr>
+        <tr><td>Eierskap til data</td><td>Kunden eier egne kundedata og dokumenter. Driftspartner Nord behandler data for å levere tjenesten.</td></tr>
+      </table>
+      <h3>Underdatabehandlere</h3>
+      <table>
+        <tr><th>Leverandør</th><th>Bruk</th></tr>
+        <tr><td>Supabase</td><td>Database og lagring.</td></tr>
+        <tr><td>Vercel</td><td>Hosting.</td></tr>
+        <tr><td>OpenAI</td><td>AI-funksjoner.</td></tr>
+        <tr><td>E-postleverandør</td><td>Systemvarsler og kommunikasjon.</td></tr>
+      </table>
+    </section>
+
+    <section id="support" class="section card">
+      <span class="eyebrow">Support</span>
+      <h2>Supportmodell</h2>
+      <table>
+        <tr><th>Type</th><th>Responsmål</th><th>Eksempel</th></tr>
+        <tr><td>Kritisk</td><td>Samme arbeidsdag</td><td>Innlogging nede, dokumentopplasting ute av drift, sikkerhetshendelse.</td></tr>
+        <tr><td>Normal</td><td>1-2 arbeidsdager</td><td>Spørsmål om bruk, feil i visning, hjelp med oppsett.</td></tr>
+        <tr><td>Endring</td><td>Avtales</td><td>Nye moduler, integrasjoner, import eller tilpasninger.</td></tr>
+      </table>
+      <p>Support meldes til <a href="mailto:post@driftspartnernord.no">post@driftspartnernord.no</a>.</p>
+    </section>
+
+    <section id="backup" class="section card">
+      <span class="eyebrow">Backup og eksport</span>
+      <h2>Rutine for data og avslutning.</h2>
+      <ul class="list">
+        <li>Kundedata lagres i database og dokumentarkiv knyttet til valgt eiendom.</li>
+        <li>Backup tas daglig og oppbevares i minimum 30 dager.</li>
+        <li>Eksport kan leveres som dokumentarkiv og CSV/Excel for registre og aktivitetslogg.</li>
+        <li>Ved avslutning avtales eksportperiode før eventuell sletting.</li>
+        <li>Kritiske dokumenter bør også ligge i kundens eget arkiv dersom kunden har særskilte interne krav.</li>
+        <li>Backup- og gjenopprettingsrutine bør testes før større kundelansering.</li>
+      </ul>
+    </section>
+
+    <section id="ai" class="section card">
+      <span class="eyebrow">AI-forbehold</span>
+      <h2>Property Brain AI</h2>
+      <p>AI-genererte forslag er veiledende og skal ikke anses som juridiske, tekniske eller økonomiske råd. Kunden er selv ansvarlig for vurdering og beslutninger basert på AI-generert innhold.</p>
+      <div class="cta-row">
+        <a class="btn" href="driftspartner-property-os.html">Til forsiden</a>
+        <a class="btn secondary" href="mailto:post@driftspartnernord.no">Kontakt Driftspartner Nord</a>
+      </div>
+    </section>
+
+    <footer>
+      <p>Versjon 2026-06-14. Dette er en kommersiell mal for salg og onboarding. Endelig juridisk tekst bør kvalitetssikres før større kundesignering.</p>
+    </footer>
+  </main>
+</body>
+</html>
