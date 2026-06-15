@@ -81,20 +81,20 @@ function findCaseParts(deviationId=''){
 function showCaseFlow(deviationId=''){
   const c=findCaseParts(deviationId);
   const selected=(DP.cache.deviations||[]).map(d=>`<option value="${esc(d.id)}" ${c.deviation?.id===d.id?'selected':''}>${esc(d.title)}</option>`).join('');
-  showDrawer('Full saksløp',`<label>Velg avvik</label><select id="flowDeviation" onchange="showCaseFlow(this.value)">${selected}</select>${caseFlowStatus(c)}<div class="flow-actions"><button class="action primary" onclick="flowCreateWorkOrder()">1. Lag arbeidsordre</button><button class="action" onclick="flowCreateRfq()">2. Lag tilbudsforespørsel</button><button class="action" onclick="showOfferForm()">3. Last opp tilbud/PDF</button><button class="action" onclick="flowBoardApproval()">4. Styregodkjenning</button><button class="action" onclick="flowContract()">5. Generer kontrakt</button><button class="action" onclick="flowFdv()">6. Oppdater FDV</button></div><label>Sluttrapport / utført arbeid</label><textarea id="flowReportText" rows="7" placeholder="Skriv hva som er gjort, vurdering, avvik, anbefaling og neste steg."></textarea><button class="action primary" onclick="flowReport()">7. Lag rapport</button><div id="flowOut" class="output">Alle steg lagres live mot valgt eiendom.</div>`);
+  showDrawer('Full saksløp',`<section class="case-flow"><div class="case-flow-head"><div><small>Valgt sak</small><h3>${esc(c.deviation?.title||'Velg avvik')}</h3></div><div><label>Velg avvik</label><select id="flowDeviation" onchange="showCaseFlow(this.value)">${selected}</select></div></div>${caseFlowStatus(c)}<h3>Neste handling</h3><div class="flow-actions"><button class="action primary" onclick="flowCreateWorkOrder()"><span>1</span>Lag arbeidsordre</button><button class="action" onclick="flowCreateRfq()"><span>2</span>Lag tilbudsforespørsel</button><button class="action" onclick="showOfferForm()"><span>3</span>Last opp tilbud/PDF</button><button class="action" onclick="flowBoardApproval()"><span>4</span>Styregodkjenning</button><button class="action" onclick="flowContract()"><span>5</span>Generer kontrakt</button><button class="action" onclick="flowFdv()"><span>6</span>Oppdater FDV</button></div><label>Sluttrapport / utført arbeid</label><textarea id="flowReportText" rows="7" placeholder="Skriv hva som er gjort, vurdering, avvik, anbefaling og neste steg."></textarea><button class="action primary flow-report-button" onclick="flowReport()">7. Lag rapport</button><div id="flowOut" class="output">Alle steg lagres live mot valgt eiendom.</div></section>`);
 }
 function caseFlowStatus(c){
-  const item=(name,ok,detail)=>`<tr><td>${esc(name)}</td><td>${ok?'OK':'Mangler'}</td><td>${esc(detail||'-')}</td></tr>`;
-  return table(['Steg','Status','Detalj'],[
-    item('Avvik',!!c.deviation,c.deviation?.title),
-    item('Arbeidsordre',!!c.workOrder,c.workOrder?.title),
-    item('Tilbudsforespørsel',!!c.rfq,c.rfq?.title),
-    item('Tilbud/PDF',!!c.offer,c.offer?`${money(c.offer.price)} - ${c.offer.status||''}`:''),
-    item('Styregodkjenning',c.hasBoard,'Styrepapir i dokumentarkiv'),
-    item('Kontrakt',c.hasContract,'Kontrakt i dokumentarkiv'),
-    item('FDV',c.hasFdv,'FDV-dokument i dokumentarkiv'),
-    item('Rapport',c.hasReport,'Rapport i dokumentarkiv')
-  ]);
+  const items=[
+    ['Avvik',!!c.deviation,c.deviation?.title],
+    ['Arbeidsordre',!!c.workOrder,c.workOrder?.title],
+    ['Tilbudsforespørsel',!!c.rfq,c.rfq?.title],
+    ['Tilbud/PDF',!!c.offer,c.offer?`${money(c.offer.price)} - ${c.offer.status||''}`:'Venter på tilbud'],
+    ['Styregodkjenning',c.hasBoard,'Styrepapir i dokumentarkiv'],
+    ['Kontrakt',c.hasContract,'Kontrakt i dokumentarkiv'],
+    ['FDV',c.hasFdv,'FDV-dokument i dokumentarkiv'],
+    ['Rapport',c.hasReport,'Rapport i dokumentarkiv']
+  ];
+  return `<div class="case-flow-steps">${items.map((x,i)=>`<section class="case-step ${x[1]?'done':'missing'}"><div class="case-step-index">${i+1}</div><div><strong>${esc(x[0])}</strong><small>${esc(x[2]||'Mangler')}</small></div><span>${x[1]?'Fullført':'Mangler'}</span></section>`).join('')}</div>`;
 }
 function flowSelectedDeviation(){const id=document.getElementById('flowDeviation')?.value;const c=findCaseParts(id);if(!c.deviation)throw new Error('Opprett eller velg avvik først.');return c}
 async function flowCreateWorkOrder(){
