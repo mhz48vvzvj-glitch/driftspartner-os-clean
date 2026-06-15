@@ -144,6 +144,7 @@ function generatedCaseDocument(kind,c,extraText=''){
     ['Dato',new Date().toLocaleString('nb-NO')]
   ];
   const extra=String(extraText||'').trim();
+  const signature=String(kind||'').toLowerCase().includes('kontrakt')?`<section class="signatures"><h2>Signatur</h2><div class="signature-grid"><div><span>For kunde / styret</span><strong>${clean(p?.name||'Eiendom')}</strong><div class="line"></div><small>Dato / signatur</small></div><div><span>For leverandør</span><strong>Leverandør</strong><div class="line"></div><small>Dato / signatur</small></div></div></section>`:'';
   return `<!doctype html>
 <html lang="no">
 <head>
@@ -167,8 +168,16 @@ function generatedCaseDocument(kind,c,extraText=''){
     .report-text h2{margin:0 0 10px;font-size:20px;color:#142033}
     .report-text p{margin:0;white-space:normal;color:#26384f}
     .note{border-left:4px solid #176bff;background:#eef5ff;padding:16px 18px;border-radius:10px;color:#26384f}
+    .signatures{border:1px solid #dbe6f3;background:#fbfdff;border-radius:14px;padding:20px 22px;margin:0 0 24px}
+    .signatures h2{margin:0 0 16px;font-size:20px;color:#142033}
+    .signature-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px}
+    .signature-grid>div{border:1px solid #e2e9f2;border-radius:12px;padding:18px;background:#fff}
+    .signature-grid span{display:block;color:#64748b;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+    .signature-grid strong{display:block;margin-top:6px;color:#142033}
+    .line{height:52px;border-bottom:2px solid #96a4b8;margin:18px 0 8px}
+    .signature-grid small{color:#64748b}
     footer{padding:18px 38px;color:#6c7b91;background:#f8fafc;border-top:1px solid #e6edf5;font-size:13px}
-    @media(max-width:680px){.page{margin:0;border-radius:0}.summary{grid-template-columns:1fr}header,main,footer{padding-left:22px;padding-right:22px}}
+    @media(max-width:680px){.page{margin:0;border-radius:0}.summary,.signature-grid{grid-template-columns:1fr}header,main,footer{padding-left:22px;padding-right:22px}}
   </style>
 </head>
 <body>
@@ -183,6 +192,7 @@ function generatedCaseDocument(kind,c,extraText=''){
         ${rows.map(r=>`<div class="field"><span>${clean(r[0])}</span><strong>${clean(r[1])}</strong></div>`).join('')}
       </section>
       ${extra?`<section class="report-text"><h2>Notat</h2><p>${clean(extra).replace(/\n/g,'<br>')}</p></section>`:''}
+      ${signature}
       <div class="note">Dette dokumentet er opprettet fra saksløpet i Driftspartner OS og lagret på valgt eiendom.</div>
     </main>
     <footer>${clean(p?.name||'Eiendom')} · Driftspartner OS</footer>
@@ -202,7 +212,7 @@ function DocumentsPage(){
   const filtered=active==='Alle'?docs:docs.filter(d=>String(d.category||'')===active);
   const byCat=c=>docs.filter(d=>String(d.category||'')===c).length;
   const stats=cats.slice(1).map(c=>`<button class="action ${active===c?'primary':''}" onclick="DP.docCat='${esc(c)}';render()">${esc(c)} (${byCat(c)})</button>`).join('');
-  return `<div class="grid"><div class="card s12"><div class="dash-title"><h3>Dokumentarkiv</h3><button class="action primary" onclick="showDocForm()">Last opp dokument</button></div><div class="row"><button class="action ${active==='Alle'?'primary':''}" onclick="DP.docCat='Alle';render()">Alle (${docs.length})</button>${stats}</div>${documentsTable(filtered)}</div></div>`;
+  return `<div class="grid"><div class="card s12"><div class="dash-title"><h3>Dokumentarkiv</h3><div><button class="action primary" onclick="showDocForm()">Last opp dokument</button><button class="action" onclick="showStandaloneContractForm()">Lag kontrakt</button></div></div><div class="row"><button class="action ${active==='Alle'?'primary':''}" onclick="DP.docCat='Alle';render()">Alle (${docs.length})</button>${stats}</div>${documentsTable(filtered)}</div></div>`;
 }
 function documentsTable(docs){
   return table(['Tittel','Kategori','Knyttet til','Versjon','Utløp','Status','Handling'],docs.map(d=>`<tr><td>${esc(d.title)}</td><td>${esc(d.category)}</td><td>${esc(documentLinkLabel(d))}</td><td>v${esc(d.version||1)}</td><td>${esc(d.expires_at||'-')}</td><td>${esc(d.status||'Arkivert')}</td><td><button class="action" onclick="showDocumentDetails('${esc(d.id)}')">Detaljer</button><button class="action" onclick="openDocument('${esc(d.id)}')">Åpne</button><button class="action" onclick="showDocumentVersionForm('${esc(d.id)}')">Ny versjon</button><button class="action red" onclick="deleteDocument('${esc(d.id)}','${esc(d.storage_path)}')">Slett</button></td></tr>`));
@@ -216,6 +226,48 @@ function docOptions(rows,selected=''){return rows.map(r=>`<option value="${esc(r
 function showDocForm(){
   const buildings=DP.cache.buildings||[],devs=DP.cache.deviations||[],wos=DP.cache.work_orders||[];
   showDrawer('Last opp dokument',`<label>Tittel</label><input id="docTitle"><label>Kategori</label><select id="docCat"><option>FDV</option><option>HMS</option><option>Tilbud</option><option>Kontrakt</option><option>Styrepapir</option><option>Bilde</option><option>Tegning</option><option>Annet</option></select><label>Bygg</label><select id="docBuilding"><option value="">Hele eiendommen</option>${docOptions(buildings)}</select><label>Knytt til sak</label><select id="docCase"><option value="">Ingen sak</option><optgroup label="Avvik">${docOptions(devs)}</optgroup><optgroup label="Arbeidsordre">${docOptions(wos)}</optgroup></select><label>Utløpsdato / fornyelse</label><input id="docExpires" type="date"><label>Notat</label><textarea id="docNotes" placeholder="Kort beskrivelse, garanti, kontrollfrist eller annen relevant informasjon"></textarea><label>Fil</label><input id="docFile" type="file"><button class="action primary" onclick="uploadDocument()">Last opp</button><div id="docOut" class="output"></div>`);
+}
+function showStandaloneContractForm(){
+  showDrawer('Lag kontrakt',`<p class="muted">Opprett en kontrakt direkte på valgt eiendom, uavhengig av avvik, prosjekt eller tilbud.</p><label>Kontraktsnavn</label><input id="contractTitle" placeholder="Serviceavtale, vedlikeholdsavtale, rammeavtale..."><label>Leverandør / motpart</label><input id="contractSupplier"><label>Kontaktperson</label><input id="contractContact"><label>Kontraktsverdi</label><input id="contractValue" type="number"><label>Startdato</label><input id="contractStart" type="date"><label>Sluttdato / fornyelse</label><input id="contractEnd" type="date"><label>Omfang og vilkår</label><textarea id="contractScope" rows="7" placeholder="Beskriv leveranse, ansvar, pris, forbehold, frister og særlige vilkår."></textarea><button class="action primary" onclick="saveStandaloneContract()">Opprett kontrakt</button><div id="contractOut" class="output">Kontrakten lagres i dokumentarkivet med signaturfelt.</div>`);
+}
+async function saveStandaloneContract(){
+  const out=document.getElementById('contractOut');
+  try{
+    requireLive('lage kontrakt');
+    const title=contractTitle.value.trim()||'Kontrakt';
+    const html=generatedStandaloneContract({
+      title,
+      supplier:contractSupplier.value.trim(),
+      contact:contractContact.value.trim(),
+      value:+contractValue.value||0,
+      start:contractStart.value,
+      end:contractEnd.value,
+      scope:contractScope.value.trim()
+    });
+    const doc=await uploadGeneratedDocument(title,'Kontrakt',html,'Klar');
+    await hydrateAll();hideDrawer();render();
+    showDrawer('Kontrakt opprettet',`<p>Kontrakten er lagret i dokumentarkivet.</p><button class="action primary" onclick="openDocument('${esc(doc.id)}')">Åpne kontrakt</button>`);
+  }catch(e){setOutputError(out,e,'Kontrakten kunne ikke opprettes akkurat nå.')}
+}
+function generatedStandaloneContract(data){
+  const p=currentProperty();
+  return generatedCaseDocument('Kontrakt',{
+    deviation:{title:data.title,status:'Klar'},
+    workOrder:{title:data.supplier||'Uavhengig kontrakt',status:'Klar'},
+    rfq:{title:data.contact||'Ikke knyttet til tilbudsforespørsel'},
+    offer:data.value?{price:data.value,status:'Avtalt'}:null
+  },[
+    `Leverandør / motpart: ${data.supplier||'-'}`,
+    `Kontaktperson: ${data.contact||'-'}`,
+    `Kontraktsverdi: ${data.value?money(data.value):'-'}`,
+    `Startdato: ${data.start||'-'}`,
+    `Sluttdato / fornyelse: ${data.end||'-'}`,
+    '',
+    'Omfang og vilkår:',
+    data.scope||'-',
+    '',
+    `Eiendom: ${p?.name||'-'}`
+  ].join('\n'));
 }
 function documentPayloadFromForm(path,file){
   const caseId=document.getElementById('docCase')?.value||'',devs=DP.cache.deviations||[],wos=DP.cache.work_orders||[];
