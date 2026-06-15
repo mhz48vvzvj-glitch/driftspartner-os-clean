@@ -1,9 +1,22 @@
 ﻿function PeoplePage(){
   const contacts=DP.cache.contacts||[],roleOf=c=>String(c.role||c.contact_role||c.contact_type||c.type||''),board=contacts.filter(c=>/styre|leder|vara/i.test(roleOf(c))),res=contacts.filter(c=>/bebo|resident|leilighet|enhet/i.test(roleOf(c))),other=contacts.filter(c=>!board.includes(c)&&!res.includes(c));
-  return `<div class="grid"><div class="card s12"><div class="dash-title"><h3>Beboere og styre</h3><div><button class="action primary" onclick="showPersonForm('Beboer')">Legg til beboer</button><button class="action" onclick="showPersonForm('Styremedlem')">Legg til styremedlem</button><button class="action" onclick="showUserForm()">Opprett innlogging</button></div></div></div>
-  <div class="card s6"><h3>Styre</h3>${personTable(board)}</div><div class="card s6"><h3>Beboere</h3>${personTable(res)}</div><div class="card s12"><h3>Andre kontakter</h3>${personTable(other)}</div></div>`;
+  return `<div class="grid people-page"><div class="card s12"><div class="dash-title"><div><h3>Beboere og styre</h3><p class="muted">Personer knyttet til valgt eiendom. Bruk dette som kontakt- og tilgangsgrunnlag.</p></div><div><button class="action primary" onclick="showPersonForm('Beboer')">Legg til beboer</button><button class="action" onclick="showPersonForm('Styremedlem')">Legg til styremedlem</button><button class="action" onclick="showUserForm()">Opprett innlogging</button></div></div></div>
+  <div class="card s6"><div class="dash-title"><h3>Styre</h3><button class="action" onclick="showPersonForm('Styremedlem')">Legg til</button></div>${personList(board,'Ingen styremedlemmer registrert.','Legg inn styreleder, styremedlemmer og vara for valgt eiendom.')}</div>
+  <div class="card s6"><div class="dash-title"><h3>Beboere</h3><button class="action" onclick="showPersonForm('Beboer')">Legg til</button></div>${personList(res,'Ingen beboere registrert.','Legg inn beboere eller kontaktpersoner som skal kunne melde avvik.')}</div>
+  <div class="card s12"><div class="dash-title"><h3>Andre kontakter</h3><button class="action" onclick="showPersonForm('Kontakt')">Legg til kontakt</button></div>${personList(other,'Ingen andre kontakter registrert.','Her kan forvalter, vaktmester eller andre faste kontaktpersoner ligge.')}</div></div>`;
 }
-function personTable(rows){return table(['Navn','Rolle','E-post','Telefon','Handling'],rows.map(c=>`<tr><td>${esc(c.name||'-')}</td><td>${esc(c.role||c.contact_role||c.contact_type||c.type||'-')}</td><td>${esc(c.email||'-')}</td><td>${esc(c.phone||'-')}</td><td><button class="action red" onclick="deleteContact('${esc(c.id)}')">Slett</button></td></tr>`))}
+function personList(rows,emptyTitle,emptyText){
+  if(!rows.length)return `<div class="empty-state"><strong>${esc(emptyTitle)}</strong><span>${esc(emptyText)}</span></div>`;
+  return `<div class="person-list">${rows.map(c=>personCard(c)).join('')}</div>`;
+}
+function personCard(c){
+  const role=c.role||c.contact_role||c.contact_type||c.type||'Kontakt';
+  const email=c.email||'-',phone=c.phone||'-';
+  return `<section class="person-card"><div class="person-main"><div class="person-avatar">${esc(initials(c.name||role))}</div><div class="person-text"><strong>${esc(c.name||'-')}</strong><span>${esc(role)}</span></div></div><div class="person-meta"><div><small>E-post</small><b>${esc(email)}</b></div><div><small>Telefon</small><b>${esc(phone)}</b></div></div><div class="row-actions"><button class="action red" onclick="deleteContact('${esc(c.id)}')">Slett</button></div></section>`;
+}
+function initials(value){
+  return String(value||'K').split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]).join('').toUpperCase()||'K';
+}
 function showPersonForm(role){showDrawer('Legg til '+role,`<label>Navn</label><input id="personName"><label>Rolle</label><input id="personRole" value="${esc(role)}"><label>E-post</label><input id="personEmail"><label>Telefon</label><input id="personPhone"><label>Notat/enhet</label><textarea id="personNotes"></textarea><button class="action primary" onclick="saveContact()">Lagre</button><div id="personOut" class="output">Klar til lagring.</div>`)}
 function isPeopleSchemaError(error){return /column|schema|cache|relation|does not exist|could not find|not-null|null value|violates/i.test(String(error?.message||error||''))}
 async function saveContact(){
