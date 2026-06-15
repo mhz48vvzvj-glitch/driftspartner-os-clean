@@ -2,16 +2,47 @@
   const devs=DP.cache.deviations||[],wos=DP.cache.work_orders||[],docs=DP.cache.documents||[],rfqs=DP.cache.quote_requests||[],offers=DP.cache.offers||[],f=(DP.cache.finance||[])[0]||{};
   const open=x=>!['lukket','ferdig','utført','utfort','fullført','fullfort'].includes(String(x.status||'').toLowerCase());
   const critical=devs.filter(d=>open(d)&&String(d.priority||'').toLowerCase().includes('kritisk')).length;
-  return `<div class="grid">
-    ${kpi('Åpne avvik',devs.filter(open).length,'info')}${kpi('Kritiske avvik',critical,critical?'bad':'ok')}${kpi('Arbeidsordre',wos.filter(open).length,'warn')}${kpi('Dokumenter',docs.length,'ok')}${kpi('Forespørsler/tilbud',`${rfqs.length}/${offers.length}`,'info')}${kpi('Konto',money(f.bank_balance),'purple')}
-    <div class="card s12"><div class="dash-title"><h3>Neste produksjonssteg</h3><button class="action primary" onclick="openModule('cases')">Start saksløp</button></div>${ProductionFlowMini()}</div>
-    <div class="card s12">${AiDirectorCard()}</div>
-    <div class="card s6"><h3>Siste avvik</h3>${simpleRows(devs,['title','status','priority'])}</div>
-    <div class="card s6"><h3>Siste dokumenter</h3>${simpleRows(docs,['title','category','status'])}</div>
+  const openDevs=devs.filter(open).length,openWos=wos.filter(open).length;
+  return `<div class="grid dashboard-page">
+    ${dashboardMetric('Åpne avvik',openDevs,openDevs?'Må følges opp':'Ingen åpne avvik','info')}
+    ${dashboardMetric('Kritiske avvik',critical,critical?'Krever rask handling':'Ingen kritiske avvik',critical?'bad':'ok')}
+    ${dashboardMetric('Arbeidsordre',openWos,openWos?'Pågående oppgaver':'Ingen åpne ordre',openWos?'warn':'ok')}
+    ${dashboardMetric('Dokumenter',docs.length,'Lagret på valgt eiendom','ok')}
+    ${dashboardMetric('Tilbud/RFQ',`${rfqs.length}/${offers.length}`,'Forespørsler og tilbud','info')}
+    ${dashboardMetric('Konto',money(f.bank_balance),'Registrert banksaldo','purple')}
+    <div class="card s12 dashboard-flow"><div class="dash-title"><div><h3>Neste produksjonssteg</h3><p class="muted">Viser om valgt eiendom har komplett saksløp fra avvik til FDV.</p></div><button class="action primary" onclick="openModule('cases')">Start saksløp</button></div>${ProductionFlowMini()}</div>
+    <div class="card s12 dashboard-ai">${AiDirectorCard()}</div>
+    <div class="card s6 dashboard-list"><div class="dash-title"><h3>Siste avvik</h3><button class="action" onclick="openModule('cases')">Åpne avvik</button></div>${caseList(devs)}</div>
+    <div class="card s6 dashboard-list"><div class="dash-title"><h3>Siste dokumenter</h3><button class="action" onclick="openModule('documents')">Åpne arkiv</button></div>${documentList(docs)}</div>
   </div>`;
 }
-function kpi(label,value,type='info'){return `<div class="card s2"><small class="muted">${esc(label)}</small><h2>${esc(value)}</h2><span class="badge ${type}">${type}</span></div>`}
-function simpleRows(rows,cols){return table(cols,rows.slice(0,8).map(r=>`<tr>${cols.map(c=>`<td>${esc(r[c]||'-')}</td>`).join('')}</tr>`))}
+function dashboardMetric(label,value,caption,type='info'){
+  return `<button class="card s2 dashboard-metric ${type}" onclick="${dashboardMetricAction(label)}"><small>${esc(label)}</small><strong>${esc(value)}</strong><span>${esc(caption)}</span></button>`;
+}
+function dashboardMetricAction(label){
+  if(label.includes('avvik')||label.includes('Arbeidsordre'))return "openModule('cases')";
+  if(label.includes('Dokumenter'))return "openModule('documents')";
+  if(label.includes('Tilbud'))return "openModule('market')";
+  if(label.includes('Konto'))return "openModule('finance')";
+  return "hydrateAll().then(render)";
+}
+function caseList(rows){
+  const data=(rows||[]).slice(0,7);
+  if(!data.length)return '<div class="empty-state">Ingen avvik registrert på valgt eiendom.</div>';
+  return `<div class="clean-list">${data.map(r=>`<button class="clean-row" onclick="openModule('cases')"><div><strong>${esc(r.title||'Uten tittel')}</strong><small>${esc(r.status||'Ukjent status')}</small></div><span class="soft-pill ${priorityClass(r.priority)}">${esc(r.priority||'Ikke satt')}</span></button>`).join('')}</div>`;
+}
+function documentList(rows){
+  const data=(rows||[]).slice(0,7);
+  if(!data.length)return '<div class="empty-state">Ingen dokumenter registrert på valgt eiendom.</div>';
+  return `<div class="clean-list">${data.map(r=>`<button class="clean-row" onclick="openModule('documents')"><div><strong>${esc(r.title||'Uten tittel')}</strong><small>${esc(r.category||'Uten kategori')}</small></div><span class="soft-pill neutral">${esc(r.status||'Arkiv')}</span></button>`).join('')}</div>`;
+}
+function priorityClass(value){
+  const p=String(value||'').toLowerCase();
+  if(p.includes('kritisk')||p.includes('høy'))return 'bad';
+  if(p.includes('medium'))return 'warn';
+  if(p.includes('lav'))return 'ok';
+  return 'neutral';
+}
 function ProductionFlowMini(){
   const steps=[['Avvik',(DP.cache.deviations||[]).length],['Arbeidsordre',(DP.cache.work_orders||[]).length],['Tilbudsforespørsel',(DP.cache.quote_requests||[]).length],['Tilbud',(DP.cache.offers||[]).length],['FDV',(DP.cache.documents||[]).filter(d=>String(d.category).toLowerCase()==='fdv').length]];
   return `<div class="ops-budget-summary">${steps.map(s=>`<div><small>${esc(s[0])}</small><b>${s[1]}</b></div>`).join('')}</div><p class="muted">Tallene kommer fra valgt eiendom. Mangler et steg, må det opprettes live før flyten kan fullføres.</p>`;
