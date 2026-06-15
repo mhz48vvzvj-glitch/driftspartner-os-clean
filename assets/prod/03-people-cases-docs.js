@@ -50,15 +50,15 @@ async function saveContact(){
     }
     if(r?.error)throw lastError||r.error;
     await insertActivity('Kontakt lagret','contact',r.data?.id||name);
-    await hydrateAll();hideDrawer();render();
+    await finishAction('Kontakt er lagret.','people');
   }catch(e){
     const msg=isPeopleSchemaError(e)?'Kontakt-tabellen mangler riktig oppsett eller tilgang. Kjør supabase-people-v1.sql i Supabase og prøv igjen.':customerError(e);
     showDrawer('Kontakt ble ikke lagret',`<div class=\"output\">${esc(msg)}</div>`);
   }
 }
-async function deleteContact(id){if(!confirm('Slette kontakt?'))return;try{requireLive('slette kontakt');const r=await db().from('property_contacts').delete().eq('id',id);if(r.error)throw r.error;await insertActivity('Kontakt slettet','contact',id);await hydrateAll();render()}catch(e){showDrawer('Kontakt ble ikke slettet',`<div class=\"output\">${esc(customerError(e))}</div>`)}}
+async function deleteContact(id){if(!confirm('Slette kontakt?'))return;try{requireLive('slette kontakt');const r=await db().from('property_contacts').delete().eq('id',id);if(r.error)throw r.error;await insertActivity('Kontakt slettet','contact',id);await finishAction('Kontakten er slettet.','people')}catch(e){showDrawer('Kontakt ble ikke slettet',`<div class=\"output\">${esc(customerError(e))}</div>`)}}
 function showUserForm(){showDrawer('Opprett bruker med innlogging',`<label>Navn</label><input id="newName"><label>E-post</label><input id="newEmail"><label>Telefon</label><input id="newPhone"><label>Rolle</label><select id="newRole"><option value="beboer">Beboer</option><option value="styreleder">Styreleder</option><option value="styremedlem">Styremedlem</option><option value="vaktmester">Vaktmester</option><option value="leverandor">Leverandør</option></select><label>Midlertidig passord</label><input id="newPassword" type="password"><button class="action primary" onclick="createUserLogin()">Opprett bruker</button><div id="newUserOut" class="output">Klar til å opprette bruker.</div>`)}
-async function createUserLogin(){const out=document.getElementById('newUserOut');try{requireLive('opprette bruker');const token=DP.session?.access_token;if(!token)throw new Error('Mangler innloggingstoken.');const access={beboer:'resident',styreleder:'owner',styremedlem:'member',vaktmester:'caretaker',leverandor:'vendor'}[newRole.value]||'member';const res=await fetch('/.netlify/functions/create-user',{method:'POST',headers:{'content-type':'application/json',authorization:`Bearer ${token}`},body:JSON.stringify({name:newName.value,email:newEmail.value,phone:newPhone.value,role:newRole.value,property_id:currentProperty().id,access_role:access,password:newPassword.value})});const data=await readJsonResponse(res,'Bruker-tjenesten svarte ikke riktig. Publiser siste pakke og prøv igjen.');if(!data.ok)throw new Error(data.message);out.textContent=data.email_sent?'Bruker opprettet og innloggingsmail sendt.':'Bruker opprettet, men innloggingsmail ble ikke sendt.';await insertActivity(data.email_sent?'Bruker opprettet og e-post sendt':'Bruker opprettet','user',data.user?.id||newEmail.value)}catch(e){setOutputError(out,e)}}
+async function createUserLogin(){const out=document.getElementById('newUserOut');try{requireLive('opprette bruker');const token=DP.session?.access_token;if(!token)throw new Error('Mangler innloggingstoken.');const access={beboer:'resident',styreleder:'owner',styremedlem:'member',vaktmester:'caretaker',leverandor:'vendor'}[newRole.value]||'member';const res=await fetch('/.netlify/functions/create-user',{method:'POST',headers:{'content-type':'application/json',authorization:`Bearer ${token}`},body:JSON.stringify({name:newName.value,email:newEmail.value,phone:newPhone.value,role:newRole.value,property_id:currentProperty().id,access_role:access,password:newPassword.value})});const data=await readJsonResponse(res,'Bruker-tjenesten svarte ikke riktig. Publiser siste pakke og prøv igjen.');if(!data.ok)throw new Error(data.message);await insertActivity(data.email_sent?'Bruker opprettet og e-post sendt':'Bruker opprettet','user',data.user?.id||newEmail.value);await finishAction(data.email_sent?'Bruker er opprettet og innloggingsmail er sendt.':'Bruker er opprettet. Innloggingsmail ble ikke sendt.','people')}catch(e){setOutputError(out,e)}}
 
 function CasesPage(){const devs=DP.cache.deviations||[],wos=DP.cache.work_orders||[];return `<div class="grid cases-page"><div class="card s12 module-hero"><div><small>Drift</small><h2>Avvik og arbeidsordre</h2><p>Registrer avvik, fordel ansvar og følg saken videre til tilbud, kontrakt, FDV og rapport.</p></div><div class="module-actions"><button class="action primary" onclick="showDeviationForm()">Nytt avvik</button><button class="action" onclick="showWorkOrderForm()">Ny arbeidsordre</button><button class="action" onclick="showCaseFlow()">Fullt saksløp</button></div></div><div class="card s6"><h3>Avvik</h3>${caseCards(devs,'deviation')}</div><div class="card s6"><h3>Arbeidsordre</h3>${caseCards(wos,'work_order')}</div></div>`}
 function deviationTable(rows){return table(['Tittel','Kategori','Prioritet','Status','Handling'],rows.map(d=>`<tr><td>${esc(d.title)}</td><td>${esc(d.category)}</td><td>${esc(d.priority)}</td><td>${esc(d.status)}</td><td><button class="action" onclick="showCaseFlow('${esc(d.id)}')">Saksløp</button><button class="action" onclick="showWorkOrderForm('${esc(d.id)}')">Arbeidsordre</button><button class="action red" onclick="deleteRow('deviations','${esc(d.id)}')">Slett</button></td></tr>`))}
@@ -68,10 +68,10 @@ function caseCards(rows,type){
   return `<div class="stack-list">${rows.map(r=>`<section class="mini-record"><div><strong>${esc(r.title||'Uten tittel')}</strong><small>${esc([r.category,r.priority,r.due_date,r.status].filter(Boolean).join(' · '))}</small></div><div class="row-actions">${type==='deviation'?`<button class="action" onclick="showCaseFlow('${esc(r.id)}')">Saksløp</button><button class="action" onclick="showWorkOrderForm('${esc(r.id)}')">Arbeidsordre</button>`:`<button class="action" onclick="showRfqForm('${esc(r.id)}')">Tilbud</button>`}<button class="action red" onclick="deleteRow('${type==='deviation'?'deviations':'work_orders'}','${esc(r.id)}')">Slett</button></div></section>`).join('')}</div>`;
 }
 function showDeviationForm(){showDrawer('Nytt avvik',`<label>Tittel</label><input id="devTitle"><label>Beskrivelse</label><textarea id="devDesc"></textarea><label>Kategori</label><select id="devCat"><option>Tak</option><option>VVS</option><option>Elektro</option><option>Uteomrade</option><option>HMS</option><option>Annet</option></select><label>Prioritet</label><select id="devPrio"><option>Lav</option><option>Medium</option><option>Hoy</option><option>Kritisk</option></select><button class="action primary" onclick="saveDeviation()">Lagre avvik</button>`)}
-async function saveDeviation(){try{requireLive('lagre avvik');const r=await db().from('deviations').insert({property_id:currentProperty().id,title:devTitle.value,description:devDesc.value,category:devCat.value,priority:devPrio.value,status:'Ny'}).select().single();if(r.error)throw r.error;await insertActivity('Avvik opprettet','deviation',r.data.id);await hydrateAll();hideDrawer();render()}catch(e){showDrawer('Avvik ble ikke lagret',`<div class=\"output\">${esc(customerError(e))}</div>`)}}
+async function saveDeviation(){try{requireLive('lagre avvik');const r=await db().from('deviations').insert({property_id:currentProperty().id,title:devTitle.value,description:devDesc.value,category:devCat.value,priority:devPrio.value,status:'Ny'}).select().single();if(r.error)throw r.error;await insertActivity('Avvik opprettet','deviation',r.data.id);await finishAction('Avviket er opprettet.','cases')}catch(e){showDrawer('Avvik ble ikke lagret',`<div class=\"output\">${esc(customerError(e))}</div>`)}}
 function showWorkOrderForm(deviationId=''){showDrawer('Ny arbeidsordre',`<input id="woDev" type="hidden" value="${esc(deviationId)}"><label>Tittel</label><input id="woTitle"><label>Beskrivelse</label><textarea id="woDesc"></textarea><label>Frist</label><input id="woDue" type="date"><button class="action primary" onclick="saveWorkOrder()">Lagre arbeidsordre</button>`)}
-async function saveWorkOrder(){try{requireLive('lagre arbeidsordre');let row={property_id:currentProperty().id,title:woTitle.value,description:woDesc.value,due_date:woDue.value||null,status:'Ny'};if(isUuid(woDev.value))row.deviation_id=woDev.value;const r=await db().from('work_orders').insert(row).select().single();if(r.error)throw r.error;await insertActivity('Arbeidsordre opprettet','work_order',r.data.id);await hydrateAll();hideDrawer();render()}catch(e){showDrawer('Arbeidsordre ble ikke lagret',`<div class=\"output\">${esc(customerError(e))}</div>`)}}
-async function deleteRow(tableName,id){if(!confirm('Slette raden?'))return;try{requireLive('slette');const r=await db().from(tableName).delete().eq('id',id);if(r.error)throw r.error;await insertActivity('Slettet '+tableName,'delete',id);await hydrateAll();render()}catch(e){showDrawer('Sletting feilet',`<div class=\"output\">${esc(customerError(e))}</div>`)}}
+async function saveWorkOrder(){try{requireLive('lagre arbeidsordre');let row={property_id:currentProperty().id,title:woTitle.value,description:woDesc.value,due_date:woDue.value||null,status:'Ny'};if(isUuid(woDev.value))row.deviation_id=woDev.value;const r=await db().from('work_orders').insert(row).select().single();if(r.error)throw r.error;await insertActivity('Arbeidsordre opprettet','work_order',r.data.id);await finishAction('Arbeidsordren er opprettet.','cases')}catch(e){showDrawer('Arbeidsordre ble ikke lagret',`<div class=\"output\">${esc(customerError(e))}</div>`)}}
+async function deleteRow(tableName,id){if(!confirm('Slette raden?'))return;try{requireLive('slette');const r=await db().from(tableName).delete().eq('id',id);if(r.error)throw r.error;await insertActivity('Slettet '+tableName,'delete',id);await finishAction('Elementet er slettet.',DP.module)}catch(e){showDrawer('Sletting feilet',`<div class=\"output\">${esc(customerError(e))}</div>`)}}
 
 function findCaseParts(deviationId=''){
   const devs=DP.cache.deviations||[],wos=DP.cache.work_orders||[],rfqs=DP.cache.quote_requests||[],offers=DP.cache.offers||[],docs=DP.cache.documents||[];
@@ -269,9 +269,8 @@ async function saveStandaloneContract(){
       end:contractEnd.value,
       scope:contractScope.value.trim()
     });
-    const doc=await uploadGeneratedDocument(title,'Kontrakt',html,'Klar');
-    await hydrateAll();hideDrawer();render();
-    showDrawer('Kontrakt opprettet',`<p>Kontrakten er lagret i dokumentarkivet.</p><button class="action primary" onclick="openDocument('${esc(doc.id)}')">Åpne kontrakt</button>`);
+    await uploadGeneratedDocument(title,'Kontrakt',html,'Klar');
+    await finishAction('Kontrakten er opprettet og lagret i dokumentarkivet.','documents');
   }catch(e){setOutputError(out,e,'Kontrakten kunne ikke opprettes akkurat nå.')}
 }
 function generatedStandaloneContract(data){
@@ -318,7 +317,7 @@ async function uploadDocument(){
     let r=await insertDocumentRow(documentPayloadFromForm(path,file));if(r.error)throw r.error;
     await saveDocumentVersion(r.data,file,path,1);
     await insertActivity('Dokument lastet opp','document',r.data.id);
-    await hydrateAll();hideDrawer();render();
+    await finishAction('Dokumentet er lastet opp.','documents');
   }catch(e){setOutputError(out,e,'Dokumentet kunne ikke lastes opp. Sjekk filen og prøv igjen.')}
 }
 async function openDocument(idOrPath){
@@ -372,7 +371,7 @@ async function uploadDocumentVersion(id){
     if(r.error)throw r.error;
     await saveDocumentVersion(r.data,file,path,next);
     await insertActivity('Dokumentversjon lastet opp','document',id);
-    await hydrateAll();showDocumentDetails(id);
+    await finishAction('Ny dokumentversjon er lagret.','documents');
   }catch(e){setOutputError(out,e,'Ny dokumentversjon kunne ikke lastes opp. Prøv igjen.')}
 }
 async function openDocumentVersion(path){
@@ -388,7 +387,7 @@ async function deleteDocument(id,path){
     if(vr.error&&!/relation|schema|cache|does not exist/i.test(String(vr.error.message||'')))throw vr.error;
     const files=[path,...versions].filter(Boolean);
     if(files.length)await db().storage.from('documents').remove([...new Set(files)]);
-    await insertActivity('Dokument slettet','document',id);await hydrateAll();render();
+    await insertActivity('Dokument slettet','document',id);await finishAction('Dokumentet er slettet.','documents');
   }catch(e){showDrawer('Dokument ble ikke slettet',`<div class=\"output\">${esc(customerError(e))}</div>`)}
 }
 

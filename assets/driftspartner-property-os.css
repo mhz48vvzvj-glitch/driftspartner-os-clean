@@ -619,6 +619,10 @@ body:not(.public-mode) td,body:not(.public-mode) th{word-break:break-word}
 .onboarding-entry-grid label{margin:0}
 .onboarding-item{align-items:center}
 .onboarding-item .action{min-width:78px}
+.dp-notice{position:fixed;right:22px;top:22px;z-index:80;max-width:min(420px,calc(100vw - 32px));padding:14px 16px;border-radius:14px;border:1px solid transparent;background:#0b1625;color:#fff;box-shadow:0 18px 50px rgba(0,0,0,.35);opacity:0;transform:translateY(-10px);pointer-events:none;transition:.22s ease}
+.dp-notice.ok{opacity:1;transform:translateY(0);border-color:#1f7a4d;background:linear-gradient(135deg,#0d2a1e,#102237)}
+.dp-notice.bad{opacity:1;transform:translateY(0);border-color:#7a1f2b;background:linear-gradient(135deg,#351019,#102237)}
+.dp-notice.warn{opacity:1;transform:translateY(0);border-color:#7a5a1f;background:linear-gradient(135deg,#352710,#102237)}
 @media(max-width:800px){
   .ai-report{grid-template-columns:1fr}
   .ai-section.status{grid-column:span 1}
@@ -631,6 +635,7 @@ body:not(.public-mode) td,body:not(.public-mode) th{word-break:break-word}
   .project-numbers{grid-template-columns:1fr}
   .person-meta{grid-template-columns:1fr}
   .case-flow-head,.case-flow-steps,.flow-actions,.flow-form-grid,.flow-context,.contract-step .flow-form-grid,.info-grid,.document-grid,.market-pipeline,.onboarding-entry-grid,.onboarding-entry-grid.two,.onboarding-entry-grid.three{grid-template-columns:1fr}
+  .dp-notice{left:16px;right:16px;top:14px}
   .module-hero{display:block}
   .module-actions{justify-content:flex-start;margin-top:14px}
   .case-step{grid-template-columns:38px minmax(0,1fr)}
