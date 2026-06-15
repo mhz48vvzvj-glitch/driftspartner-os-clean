@@ -19,7 +19,7 @@ async function login(){
     const client=db();
     const auth=await client.auth.signInWithPassword({email,password});
     if(auth.error)throw auth.error;
-    if(out)out.textContent='Innlogging OK. Henter brukerprofil...';
+    if(out)out.textContent='Innlogging godkjent. Henter brukerprofil...';
     DP.session=auth.data.session;
     let profileData=null,propertyData=null;
     if(location.protocol!=='file:'){
@@ -62,9 +62,9 @@ async function testLoginConnection(){
     if(authCheck.error)throw authCheck.error;
     const r=await client.from('properties').select('id,name').limit(1);
     if(r.error)throw r.error;
-    const msg=`Kobling OK. Fant ${r.data?.length||0} eiendommer. Du kan prøve innlogging.`;
+    const msg=`Tilkobling klar. Fant ${r.data?.length||0} eiendommer. Du kan prøve innlogging.`;
     if(out)out.textContent=msg;
-    setStatus('Kobling OK.');
+    setStatus('Tilkobling klar.');
   }catch(e){
     const msg=customerError(e,'Koblingen kunne ikke testes akkurat nå. Last siden på nytt og prøv igjen.');
     if(out)out.textContent=msg;
@@ -76,7 +76,7 @@ window.testLoginConnection=testLoginConnection;
 window.showLogin=showLogin;
 document.addEventListener('DOMContentLoaded',()=>{
   const out=document.getElementById('loginOut');
-  if(out&&out.textContent.includes('Venter pa app-script'))out.textContent='App-script lastet. Sjekker Supabase...';
+  if(out&&out.textContent.includes('Venter pa app-script'))out.textContent='Appen er lastet. Sjekker tilkobling...';
 });
 async function logout(){try{await db().auth.signOut()}catch(e){}DP.session=null;DP.user=null;DP.properties=[];DP.propertyId='';DP.cache={};renderPublic()}
 async function resumeSession(){

@@ -19,7 +19,7 @@
 <div id="sideNav"></div>
 </aside>
 <main class="main">
-<div class="top"><div><h1 id="title">Driftspartner OS</h1><div id="subtitle" class="muted">Produksjonsapp med live Supabase-data</div></div><span id="rolePill" class="pill">Produksjon</span></div>
+<div class="top"><div><h1 id="title">Driftspartner OS</h1><div id="subtitle" class="muted">Sikker drift, FDV og styrearbeid på valgt eiendom</div></div><span id="rolePill" class="pill">Produksjon</span></div>
 <div id="propertyContext" class="context"></div>
 <div id="status" class="status">Klar.</div>
 <div id="drawer" class="drawer"></div>
@@ -32,22 +32,22 @@ window.__dpRuntimeErrors=[];
 window.onerror=function(message,source,line,column,error){window.__dpRuntimeErrors.push((source||'script')+':'+line+': '+message);};
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="assets/prod/00-core.js?v=20260615121144" onload="window.__dpLoaded=(window.__dpLoaded||[]);window.__dpLoaded.push('00-core.js');" onerror="window.__dpErrors=(window.__dpErrors||[]);window.__dpErrors.push('00-core.js');"></script>
-<script src="assets/prod/01-auth-data.js?v=20260615121144" onload="window.__dpLoaded=(window.__dpLoaded||[]);window.__dpLoaded.push('01-auth-data.js');" onerror="window.__dpErrors=(window.__dpErrors||[]);window.__dpErrors.push('01-auth-data.js');"></script>
-<script src="assets/prod/02-dashboard-property.js?v=20260615121144" onload="window.__dpLoaded=(window.__dpLoaded||[]);window.__dpLoaded.push('02-dashboard-property.js');" onerror="window.__dpErrors=(window.__dpErrors||[]);window.__dpErrors.push('02-dashboard-property.js');"></script>
-<script src="assets/prod/03-people-cases-docs.js?v=20260615121144" onload="window.__dpLoaded=(window.__dpLoaded||[]);window.__dpLoaded.push('03-people-cases-docs.js');" onerror="window.__dpErrors=(window.__dpErrors||[]);window.__dpErrors.push('03-people-cases-docs.js');"></script>
-<script src="assets/prod/04-finance-market-admin.js?v=20260615121144" onload="window.__dpLoaded=(window.__dpLoaded||[]);window.__dpLoaded.push('04-finance-market-admin.js');" onerror="window.__dpErrors=(window.__dpErrors||[]);window.__dpErrors.push('04-finance-market-admin.js');"></script>
+<script src="assets/prod/00-core.js?v=20260615123816" onload="window.__dpLoaded=(window.__dpLoaded||[]);window.__dpLoaded.push('00-core.js');" onerror="window.__dpErrors=(window.__dpErrors||[]);window.__dpErrors.push('00-core.js');"></script>
+<script src="assets/prod/01-auth-data.js?v=20260615123816" onload="window.__dpLoaded=(window.__dpLoaded||[]);window.__dpLoaded.push('01-auth-data.js');" onerror="window.__dpErrors=(window.__dpErrors||[]);window.__dpErrors.push('01-auth-data.js');"></script>
+<script src="assets/prod/02-dashboard-property.js?v=20260615123816" onload="window.__dpLoaded=(window.__dpLoaded||[]);window.__dpLoaded.push('02-dashboard-property.js');" onerror="window.__dpErrors=(window.__dpErrors||[]);window.__dpErrors.push('02-dashboard-property.js');"></script>
+<script src="assets/prod/03-people-cases-docs.js?v=20260615123816" onload="window.__dpLoaded=(window.__dpLoaded||[]);window.__dpLoaded.push('03-people-cases-docs.js');" onerror="window.__dpErrors=(window.__dpErrors||[]);window.__dpErrors.push('03-people-cases-docs.js');"></script>
+<script src="assets/prod/04-finance-market-admin.js?v=20260615123816" onload="window.__dpLoaded=(window.__dpLoaded||[]);window.__dpLoaded.push('04-finance-market-admin.js');" onerror="window.__dpErrors=(window.__dpErrors||[]);window.__dpErrors.push('04-finance-market-admin.js');"></script>
 <script>
 (function(){
   function out(text){var el=document.getElementById('loginOut');if(el)el.textContent=text;}
   function ready(attempt){
     if(typeof window.renderPublic==='function')window.renderPublic();
     if(window.__dpCoreReady&&window.__dpAuthReady&&typeof window.login==='function'&&typeof window.testLoginConnection==='function'){
-      out(window.supabase?'App og Supabase er lastet. Klar for innlogging.':'App er lastet, men Supabase mangler.');
+      out(window.supabase?'Appen er klar for innlogging.':'Appen mangler en nødvendig tilkobling. Prøv å laste siden på nytt.');
       return;
     }
     if(attempt<30){out('Laster app... ('+(attempt+1)+')');setTimeout(function(){ready(attempt+1)},150);return;}
-    out('App-script mangler. Lastet: '+((window.__dpLoaded||[]).join(', ')||'ingen')+'. Core: '+(window.__dpCoreReady?'OK':'nei')+'. Auth: '+(window.__dpAuthReady?'OK':'nei')+'. Feil: '+((window.__dpErrors||[]).join(', ')||'ingen')+'. JS: '+((window.__dpRuntimeErrors||[]).slice(0,3).join(' | ')||'ingen'));
+    out('Appen ble ikke lastet riktig. Last siden på nytt, eller kontakt Driftspartner Nord hvis feilen fortsetter.');
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){ready(0)}); else ready(0);
 })();

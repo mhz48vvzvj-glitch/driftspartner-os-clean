@@ -17,7 +17,7 @@
     ${dashboardMetric('Dokumenter',docs.length,'Lagret på valgt eiendom','ok')}
     ${dashboardMetric('Tilbud/RFQ',`${rfqs.length}/${offers.length}`,'Forespørsler og tilbud','info')}
     ${dashboardMetric('Konto',money(f.bank_balance),'Registrert banksaldo','purple')}
-    <div class="card s12 dashboard-flow"><div class="dash-title"><div><h3>Neste produksjonssteg</h3><p class="muted">Viser om valgt eiendom har komplett saksløp fra avvik til FDV.</p></div><button class="action primary" onclick="openModule('cases')">Start saksløp</button></div>${ProductionFlowMini()}</div>
+    <div class="card s12 dashboard-flow"><div class="dash-title"><div><h3>Saksløp</h3><p class="muted">Viser om eiendommen har en komplett driftssak fra avvik til rapport.</p></div><button class="action primary" onclick="openModule('cases')">Åpne saksløp</button></div>${ProductionFlowMini()}</div>
     <div class="card s12 dashboard-ai">${AiDirectorCard()}</div>
     <div class="card s6 dashboard-list"><div class="dash-title"><h3>Siste avvik</h3><button class="action" onclick="openModule('cases')">Åpne avvik</button></div>${caseList(devs)}</div>
     <div class="card s6 dashboard-list"><div class="dash-title"><h3>Siste dokumenter</h3><button class="action" onclick="openModule('documents')">Åpne arkiv</button></div>${documentList(docs)}</div>
@@ -66,7 +66,7 @@ function priorityClass(value){
 }
 function ProductionFlowMini(){
   const steps=[['Avvik',(DP.cache.deviations||[]).length],['Arbeidsordre',(DP.cache.work_orders||[]).length],['Tilbudsforespørsel',(DP.cache.quote_requests||[]).length],['Tilbud',(DP.cache.offers||[]).length],['FDV',(DP.cache.documents||[]).filter(d=>String(d.category).toLowerCase()==='fdv').length]];
-  return `<div class="ops-budget-summary">${steps.map(s=>`<div><small>${esc(s[0])}</small><b>${s[1]}</b></div>`).join('')}</div><p class="muted">Tallene kommer fra valgt eiendom. Mangler et steg, må det opprettes live før flyten kan fullføres.</p>`;
+  return `<div class="ops-budget-summary">${steps.map(s=>`<div><small>${esc(s[0])}</small><b>${s[1]}</b></div>`).join('')}</div><p class="muted">Basert på registrerte saker for valgt eiendom.</p>`;
 }
 function AiDirectorCard(){
   const cached=DP.cache.ai_director_answer||'AI Director leser live data fra valgt eiendom når du starter analysen.';
@@ -131,9 +131,9 @@ async function runAiDirector(mode='prioritering'){
 }
 function PropertyPage(){
   const p=currentProperty();
-  return `<div class="grid"><div class="card s7"><div class="dash-title"><h3>Eiendomskort</h3><button class="action primary" onclick="showPropertyForm()">Endre info</button></div>
-    <table><tr><td>Navn</td><td>${esc(p?.name)}</td></tr><tr><td>Kunde</td><td>${esc(p?.customer)}</td></tr><tr><td>Adresse</td><td>${esc(p?.address)}</td></tr><tr><td>Type</td><td>${esc(p?.type)}</td></tr><tr><td>Gnr/Bnr</td><td>${esc(p?.gnr)}/${esc(p?.bnr)}</td></tr><tr><td>Enheter</td><td>${esc(p?.units_count)}</td></tr><tr><td>Areal</td><td>${esc(p?.gross_area)} m2</td></tr></table></div>
-    <div class="card s5"><h3>Teknisk info</h3><p>${esc(p?.technical_summary||'Ikke registrert.')}</p><button class="action" onclick="openModule('documents')">FDV/dokumenter</button></div>
+  return `<div class="grid property-page"><div class="card s12 module-hero"><div><small>Eiendom</small><h2>${esc(p?.name||'Valgt eiendom')}</h2><p>${esc(p?.address||'Adresse ikke registrert')}</p></div><div class="module-actions"><button class="action primary" onclick="showPropertyForm()">Endre info</button><button class="action" onclick="openModule('documents')">FDV/dokumenter</button></div></div><div class="card s7">
+    <div class="info-grid"><div><small>Kunde</small><b>${esc(p?.customer||'-')}</b></div><div><small>Type</small><b>${esc(p?.type||'-')}</b></div><div><small>Gnr/Bnr</small><b>${esc(p?.gnr||'-')}/${esc(p?.bnr||'-')}</b></div><div><small>Enheter</small><b>${esc(p?.units_count||'-')}</b></div><div><small>Areal</small><b>${esc(p?.gross_area||'-')} m2</b></div></div></div>
+    <div class="card s5"><h3>Teknisk info</h3><p>${esc(p?.technical_summary||'Ikke registrert.')}</p></div>
     <div class="card s12"><h3>Kontaktpersoner</h3>${contactsTable()}</div></div>`;
 }
 function contactsTable(){const rows=(DP.cache.contacts||[]).map(c=>`<tr><td>${esc(c.name)}</td><td>${esc(c.role)}</td><td>${esc(c.email)}</td><td>${esc(c.phone)}</td></tr>`);return table(['Navn','Rolle','E-post','Telefon'],rows)}

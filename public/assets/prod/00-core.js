@@ -24,7 +24,7 @@ function canOpenModule(id){return visibleMenus().some(m=>m[0]===id)}
 function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
 function money(v){return (Number(v)||0).toLocaleString('nb-NO')+' kr'}
 function isUuid(v){return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(v||''))}
-function db(){if(!window.supabase)throw new Error('Supabase-biblioteket er ikke lastet.');return window.supabase.createClient(DP.sb.url,DP.sb.key)}
+function db(){if(!window.supabase)throw new Error('Datatilkoblingen er ikke klar. Last siden på nytt.');return window.supabase.createClient(DP.sb.url,DP.sb.key)}
 async function readJsonResponse(res,fallback='Tjenesten svarte ikke riktig. Publiser siste pakke og prøv igjen.'){
   const contentType=res?.headers?.get?.('content-type')||'';
   const text=await res.text().catch(()=>'');
@@ -100,7 +100,7 @@ function renderPublic(){
   document.getElementById('content').innerHTML=LandingPage();
 }
 function publicLoginPanel(){
-  const ready=window.supabase?'App-script og Supabase er lastet. Klar for innlogging.':'App-script er lastet, men Supabase-biblioteket mangler.';
+  const ready=window.supabase?'Appen er klar for innlogging.':'Appen mangler en nødvendig tilkobling. Last siden på nytt.';
   return "<div class=\"dp-login\"><h2>Logg inn</h2><p>For styre, forvalter, vaktmester, leverandør og beboer.</p><label>E-post</label><input id=\"loginEmail\" autocomplete=\"username\" value=\"\"><label>Passord</label><input id=\"loginPassword\" type=\"password\" autocomplete=\"current-password\"><button class=\"action primary\" data-login-submit type=\"button\" onclick=\"login()\">Logg inn</button><button class=\"action\" data-login-test type=\"button\" onclick=\"testLoginConnection()\">Test kobling</button><button class=\"action\" type=\"button\" onclick=\"resumeSession()\">Fortsett eksisterende økt</button><button class=\"action red\" type=\"button\" onclick=\"logout()\">Logg ut av lagret økt</button><div id=\"loginOut\" class=\"output\">"+ready+"</div></div>";
 }
 function demoPanel(){

@@ -580,6 +580,37 @@ body:not(.public-mode) td,body:not(.public-mode) th{word-break:break-word}
 .flow-button-row .action{margin:0}
 .flow-note{border:1px solid rgba(119,168,255,.28);background:rgba(23,107,255,.10);color:#cfe1ff;border-radius:14px;padding:13px 15px;line-height:1.45}
 .contract-step .flow-form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.module-hero{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;border-color:#2a4164;background:linear-gradient(135deg,rgba(16,42,88,.56),rgba(8,18,32,.96))}
+.module-hero small{display:block;color:#77a8ff;font-size:11px;font-weight:950;text-transform:uppercase;letter-spacing:.08em;margin-bottom:7px}
+.module-hero h2{margin:0;color:#fff;font-size:28px;line-height:1.15}
+.module-hero p{margin:8px 0 0;color:#b8c7dc;line-height:1.5;max-width:720px}
+.module-actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}
+.module-actions .action{margin:0}
+.info-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.info-grid div{border:1px solid #1f2d44;border-radius:14px;background:#081220;padding:13px;min-width:0}
+.info-grid small{display:block;color:#93a4bb;font-size:10px;text-transform:uppercase;letter-spacing:.05em;font-weight:900}
+.info-grid b{display:block;color:#fff;margin-top:5px;overflow-wrap:anywhere}
+.document-filters{display:flex;flex-wrap:wrap;gap:8px}
+.doc-filter{border:1px solid #26364f;background:#081220;color:#dbe7fb;border-radius:12px;padding:10px 12px;display:flex;gap:10px;align-items:center;cursor:pointer;font-weight:900}
+.doc-filter.active{background:#1457ff;border-color:#1457ff;color:#fff}
+.doc-filter b{border-radius:999px;background:rgba(255,255,255,.1);padding:3px 8px;font-size:12px}
+.document-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.document-card{border:1px solid #1f2d44;border-radius:16px;background:#081220;padding:15px;display:grid;gap:14px;min-width:0}
+.document-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.document-head span{display:block;color:#77a8ff;font-size:11px;font-weight:950;text-transform:uppercase;letter-spacing:.06em}
+.document-head strong{display:block;color:#fff;margin-top:5px;line-height:1.25;overflow-wrap:anywhere}
+.document-head>b{border-radius:999px;background:#102a58;color:#9cc5ff;padding:5px 9px;font-size:12px}
+.document-meta{display:grid;gap:8px}
+.document-meta div,.market-pipeline div{border:1px solid #1f2d44;border-radius:12px;background:#0c1524;padding:10px;min-width:0}
+.document-meta small,.market-pipeline small{display:block;color:#93a4bb;font-size:10px;text-transform:uppercase;letter-spacing:.05em;font-weight:900}
+.document-meta b,.market-pipeline b{display:block;color:#fff;margin-top:4px;overflow-wrap:anywhere}
+.market-pipeline{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.market-pipeline span{display:block;color:#9aa8bc;font-size:12px;margin-top:4px}
+.stack-list{display:grid;gap:10px}
+.mini-record{border:1px solid #1f2d44;border-radius:14px;background:#081220;padding:12px;display:flex;justify-content:space-between;gap:12px;align-items:flex-start;min-width:0}
+.mini-record strong{display:block;color:#fff;line-height:1.25;overflow-wrap:anywhere}
+.mini-record small{display:block;color:#9aa8bc;margin-top:4px;line-height:1.3;overflow-wrap:anywhere}
+.mini-record .action{margin:0;flex:0 0 auto}
 @media(max-width:800px){
   .ai-report{grid-template-columns:1fr}
   .ai-section.status{grid-column:span 1}
@@ -591,7 +622,9 @@ body:not(.public-mode) td,body:not(.public-mode) th{word-break:break-word}
   .dashboard-flow .ops-budget-summary{grid-template-columns:1fr}
   .project-numbers{grid-template-columns:1fr}
   .person-meta{grid-template-columns:1fr}
-  .case-flow-head,.case-flow-steps,.flow-actions,.flow-form-grid,.flow-context,.contract-step .flow-form-grid{grid-template-columns:1fr}
+  .case-flow-head,.case-flow-steps,.flow-actions,.flow-form-grid,.flow-context,.contract-step .flow-form-grid,.info-grid,.document-grid,.market-pipeline{grid-template-columns:1fr}
+  .module-hero{display:block}
+  .module-actions{justify-content:flex-start;margin-top:14px}
   .case-step{grid-template-columns:38px minmax(0,1fr)}
   .case-step span{grid-column:2}
 }
