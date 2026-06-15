@@ -1,0 +1,14 @@
+/driftspartner-property-os.html
+  Cache-Control: no-store, no-cache, must-revalidate, max-age=0
+
+/index.html
+  Cache-Control: no-store, no-cache, must-revalidate, max-age=0
+
+/assets/prod/*
+  Cache-Control: no-store, no-cache, must-revalidate, max-age=0
+
+/assets/*
+  Cache-Control: no-store, no-cache, must-revalidate, max-age=0
+
+/*
+  X-Driftspartner-Version: 20260615011531-production

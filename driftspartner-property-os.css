@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Driftspartner e-posttest</title>
+<style>
+body{font-family:Arial,sans-serif;background:#08111f;color:#f5f8ff;margin:0;padding:32px}
+main{max-width:720px;margin:auto;background:#111d2f;border:1px solid #243653;border-radius:12px;padding:24px}
+label{display:block;margin-top:14px;color:#aeb9ca}
+input,textarea{width:100%;box-sizing:border-box;margin-top:6px;padding:12px;border-radius:8px;border:1px solid #334865;background:#07101e;color:#fff}
+textarea{min-height:140px}
+button{margin-top:18px;padding:12px 16px;border:0;border-radius:8px;background:#145bff;color:#fff;font-weight:700;cursor:pointer}
+pre{white-space:pre-wrap;background:#07101e;border:1px solid #334865;border-radius:8px;padding:14px;margin-top:18px}
+a{color:#7ab2ff}
+</style>
+</head>
+<body>
+<main>
+<h1>Driftspartner e-posttest</h1>
+<p>Bruk denne fra publisert Netlify-side for a teste Resend-funksjonen direkte.</p>
+<label>Mottaker</label>
+<input id="to" value="post@driftspartnernord.no">
+<label>Emne</label>
+<input id="subject" value="Test fra Driftspartner OS">
+<label>Melding</label>
+<textarea id="message">Dette er en test fra Driftspartner OS via Netlify og Resend.</textarea>
+<button onclick="sendTest()">Send test</button>
+<pre id="out">Klar.</pre>
+<p><a href="/driftspartner-property-os.html">Tilbake til appen</a></p>
+</main>
+<script>
+async function sendTest(){
+  const out=document.getElementById('out');
+  out.textContent='Sender...';
+  try{
+    const payload={
+      to:document.getElementById('to').value.trim(),
+      subject:document.getElementById('subject').value.trim(),
+      message:document.getElementById('message').value.trim()
+    };
+    const res=await fetch('/.netlify/functions/send-email',{
+      method:'POST',
+      headers:{'content-type':'application/json'},
+      body:JSON.stringify(payload)
+    });
+    const data=await res.json().catch(()=>({message:'Kunne ikke lese JSON-svar'}));
+    out.textContent=JSON.stringify({status:res.status,...data},null,2);
+  }catch(error){
+    out.textContent=error.message;
+  }
+}
+</script>
+</body>
+</html>
