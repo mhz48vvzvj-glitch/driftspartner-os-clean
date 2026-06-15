@@ -3,7 +3,14 @@
   const open=x=>!['lukket','ferdig','utført','utfort','fullført','fullfort'].includes(String(x.status||'').toLowerCase());
   const critical=devs.filter(d=>open(d)&&String(d.priority||'').toLowerCase().includes('kritisk')).length;
   const openDevs=devs.filter(open).length,openWos=wos.filter(open).length;
+  const moneyRisk=dashboardMoneyRisk(),missingDocs=missingDocumentCount(docs);
+  const boardDecisions=rfqs.filter(q=>String(q.status||'').toLowerCase().includes('utkast')).length+offers.length;
   return `<div class="grid dashboard-page">
+    <div class="card s12 executive-hero"><div><small>Styrets oversikt</small><h2>${esc(currentProperty()?.name||'Valgt eiendom')}</h2><p>Live status fra avvik, arbeidsordre, dokumenter, økonomi og innkjøp. Bruk dette som beslutningsgrunnlag før neste styremøte.</p></div><div class="executive-actions"><button class="action primary" onclick="runAiDirector('styrapport')">Lag styrerapport</button><button class="action" onclick="hydrateAll().then(render)">Oppdater tall</button></div></div>
+    ${focusCard('Hva haster?',critical||openDevs,critical?'Kritiske avvik må behandles først':openDevs?'Åpne avvik bør fordeles og følges opp':'Ingen åpne avvik nå',critical?'bad':openDevs?'warn':'ok','cases')}
+    ${focusCard('Hva koster penger?',money(moneyRisk.amount),moneyRisk.caption,moneyRisk.amount>0?'bad':'ok','finance')}
+    ${focusCard('Hva mangler dokumentasjon?',missingDocs,missingDocs?'FDV, HMS, kontrakt eller styrepapir mangler':'Dokumentasjonen ser ryddig ut',missingDocs?'warn':'ok','documents')}
+    ${focusCard('Hva må styret beslutte?',boardDecisions,boardDecisions?'Tilbud, RFQ eller sak bør avklares':'Ingen åpne beslutningspunkter',boardDecisions?'info':'ok','market')}
     ${dashboardMetric('Åpne avvik',openDevs,openDevs?'Må følges opp':'Ingen åpne avvik','info')}
     ${dashboardMetric('Kritiske avvik',critical,critical?'Krever rask handling':'Ingen kritiske avvik',critical?'bad':'ok')}
     ${dashboardMetric('Arbeidsordre',openWos,openWos?'Pågående oppgaver':'Ingen åpne ordre',openWos?'warn':'ok')}
@@ -19,6 +26,20 @@
 function dashboardMetric(label,value,caption,type='info'){
   return `<button class="card s4 dashboard-metric ${type}" onclick="${dashboardMetricAction(label)}"><small>${esc(label)}</small><strong>${esc(value)}</strong><span>${esc(caption)}</span></button>`;
 }
+function dashboardMoneyRisk(){
+  const lines=DP.cache.budget_lines||[];
+  const budget=lines.reduce((s,l)=>s+Number(l.budget_amount||l.budget||0),0);
+  const actual=lines.reduce((s,l)=>s+Number(l.actual_amount||l.actual||0),0);
+  const variance=actual-budget;
+  return {amount:variance>0?variance:0,caption:variance>0?'Over budsjett og bør forklares':'Innenfor registrert budsjett'};
+}
+function missingDocumentCount(docs){
+  const categories=(docs||[]).map(d=>String(d.category||'').toLowerCase());
+  return ['fdv','hms','kontrakt','styrepapir'].filter(c=>!categories.includes(c)).length;
+}
+function focusCard(title,value,caption,type='info',module='dashboard'){
+  return `<button class="card s3 executive-card ${type}" onclick="openModule('${module}')"><small>${esc(title)}</small><strong>${esc(value)}</strong><span>${esc(caption)}</span></button>`;
+}
 function dashboardMetricAction(label){
   if(label.includes('avvik')||label.includes('Arbeidsordre'))return "openModule('cases')";
   if(label.includes('Dokumenter'))return "openModule('documents')";
@@ -28,12 +49,12 @@ function dashboardMetricAction(label){
 }
 function caseList(rows){
   const data=(rows||[]).slice(0,7);
-  if(!data.length)return '<div class="empty-state">Ingen avvik registrert på valgt eiendom.</div>';
+  if(!data.length)return '<div class="empty-state"><strong>Ingen avvik registrert.</strong><span>Registrer første avvik hvis noe må følges opp på eiendommen.</span><button class="action primary" onclick="openModule(\'cases\')">Registrer avvik</button></div>';
   return `<div class="clean-list">${data.map(r=>`<button class="clean-row" onclick="openModule('cases')"><div><strong>${esc(r.title||'Uten tittel')}</strong><small>${esc(r.status||'Ukjent status')}</small></div><span class="soft-pill ${priorityClass(r.priority)}">${esc(r.priority||'Ikke satt')}</span></button>`).join('')}</div>`;
 }
 function documentList(rows){
   const data=(rows||[]).slice(0,7);
-  if(!data.length)return '<div class="empty-state">Ingen dokumenter registrert på valgt eiendom.</div>';
+  if(!data.length)return '<div class="empty-state"><strong>Ingen dokumenter registrert.</strong><span>Last opp FDV, HMS, kontrakter eller styrepapirer for å bygge historikken.</span><button class="action primary" onclick="openModule(\'documents\')">Åpne dokumentarkiv</button></div>';
   return `<div class="clean-list">${data.map(r=>`<button class="clean-row" onclick="openModule('documents')"><div><strong>${esc(r.title||'Uten tittel')}</strong><small>${esc(r.category||'Uten kategori')}</small></div><span class="soft-pill neutral">${esc(r.status||'Arkiv')}</span></button>`).join('')}</div>`;
 }
 function priorityClass(value){
