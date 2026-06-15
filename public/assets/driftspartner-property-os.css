@@ -445,7 +445,23 @@ body:not(.public-mode):has(.ops-presentation) .main{padding:24px;max-width:none}
 .ai-dot.green{background:#35d071}
 .ai-dot.purple{background:#b784ff}
 .ai-report-empty{background:#081220;border-left:5px solid #1d4ed8;border-radius:14px;padding:14px;color:#d9e5f7}
+.finance-page .finance-metric{position:relative;overflow:hidden;min-height:128px;display:flex;flex-direction:column;justify-content:space-between;border-left:4px solid #2d72ff}
+.finance-page .finance-metric:after{content:"";position:absolute;right:-24px;top:-24px;width:82px;height:82px;border-radius:50%;background:rgba(255,255,255,.05)}
+.finance-page .finance-metric small{color:#9fb0c7;font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:.04em}
+.finance-page .finance-metric strong{display:block;color:#fff;font-size:25px;line-height:1.08;margin:10px 0 8px;font-variant-numeric:tabular-nums}
+.finance-page .finance-metric span{display:inline-flex;align-self:flex-start;border-radius:999px;padding:5px 9px;font-size:12px;font-weight:900;background:#101b2d;color:#cfe1ff}
+.finance-page .finance-metric.ok{border-left-color:#35d071;background:linear-gradient(180deg,rgba(18,60,42,.42),rgba(8,18,32,.94))}
+.finance-page .finance-metric.info{border-left-color:#5b9dff;background:linear-gradient(180deg,rgba(16,42,88,.42),rgba(8,18,32,.94))}
+.finance-page .finance-metric.purple{border-left-color:#b784ff;background:linear-gradient(180deg,rgba(47,27,88,.42),rgba(8,18,32,.94))}
+.finance-page .finance-metric.warn{border-left-color:#f8b51d;background:linear-gradient(180deg,rgba(59,45,8,.42),rgba(8,18,32,.94))}
+.finance-page .finance-metric.bad{border-left-color:#ff4d58;background:linear-gradient(180deg,rgba(69,21,27,.48),rgba(8,18,32,.94))}
+.finance-page .finance-metric.ok span{background:#123c2a;color:#35d071}
+.finance-page .finance-metric.info span{background:#102a58;color:#5b9dff}
+.finance-page .finance-metric.purple span{background:#2f1b58;color:#b784ff}
+.finance-page .finance-metric.warn span{background:#3b2d08;color:#f8b51d}
+.finance-page .finance-metric.bad span{background:#45151b;color:#ff8b93}
 @media(max-width:800px){
   .ai-report{grid-template-columns:1fr}
   .ai-section.status{grid-column:span 1}
+  .finance-page .finance-metric{grid-column:span 12}
 }
