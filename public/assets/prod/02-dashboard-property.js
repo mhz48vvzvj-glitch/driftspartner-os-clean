@@ -22,7 +22,39 @@ function AiDirectorCard(){
     <label>Sporsmal til AI Director</label>
     <textarea id="aiQuestion" placeholder="Hva bor styret prioritere na?">Hva bor styret prioritere na?</textarea>
     <div class="inline-actions"><button class="action" onclick="runAiDirector('prioritering')">Prioriteringer</button><button class="action" onclick="runAiDirector('risiko')">Risiko</button><button class="action" onclick="runAiDirector('styrapport')">Styrerapport</button></div>
-    <div id="aiDirectorOut" class="output">${esc(cached)}</div>`;
+    <div id="aiDirectorOut" class="ai-report">${formatAiReport(cached)}</div>`;
+}
+function cleanAiLine(line){
+  return esc(String(line||'').replace(/\*\*/g,'').replace(/^\s*[-•]\s*/,'').replace(/^\s*\d+\)\s*/,'').trim());
+}
+function formatAiReport(text){
+  const raw=String(text||'').trim();
+  if(!raw)return '<div class="ai-report-empty">Ingen analyse enda.</div>';
+  if(raw.length<140&&!/\n/.test(raw))return `<div class="ai-report-empty">${esc(raw)}</div>`;
+  const lines=raw.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+  const sections=[];
+  let current={title:'AI Director',items:[]};
+  const isHeading=line=>/^\d+\.\s+/.test(line)||/^(kort status|topp|risiko|mangler|foresl|neste handling|data som mangler)/i.test(line);
+  lines.forEach(line=>{
+    if(isHeading(line)){
+      if(current.items.length)sections.push(current);
+      current={title:cleanAiLine(line.replace(/^\d+\.\s*/,'')),items:[]};
+    }else{
+      current.items.push(cleanAiLine(line));
+    }
+  });
+  if(current.items.length||!sections.length)sections.push(current);
+  return sections.map((section,index)=>{
+    const cls=index===0?'ai-section status':'ai-section';
+    return `<section class="${cls}"><h4>${sectionTitleIcon(section.title)} ${esc(section.title)}</h4><div>${section.items.map(item=>`<p>${item}</p>`).join('')}</div></section>`;
+  }).join('');
+}
+function sectionTitleIcon(title){
+  const t=String(title||'').toLowerCase();
+  if(t.includes('prior'))return '<span class="ai-dot blue"></span>';
+  if(t.includes('risiko')||t.includes('mangler'))return '<span class="ai-dot red"></span>';
+  if(t.includes('handling'))return '<span class="ai-dot green"></span>';
+  return '<span class="ai-dot purple"></span>';
 }
 async function runAiDirector(mode='prioritering'){
   const out=document.getElementById('aiDirectorOut');
@@ -37,7 +69,7 @@ async function runAiDirector(mode='prioritering'){
     const data=await readJsonResponse(res,'AI Director svarte ikke riktig. Sjekk at siste pakke er publisert.');
     if(!res.ok||!data.ok)throw new Error(data.message||'AI Director kunne ikke fullfore analysen.');
     DP.cache.ai_director_answer=data.answer||'Ingen anbefaling mottatt.';
-    if(out)out.textContent=DP.cache.ai_director_answer;
+    if(out)out.innerHTML=formatAiReport(DP.cache.ai_director_answer);
     await insertActivity('AI Director analyse kjort','ai_director',p.id);
   }catch(e){
     const msg=String(e?.message||e||'AI Director kunne ikke fullfore analysen.');
