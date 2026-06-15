@@ -2,15 +2,26 @@
 -- Kjor hele filen i Supabase SQL Editor.
 -- Logger AI-kjoringer per eiendom og sikrer tilgang via property_access.
 
+alter table customers add column if not exists subscription_plan text not null default 'Pro';
+alter table customers add column if not exists ai_monthly_limit integer;
+
+alter table properties add column if not exists subscription_plan text;
+alter table properties add column if not exists ai_monthly_limit integer;
+
 create table if not exists ai_agent_runs (
   id uuid primary key default gen_random_uuid(),
   property_id uuid not null references properties(id) on delete cascade,
   agent text not null default 'AI Director',
+  model text,
   input jsonb not null default '{}'::jsonb,
   output jsonb not null default '{}'::jsonb,
+  usage_estimate jsonb not null default '{}'::jsonb,
   status text not null default 'completed',
   created_at timestamptz not null default now()
 );
+
+alter table ai_agent_runs add column if not exists model text;
+alter table ai_agent_runs add column if not exists usage_estimate jsonb not null default '{}'::jsonb;
 
 create table if not exists ai_recommendations (
   id uuid primary key default gen_random_uuid(),
