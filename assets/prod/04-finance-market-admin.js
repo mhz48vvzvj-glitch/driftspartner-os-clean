@@ -316,6 +316,70 @@ function roleAccessPanel(){
 }
 function runCleanCheck(){const lines=[];lines.push(DP.session?'Klar: Innlogging':'Mangler: Innlogging');lines.push(isUuid(currentProperty()?.id)?'Klar: Ekte eiendom':'Mangler: Ekte eiendom');lines.push(`Rolle: ${appRole()||'-'}`);lines.push(`Synlige menyer: ${visibleMenus().map(m=>m[1]).join(', ')||'Ingen'}`);lines.push(`Eiendomstilgang: ${DP.properties.length}`);lines.push(`Aktive appdeler: ${document.querySelectorAll('script[src*="assets/prod/"]').length}`);lines.push(document.querySelectorAll('script[src*="assets/modules/"]').length?'Må ryddes: gammel modul lastes':'Klar: kun produksjonsapp lastes');document.getElementById('adminOut').textContent=lines.join('\n')}
 
+function launchChecks(){
+  const contacts=DP.cache.contacts||[],devs=DP.cache.deviations||[],wos=DP.cache.work_orders||[],docs=DP.cache.documents||[],rfqs=DP.cache.quote_requests||[],offers=DP.cache.offers||[],finance=DP.cache.finance||[],budget=DP.cache.budget_lines||[],activity=DP.cache.activity||[];
+  const board=contacts.some(c=>/styre|leder|vara/i.test(c.role||'')),resident=contacts.some(c=>/bebo|enhet|leilighet/i.test(c.role||'')),liveProperty=isUuid(currentProperty()?.id);
+  return [
+    {label:'Innlogging',ok:!!DP.session&&!!DP.user,group:'Sikkerhet',action:'Test live innlogging med ekte bruker.'},
+    {label:'Live eiendom',ok:liveProperty,group:'Kunde',action:'Velg eller opprett en Supabase-eiendom.'},
+    {label:'Rolle/tilgang',ok:!!DP.user?.role&&DP.properties.length>0,group:'Sikkerhet',action:'Test superadmin, styreleder, beboer, vaktmester og leverandør.'},
+    {label:'Avvik',ok:devs.length>0,group:'Drift',action:'Opprett minst ett live avvik.'},
+    {label:'Arbeidsordre',ok:wos.length>0,group:'Drift',action:'Lag arbeidsordre fra et avvik.'},
+    {label:'Dokumentarkiv',ok:docs.length>0,group:'Dokument',action:'Last opp eller generer et dokument på eiendommen.'},
+    {label:'Tilbud/RFQ',ok:rfqs.length>0&&offers.length>0,warn:rfqs.length>0,group:'Innkjøp',action:rfqs.length>0?'Registrer minst ett tilbud/PDF.':'Lag tilbudsforespørsel og registrer tilbud.'},
+    {label:'Økonomi',ok:finance.length>0&&budget.length>0,warn:finance.length>0,group:'Økonomi',action:finance.length>0?'Legg inn minst én budsjettlinje.':'Legg inn konto/reservefond og budsjett.'},
+    {label:'Styre/beboere',ok:board&&resident,warn:board||resident,group:'Kunde',action:'Legg inn både styremedlem og beboer.'},
+    {label:'Leverandører',ok:(DP.suppliers||[]).some(s=>String(s.email||'').includes('@')),group:'Innkjøp',action:'Legg inn leverandør med e-post.'},
+    {label:'Aktivitetslogg',ok:activity.length>0,group:'Audit',action:'Utfør en lagring slik at hendelse logges.'},
+    {label:'Kommersiell pakke',ok:true,group:'Salg',action:'Klar.'},
+    {label:'E-post',ok:false,warn:true,group:'Kommunikasjon',action:'Send en test fra live-siden før kundepilot.'}
+  ];
+}
+function checkType(c){return c.ok?'ok':c.warn?'warn':'bad'}
+function launchRows(){return launchChecks().map(c=>launchStatus(c.label,c.ok?true:c.warn?'warn':false,c.warn?'Må testes':'Må fikses'))}
+function launchSummary(){const rows=launchChecks(),bad=rows.filter(c=>!c.ok&&!c.warn).length,warn=rows.filter(c=>!c.ok&&c.warn).length,total=rows.length;return {bad,warn,total,ready:bad===0&&warn===0}}
+function LaunchControlPage(){
+  const s=launchSummary(),rows=launchChecks(),ready=s.total-s.bad-s.warn;
+  const verdict=s.ready?'Klar for pilot':s.bad?'Må ryddes før pilot':'Nesten klar';
+  const type=s.ready?'ok':s.bad?'bad':'warn';
+  return `<div class="launch-control premium-control"><div class="control-head"><div><small>Lanseringskontroll</small><h3>${esc(verdict)}</h3><p>Kontrollerer om valgt eiendom har nok live-data, roller og driftsgrunnlag til pilot og salg.</p></div><span class="launch-ring ${type}"><b>${ready}/${s.total}</b><small>klart</small></span></div><div class="launch-summary-grid"><div><small>Klar</small><b>${ready}</b></div><div><small>Må fikses</small><b>${s.bad}</b></div><div><small>Må testes</small><b>${s.warn}</b></div></div><div class="module-actions"><button class="action primary" onclick="runLaunchControl()">Kjør kontroll</button><button class="action" onclick="hydrateAll().then(render)">Hent live data</button><button class="action" onclick="showNewCustomerWizard()">Ny kunde</button><button class="action" onclick="location.href='kommersielt.html'">Kommersiell pakke</button></div><div id="launchOut" class="output">${esc(DP.cache.launch_control_result||'Kjør kontroll før pilot eller kundedemo.')}</div><div class="launch-check-grid">${rows.map(launchCheckCard).join('')}</div></div>`;
+}
+function launchCheckCard(c){
+  const type=checkType(c),text=c.ok?'Klar':c.warn?'Må testes':'Må fikses';
+  return `<section class="launch-check ${type}"><div><small>${esc(c.group)}</small><strong>${esc(c.label)}</strong></div><span>${esc(text)}</span><p>${esc(c.ok?'Klar.':c.action)}</p></section>`;
+}
+async function runLaunchControl(){
+  const out=document.getElementById('launchOut');
+  try{
+    if(out)out.textContent='Henter live data og kjører kontroll...';
+    if(!DP.session||!DP.user)throw new Error('Logg inn før lanseringskontroll.');
+    if(!isUuid(currentProperty()?.id))throw new Error('Velg en ekte eiendom før du kjører kontrollen.');
+    await hydrateAll();
+    const s=launchSummary(),status=s.ready?'Klar for pilot':s.bad?'Må ryddes før pilot':'Nesten klar';
+    DP.cache.launch_control_result=`${currentProperty()?.name||'Eiendom'}: ${status}. Klar ${s.total-s.bad-s.warn}/${s.total}. Må fikses ${s.bad}. Må testes ${s.warn}.`;
+    if(out)out.textContent=DP.cache.launch_control_result;
+    await insertActivity('Lanseringskontroll kjørt','launch_control',currentProperty().id);
+    render();
+  }catch(e){setOutputError(out,e,'Lanseringskontroll kunne ikke kjøres.')}
+}
+function AdminPage(){
+  const s=launchSummary();
+  return `<div class="grid admin-page premium-admin-page"><div class="card s12 module-hero control-hero"><div><small>Kontrollsenter</small><h2>Produksjonskontroll og onboarding</h2><p>Her ser du om valgt eiendom er klar for pilot, om roller/tilgang stemmer, og hva som bør fullføres før kunde tas i bruk.</p></div><div class="module-actions"><button class="action primary" onclick="runLaunchControl()">Kjør kontroll</button><button class="action" onclick="showNewCustomerWizard()">Ny kunde</button><button class="action" onclick="hydrateAll().then(render)">Oppdater</button></div></div><div class="card s12">${LaunchControlPage()}</div><div class="card s6 control-panel"><div class="dash-title"><div><h3>Onboarding</h3><p class="muted">Kunde → eiendom → styre/beboere → leverandører → FDV → økonomi → brukere.</p></div><button class="action primary" onclick="showNewCustomerWizard()">Start</button></div><div class="control-mini-grid"><div><small>Eiendommer</small><b>${DP.properties.length}</b></div><div><small>Klar status</small><b>${s.total-s.bad-s.warn}/${s.total}</b></div><div><small>Rolle</small><b>${esc(appRole()||'-')}</b></div></div></div><div class="card s6 control-panel"><div class="dash-title"><div><h3>Rolle og tilgang</h3><p class="muted">Bekreft at brukeren bare ser riktige menyer og eiendommer.</p></div></div>${roleAccessPanel()}</div><div class="card s12 control-panel"><div class="dash-title"><div><h3>Siste aktivitet</h3><p class="muted">Sporing av endringer og hendelser på valgt eiendom.</p></div><button class="action" onclick="hydrateAll().then(render)">Oppdater</button></div>${activityCards()}</div></div>`;
+}
+function activityCards(){const rows=(DP.cache.activity||[]).slice(0,12);if(!rows.length)return '<div class="empty-state"><strong>Ingen aktivitet registrert.</strong><span>Når brukere oppretter, endrer, sender eller laster opp noe, vises historikken her.</span></div>';return `<div class="activity-feed control-activity">${rows.map(a=>`<section><span>${esc(String(a.entity_type||'Logg').slice(0,12))}</span><div><strong>${esc(a.action||'Hendelse')}</strong><small>${esc([currentProperty()?.name,a.created_at?new Date(a.created_at).toLocaleString('nb-NO'):''].filter(Boolean).join(' · '))}</small></div></section>`).join('')}</div>`}
+function roleAccessPanel(){
+  const role=appRole(),menus=visibleMenus(),props=DP.properties||[];
+  return `<div class="role-access-cards"><section><small>Aktiv rolle</small><strong>${esc(role||'-')}</strong><span>${esc(DP.user?.email||'Ingen e-post')}</span></section><section><small>Synlige menyer</small><strong>${menus.length}</strong><span>${esc(menus.map(m=>m[1]).join(', ')||'Ingen')}</span></section><section><small>Eiendomstilgang</small><strong>${props.length}</strong><span>${esc(props.map(p=>p.name).slice(0,3).join(', ')||'Ingen eiendom')}</span></section></div><div class="role-matrix"><h4>Forventet rolleoppsett</h4>${[
+    ['Superadmin','Alle menyer og alle eiendommer'],
+    ['Styreleder','Styre, økonomi, FDV, avvik, marked og Property Brain'],
+    ['Styremedlem','Styre, økonomi, FDV og avvik'],
+    ['Beboer','Kun avvik/henvendelser'],
+    ['Vaktmester','Avvik, arbeidsordre og FDV'],
+    ['Leverandør','Kun tilbud/oppdrag']
+  ].map(r=>`<div><b>${esc(r[0])}</b><span>${esc(r[1])}</span></div>`).join('')}</div>`;
+}
+function runCleanCheck(){const out=document.getElementById('adminOut');const s=launchSummary();if(out)out.textContent=`Kontroll fullført. Klar ${s.total-s.bad-s.warn}/${s.total}. Må fikses ${s.bad}. Må testes ${s.warn}.`;runLaunchControl()}
+
 function subscriptionPlans(){
   return [
     {id:'start',name:'Start',firstYear:9990,yearTwo:11880,unit:'For mindre sameier og borettslag',items:['FDV-arkiv','Dokumenthåndtering','Avvikshåndtering','Styreportal','Mobiltilgang']},
