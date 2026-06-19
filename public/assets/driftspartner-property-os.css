@@ -734,4 +734,8 @@ body:not(.public-mode) td,body:not(.public-mode) th{word-break:break-word}
 .lookup-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:end}
 .lookup-row input{margin-top:7px}
 .lookup-row .action{margin:7px 0 0;white-space:nowrap}
+.inline-option{border:1px solid #223149;border-radius:14px;background:#081220;padding:12px;display:grid;gap:8px;margin:10px 0}
+.inline-option label{display:flex;gap:9px;align-items:center;margin:0;color:#e7eefb;font-weight:850}
+.inline-option input[type="checkbox"]{width:auto;margin:0}
+.inline-option small{color:#9aa8bc;line-height:1.35}
 @media(max-width:700px){.lookup-row{grid-template-columns:1fr}.lookup-row .action{width:100%;white-space:normal}}

@@ -17,7 +17,10 @@ function personCard(c){
 function initials(value){
   return String(value||'K').split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]).join('').toUpperCase()||'K';
 }
-function showPersonForm(role){showDrawer('Legg til '+role,`<label>Navn</label><input id="personName"><label>Rolle</label><input id="personRole" value="${esc(role)}"><label>E-post</label><input id="personEmail"><label>Telefon</label><input id="personPhone"><label>Notat/enhet</label><textarea id="personNotes"></textarea><button class="action primary" onclick="saveContact()">Lagre</button><div id="personOut" class="output">Klar til lagring.</div>`)}
+function showPersonForm(role){
+  const loginBlock=/beboer/i.test(role)?`<section class="inline-option"><label><input id="personCreateLogin" type="checkbox" checked> Opprett innlogging og send e-post til beboer</label><small>Hvis e-post er fylt inn, opprettes beboerportal-tilgang til valgt eiendom.</small><label>Midlertidig passord</label><input id="personPassword" type="password" placeholder="La stå tomt for automatisk passord"></section>`:'';
+  showDrawer('Legg til '+role,`<label>Navn</label><input id="personName"><label>Rolle</label><input id="personRole" value="${esc(role)}"><label>E-post</label><input id="personEmail"><label>Telefon</label><input id="personPhone"><label>Notat/enhet</label><textarea id="personNotes"></textarea>${loginBlock}<button class="action primary" onclick="saveContact()">Lagre</button><div id="personOut" class="output">Klar til lagring.</div>`)
+}
 function isPeopleSchemaError(error){return /column|schema|cache|relation|does not exist|could not find|not-null|null value|violates/i.test(String(error?.message||error||''))}
 async function saveContact(){
   const out=document.getElementById('personOut');
@@ -49,12 +52,28 @@ async function saveContact(){
       if(!isPeopleSchemaError(r.error))break;
     }
     if(r?.error)throw lastError||r.error;
+    const shouldCreateLogin=Boolean(document.getElementById('personCreateLogin')?.checked);
+    if(shouldCreateLogin){
+      if(!email.includes('@'))throw new Error('Fyll inn e-post for å opprette innlogging til beboer.');
+      if(out)out.textContent='Kontakt lagret. Oppretter innlogging og sender e-post...';
+      const login=await createResidentLogin({name,email,phone,password:document.getElementById('personPassword')?.value||''});
+      await insertActivity(login.email_sent?'Beboer og innlogging opprettet':'Beboer opprettet, e-post ikke sendt','resident',login.user?.id||email);
+      await finishAction(login.email_sent?'Beboer er lagret, innlogging er opprettet og e-post er sendt.':'Beboer er lagret og innlogging er opprettet. E-post ble ikke sendt.','people');
+      return;
+    }
     await insertActivity('Kontakt lagret','contact',r.data?.id||name);
     await finishAction('Kontakt er lagret.','people');
   }catch(e){
     const msg=isPeopleSchemaError(e)?'Kontakt-tabellen mangler riktig oppsett eller tilgang. Kjør supabase-people-v1.sql i Supabase og prøv igjen.':customerError(e);
     showDrawer('Kontakt ble ikke lagret',`<div class=\"output\">${esc(msg)}</div>`);
   }
+}
+async function createResidentLogin({name,email,phone,password=''}){
+  const token=DP.session?.access_token;if(!token)throw new Error('Mangler innloggingstoken.');
+  const res=await fetch('/.netlify/functions/create-user',{method:'POST',headers:{'content-type':'application/json',authorization:`Bearer ${token}`},body:JSON.stringify({name,email,phone,role:'beboer',property_id:currentProperty().id,access_role:'resident',password})});
+  const data=await readJsonResponse(res,'Bruker-tjenesten svarte ikke riktig. Publiser siste pakke og prøv igjen.');
+  if(!data.ok)throw new Error(data.message||'Beboerinnlogging kunne ikke opprettes.');
+  return data;
 }
 async function deleteContact(id){if(!confirm('Slette kontakt?'))return;try{requireLive('slette kontakt');const r=await db().from('property_contacts').delete().eq('id',id);if(r.error)throw r.error;await insertActivity('Kontakt slettet','contact',id);await finishAction('Kontakten er slettet.','people')}catch(e){showDrawer('Kontakt ble ikke slettet',`<div class=\"output\">${esc(customerError(e))}</div>`)}}
 function showUserForm(){showDrawer('Opprett bruker med innlogging',`<label>Navn</label><input id="newName"><label>E-post</label><input id="newEmail"><label>Telefon</label><input id="newPhone"><label>Rolle</label><select id="newRole"><option value="beboer">Beboer</option><option value="styreleder">Styreleder</option><option value="styremedlem">Styremedlem</option><option value="vaktmester">Vaktmester</option><option value="leverandor">Leverandør</option></select><label>Midlertidig passord</label><input id="newPassword" type="password"><button class="action primary" onclick="createUserLogin()">Opprett bruker</button><div id="newUserOut" class="output">Klar til å opprette bruker.</div>`)}
