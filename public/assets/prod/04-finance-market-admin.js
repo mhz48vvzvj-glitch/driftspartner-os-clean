@@ -380,6 +380,57 @@ function roleAccessPanel(){
 }
 function runCleanCheck(){const out=document.getElementById('adminOut');const s=launchSummary();if(out)out.textContent=`Kontroll fullført. Klar ${s.total-s.bad-s.warn}/${s.total}. Må fikses ${s.bad}. Må testes ${s.warn}.`;runLaunchControl()}
 
+function integrationItems(){
+  return [
+    {name:'Supabase',status:'Aktiv',type:'ok',area:'Database, innlogging og dokumentarkiv',detail:'Live kundedata, tilgang per eiendom og Storage for dokumenter.',button:'Test live data',action:'hydrateAll().then(render)'},
+    {name:'Resend',status:'Aktiv',type:'ok',area:'E-post',detail:'Brukes til demoforespørsler, bestilling, varsler og systemmeldinger.',button:'Åpne e-posttest',action:"location.href='mail-test.html'"},
+    {name:'OpenAI',status:'Aktiv når kvote er tilgjengelig',type:'warn',area:'AI Director og Property Brain',detail:'Gir anbefalinger fra live data. Krever aktiv API-kvote for å svare.',button:'Test AI',action:'testAiIntegration()'},
+    {name:'Brønnøysundregistrene',status:'Klar for onboarding',type:'ok',area:'Kunde og leverandører',detail:'Org.nr-oppslag kan fylle inn firmanavn og adresse ved opprettelse.',button:'Ny kunde',action:'showNewCustomerWizard()'},
+    {name:'Microsoft 365 / Outlook',status:'Anbefalt neste',type:'warn',area:'E-post, kalender og styremøter',detail:'Bør kobles mot møteinnkalling, styrekalender, saksdokumenter og varsler.',button:'Se anbefaling',action:"showIntegrationInfo('Microsoft 365 / Outlook')"},
+    {name:'Signering',status:'Anbefalt V1',type:'warn',area:'Kontrakter og vedtak',detail:'Digital signering bør brukes for kontrakter, styrevedtak og godkjenninger.',button:'Se anbefaling',action:"showIntegrationInfo('Signering')"},
+    {name:'Tripletex',status:'Planlagt',type:'info',area:'Regnskap',detail:'Aktuell for faktura, prosjektkostnader, budsjett og rapportering.',button:'Se anbefaling',action:"showIntegrationInfo('Tripletex')"},
+    {name:'PowerOffice Go',status:'Planlagt',type:'info',area:'Regnskap',detail:'Alternativ regnskapsintegrasjon for borettslag, sameier og forvaltere.',button:'Se anbefaling',action:"showIntegrationInfo('PowerOffice Go')"},
+    {name:'Fiken',status:'Planlagt',type:'info',area:'Regnskap',detail:'Enklere regnskapskobling for mindre kunder og startpakker.',button:'Se anbefaling',action:"showIntegrationInfo('Fiken')"},
+    {name:'Bank / kontoutskrift',status:'Planlagt',type:'info',area:'Økonomi',detail:'Import av saldo og transaksjoner vil gjøre økonomien mer automatisk og troverdig.',button:'Se anbefaling',action:"showIntegrationInfo('Bank / kontoutskrift')"}
+  ];
+}
+function IntegrationsPage(){
+  const items=integrationItems(),active=items.filter(i=>i.type==='ok').length,next=items.filter(i=>i.type==='warn').length,planned=items.filter(i=>i.type==='info').length;
+  return `<div class="grid integrations-page"><div class="card s12 module-hero integration-hero"><div><small>Integrasjoner</small><h2>Koble Driftspartner OS til verktøyene kundene bruker</h2><p>Her samles e-post, AI, regnskap, signering, offentlige data og kalender. Målet er mindre manuelt arbeid og mer live informasjon på valgt eiendom.</p></div><div class="module-actions"><button class="action primary" onclick="testAiIntegration()">Test AI</button><button class="action" onclick="location.href='mail-test.html'">Test e-post</button><button class="action" onclick="showNewCustomerWizard()">Ny kunde</button></div></div><div class="card s12 integration-summary"><section><small>Aktive</small><b>${active}</b><span>Koblinger i bruk nå</span></section><section><small>Anbefalt neste</small><b>${next}</b><span>Gir raskest kundeverdi</span></section><section><small>Planlagt</small><b>${planned}</b><span>Regnskap og bank</span></section><section><small>Prioritet</small><b>Brønnøysund</b><span>Best premium-effekt i onboarding</span></section></div><div class="card s8"><div class="dash-title"><div><h3>Integrasjonsstatus</h3><p class="muted">Bare koblinger som faktisk er klare bør merkes som aktive.</p></div></div><div class="integration-card-grid">${items.map(integrationCard).join('')}</div></div><div class="card s4 integration-stack"><h3>Anbefalt rekkefølge</h3>${integrationRoadmap()}<div class="integration-note"><strong>V1 for salg</strong><span>Start med Brønnøysund, Microsoft 365/Outlook, signering og én regnskapskobling. Resten kan komme etter pilot.</span></div></div></div>`;
+}
+function integrationCard(item){
+  const label=item.type==='ok'?'Aktiv':item.type==='warn'?'Neste steg':'Planlagt';
+  return `<section class="integration-card ${item.type}"><div><small>${esc(item.area)}</small><strong>${esc(item.name)}</strong></div><span>${esc(item.status||label)}</span><p>${esc(item.detail)}</p><button class="action" onclick="${item.action}">${esc(item.button||'Åpne')}</button></section>`;
+}
+function integrationRoadmap(){
+  return `<ol class="integration-roadmap">${[
+    ['Brønnøysund','Org.nr-oppslag i kunde, eiendom og leverandør.'],
+    ['Microsoft 365 / Outlook','Møteinnkalling, kalender, e-post og styredokumenter.'],
+    ['Signering','Kontrakter, styrevedtak og godkjenninger.'],
+    ['Tripletex / PowerOffice / Fiken','Budsjett, faktura, prosjektkost og rapport.'],
+    ['Bankimport','Saldo og transaksjoner direkte inn i økonomimodulen.']
+  ].map((r,i)=>`<li><b>${i+1}</b><div><strong>${esc(r[0])}</strong><span>${esc(r[1])}</span></div></li>`).join('')}</ol>`;
+}
+async function testAiIntegration(){
+  try{
+    const res=await fetch('/.netlify/functions/ai-ping',{method:'GET'});
+    const data=await readJsonResponse(res,'AI-testen svarte ikke riktig. Publiser siste pakke og sjekk miljøvariablene.');
+    const ok=data?.has_openai_key&&data?.has_supabase_url&&data?.has_service_role;
+    showDrawer('AI-integrasjon',`<div class="info-grid"><section><small>OpenAI</small><strong>${ok?'Klar':'Mangler oppsett'}</strong><span>${data?.has_openai_key?'API-nøkkel er lagt inn':'OPENAI_API_KEY mangler'}</span></section><section><small>Supabase</small><strong>${data?.has_supabase_url&&data?.has_service_role?'Klar':'Mangler oppsett'}</strong><span>${data?.has_supabase_url?'URL er lagt inn':'SUPABASE_URL mangler'} · ${data?.has_service_role?'Service key er lagt inn':'SUPABASE_SERVICE_ROLE_KEY mangler'}</span></section></div><div class="output">${esc(ok?'AI-funksjonen har riktig miljøoppsett. Hvis AI likevel feiler, skyldes det ofte kvote eller betalingsoppsett hos OpenAI.':'Legg inn manglende miljøvariabler i Netlify og publiser på nytt.')}</div>`);
+  }catch(e){showDrawer('AI-integrasjon',`<div class="output error">${esc(customerError(e,'AI-testen kunne ikke kjøres akkurat nå.'))}</div>`)}
+}
+function showIntegrationInfo(name){
+  const text={
+    'Microsoft 365 / Outlook':'Koble møteinnkallinger, styrekalender, e-posttråder og dokumentdeling. Dette gjør styremodulen mye mer nyttig for kunder.',
+    'Signering':'Bruk digital signering for kontrakter, styrevedtak og godkjenninger. Dette gir bedre sporbarhet og gjør kontraktflyten mer profesjonell.',
+    'Tripletex':'Passer godt for kunder som vil hente faktura, prosjektkostnader og rapporttall direkte inn i økonomimodulen.',
+    'PowerOffice Go':'Aktuelt som regnskapsalternativ for forvaltere og kunder som allerede bruker PowerOffice.',
+    'Fiken':'Godt alternativ for mindre kunder som trenger enkel regnskapskobling.',
+    'Bank / kontoutskrift':'Bankimport bør brukes når økonomidelen skal vise faktiske transaksjoner, saldo og avvik uten manuell punching.'
+  }[name]||'Denne integrasjonen bør beskrives med formål, dataflyt, tilgang og hva kunden får ut av den.';
+  showDrawer(name,`<div class="output">${esc(text)}</div><div class="integration-note"><strong>Anbefalt krav før bygging</strong><span>Avklar API-tilgang, kostnad, sikkerhet, kundesamtykke og hvilke felter som skal synkroniseres.</span></div>`);
+}
+
 function subscriptionPlans(){
   return [
     {id:'start',name:'Start',firstYear:9990,yearTwo:11880,unit:'For mindre sameier og borettslag',items:['FDV-arkiv','Dokumenthåndtering','Avvikshåndtering','Styreportal','Mobiltilgang']},

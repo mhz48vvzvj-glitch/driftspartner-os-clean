@@ -1033,3 +1033,33 @@ body:not(.public-mode) td,body:not(.public-mode) th{word-break:break-word}
 .refined-landing .dp-plan-icon{font-size:22px;border:1px solid #263850;border-radius:12px;padding:10px 12px;min-width:86px;text-align:center;background:#081220}
 @media(max-width:1050px){.dp-proof,.dp-module-grid,.dp-customer-grid{grid-template-columns:1fr}.refined-landing .dp-proof{margin-top:16px}.refined-landing .dp-product{display:none}.refined-landing .dp-nav{align-items:flex-start}.refined-landing .dp-nav-actions{margin-left:auto}.refined-landing .dp-mini{grid-template-columns:1fr 1fr}.refined-landing .dp-copy h1{font-size:42px}}
 @media(max-width:620px){.refined-landing.dp-landing{padding:18px 12px}.refined-landing .dp-brand span{font-size:16px}.refined-landing .dp-logo-img{width:38px;height:38px}.refined-landing .dp-nav-actions{gap:8px}.refined-landing .dp-primary,.refined-landing .dp-secondary{padding:12px 14px}.refined-landing .dp-copy h1{font-size:36px}.refined-landing .dp-copy p{font-size:16px;line-height:1.55}.refined-landing .dp-mini{grid-template-columns:1fr}.refined-landing .dp-panel{padding:18px}.refined-landing .dp-prices{gap:16px}.refined-landing .dp-price{padding:22px}.refined-landing .dp-plan-head{display:grid}.refined-landing .dp-cta{padding:22px}}
+.integrations-page{align-items:start}
+.integration-hero{background:linear-gradient(135deg,rgba(22,88,185,.42),rgba(8,18,32,.96));border-color:#28528b}
+.integration-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;background:transparent;border:0;padding:0;box-shadow:none}
+.integration-summary section{border:1px solid #223149;border-radius:16px;background:linear-gradient(180deg,#0b1627,#07111f);padding:16px;min-width:0}
+.integration-summary small{display:block;color:#91a2bb;font-size:11px;text-transform:uppercase;font-weight:950;letter-spacing:.06em}
+.integration-summary b{display:block;color:#fff;font-size:24px;line-height:1.1;margin:7px 0;overflow-wrap:anywhere}
+.integration-summary span{display:block;color:#aab8cc;font-size:13px;line-height:1.35}
+.integration-card-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.integration-card{border:1px solid #223149;border-radius:16px;background:#081220;padding:15px;display:grid;gap:10px;min-width:0}
+.integration-card>div{display:grid;gap:4px}
+.integration-card small{color:#91a2bb;font-size:10px;text-transform:uppercase;font-weight:950;letter-spacing:.06em}
+.integration-card strong{color:#fff;font-size:18px;line-height:1.2;overflow-wrap:anywhere}
+.integration-card>span{justify-self:start;border-radius:999px;padding:6px 10px;font-size:12px;font-weight:950;background:#102a58;color:#9cc5ff}
+.integration-card p{margin:0;color:#aab8cc;line-height:1.42;font-size:13px}
+.integration-card.ok{border-left:4px solid #35d071;background:linear-gradient(180deg,rgba(18,60,42,.18),#081220)}
+.integration-card.ok>span{background:#123c2a;color:#35d071}
+.integration-card.warn{border-left:4px solid #f8b51d;background:linear-gradient(180deg,rgba(59,45,8,.20),#081220)}
+.integration-card.warn>span{background:#3b2d08;color:#f8b51d}
+.integration-card.info{border-left:4px solid #2d72ff}
+.integration-stack{display:grid;gap:16px}
+.integration-stack h3{margin:0;color:#fff}
+.integration-roadmap{display:grid;gap:10px;margin:0;padding:0;list-style:none}
+.integration-roadmap li{display:grid;grid-template-columns:34px minmax(0,1fr);gap:11px;border:1px solid #223149;border-radius:14px;background:#081220;padding:12px}
+.integration-roadmap li>b{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:#1457ff;color:#fff}
+.integration-roadmap strong{display:block;color:#fff;line-height:1.25}
+.integration-roadmap span{display:block;color:#aab8cc;font-size:13px;line-height:1.35;margin-top:3px}
+.integration-note{border:1px solid #2c4060;border-radius:16px;background:linear-gradient(135deg,rgba(20,87,255,.18),rgba(8,18,32,.95));padding:16px;display:grid;gap:6px}
+.integration-note strong{color:#fff}
+.integration-note span{color:#b8c7dc;line-height:1.45}
+@media(max-width:900px){.integration-summary,.integration-card-grid{grid-template-columns:1fr}.integrations-page .s8,.integrations-page .s4{grid-column:span 12}}
