@@ -390,18 +390,64 @@ function scrollToPropertyBrainAi(){
 }
 function PropertyPage(){
   const p=currentProperty();
-  return `<div class="grid property-page"><div class="card s12 module-hero"><div><small>Eiendom</small><h2>${esc(p?.name||'Valgt eiendom')}</h2><p>${esc(p?.address||'Adresse ikke registrert')}</p></div><div class="module-actions"><button class="action primary" onclick="showPropertyForm()">Endre info</button><button class="action" onclick="openModule('documents')">FDV/dokumenter</button></div></div><div class="card s7">
-    <div class="info-grid"><div><small>Kunde</small><b>${esc(p?.customer||'-')}</b></div><div><small>Type</small><b>${esc(p?.type||'-')}</b></div><div><small>Gnr/Bnr</small><b>${esc(p?.gnr||'-')}/${esc(p?.bnr||'-')}</b></div><div><small>Enheter</small><b>${esc(p?.units_count||'-')}</b></div><div><small>Areal</small><b>${esc(p?.gross_area||'-')} m2</b></div></div></div>
-    <div class="card s5"><h3>Teknisk info</h3><p>${esc(p?.technical_summary||'Ikke registrert.')}</p></div>
-    <div class="card s12"><h3>Kontaktpersoner</h3>${contactsTable()}</div></div>`;
+  const buildings=DP.cache.buildings||[],contacts=DP.cache.contacts||[],docs=DP.cache.documents||[],devs=DP.cache.deviations||[],wos=DP.cache.work_orders||[];
+  const open=x=>!['lukket','ferdig','utført','utfort','fullført','fullfort'].includes(String(x.status||'').toLowerCase());
+  return `<div class="grid property-page premium-property">
+    <div class="card s12 module-hero property-hero"><div><small>Eiendom</small><h2>${esc(p?.name||'Valgt eiendom')}</h2><p>${esc([p?.address,p?.customer].filter(Boolean).join(' · ')||'Adresse og kunde ikke registrert')}</p></div><div class="module-actions"><button class="action primary" onclick="showPropertyForm()">Endre eiendom</button><button class="action" onclick="showBuildingForm()">Legg til bygg</button><button class="action" onclick="openModule('documents')">FDV/dokumenter</button></div></div>
+    <div class="card s8 property-overview-card">
+      <div class="dash-title"><div><h3>Eiendomskort</h3><p class="muted">Grunndata, matrikkel og teknisk oversikt for valgt eiendom.</p></div><span class="badge ${p?.status==='active'?'ok':'info'}">${esc(p?.status||'Live')}</span></div>
+      <div class="property-key-grid">
+        ${propertyKey('Kunde',p?.customer||'-')}
+        ${propertyKey('Org.nr',p?.customer_org_number||'-')}
+        ${propertyKey('Type',p?.type||'-')}
+        ${propertyKey('Gnr/Bnr',`${p?.gnr||'-'} / ${p?.bnr||'-'}`)}
+        ${propertyKey('Oppført år',p?.built_year||'-')}
+        ${propertyKey('Enheter',p?.units_count||0)}
+        ${propertyKey('Areal',`${p?.gross_area||0} m²`)}
+        ${propertyKey('SLA',p?.sla||'-')}
+      </div>
+    </div>
+    <div class="card s4 property-status-card">
+      <h3>Kundestatus</h3>
+      <div class="property-status-stack">
+        <section><small>Abonnement</small><strong>${esc(planLabel(p?.subscription_plan||'Ikke valgt'))}</strong><span>${esc(statusLabel(p?.subscription_status||p?.customer_status||'pending'))}</span></section>
+        <section><small>Fakturagrunnlag</small><strong>${money(p?.subscription_first_year_amount||0)}</strong><span>Første år</span></section>
+        <section><small>Fakturaadresse</small><strong>${esc(p?.customer_invoice_address||p?.address||'-')}</strong><span>${esc(p?.customer_billing_email||'')}</span></section>
+      </div>
+    </div>
+    <button class="card s3 property-action-card info" onclick="openModule('cases')"><small>Åpne avvik</small><strong>${devs.filter(open).length}</strong><span>Følges opp</span></button>
+    <button class="card s3 property-action-card warn" onclick="openModule('cases')"><small>Arbeidsordre</small><strong>${wos.filter(open).length}</strong><span>Pågående</span></button>
+    <button class="card s3 property-action-card ok" onclick="openModule('documents')"><small>Dokumenter</small><strong>${docs.length}</strong><span>FDV og arkiv</span></button>
+    <button class="card s3 property-action-card purple" onclick="openModule('people')"><small>Kontakter</small><strong>${contacts.length}</strong><span>Styre, beboere og andre</span></button>
+    <div class="card s7 property-tech-card"><div class="dash-title"><h3>Teknisk informasjon</h3><button class="action" onclick="showPropertyForm()">Oppdater</button></div><p>${esc(p?.technical_summary||'Ingen teknisk informasjon registrert ennå. Legg inn hovedpunkter om bygg, tekniske anlegg, kjente forhold og vedlikeholdsbehov.')}</p></div>
+    <div class="card s5 property-quick-card"><h3>Snarveier</h3><div class="property-shortcuts"><button onclick="openModule('documents')">Åpne FDV</button><button onclick="openModule('people')">Styre/beboere</button><button onclick="openModule('finance')">Økonomi</button><button onclick="openModule('brain')">Property Brain</button></div></div>
+    <div class="card s12"><div class="dash-title"><div><h3>Bygg og anlegg</h3><p class="muted">Legg inn bygg, garasje, tekniske rom eller andre anlegg som FDV og avvik kan knyttes til.</p></div><button class="action primary" onclick="showBuildingForm()">Legg til bygg</button></div>${buildingCards(buildings)}</div>
+    <div class="card s12"><div class="dash-title"><div><h3>Kontaktpersoner</h3><p class="muted">Kontaktgrunnlag for styre, beboere, forvalter og faste kontaktpersoner.</p></div><button class="action" onclick="openModule('people')">Åpne beboere/styre</button></div>${propertyContactCards(contacts)}</div>
+  </div>`;
 }
-function contactsTable(){const rows=(DP.cache.contacts||[]).map(c=>`<tr><td>${esc(c.name)}</td><td>${esc(c.role)}</td><td>${esc(c.email)}</td><td>${esc(c.phone)}</td></tr>`);return table(['Navn','Rolle','E-post','Telefon'],rows)}
+function propertyKey(label,value){return `<div><small>${esc(label)}</small><b>${esc(value)}</b></div>`}
+function buildingCards(rows){
+  if(!rows.length)return '<div class="empty-state"><strong>Ingen bygg registrert.</strong><span>Legg inn bygg eller anlegg for å kunne knytte FDV, avvik og arbeidsordre til riktig sted.</span><button class="action primary" onclick="showBuildingForm()">Legg til første bygg</button></div>';
+  return `<div class="building-list">${rows.map(b=>`<section class="building-card"><div><strong>${esc(b.name||'Bygg')}</strong><span>${esc([b.building_type,b.address].filter(Boolean).join(' · ')||'Bygg/anlegg')}</span></div><div class="building-meta"><div><small>Oppført</small><b>${esc(b.built_year||'-')}</b></div><div><small>Areal</small><b>${esc(b.gross_area||0)} m²</b></div></div><p>${esc(b.technical_summary||'Ingen teknisk beskrivelse registrert.')}</p><div class="row-actions"><button class="action" onclick="showBuildingForm('${esc(b.id)}')">Endre</button><button class="action red" onclick="deleteBuilding('${esc(b.id)}')">Slett</button></div></section>`).join('')}</div>`;
+}
+function propertyContactCards(rows){
+  if(!rows.length)return '<div class="empty-state"><strong>Ingen kontaktpersoner registrert.</strong><span>Legg inn styre, beboere eller forvalter under Beboere/styre.</span><button class="action primary" onclick="openModule(\'people\')">Legg til kontakt</button></div>';
+  return `<div class="person-list compact">${rows.slice(0,8).map(c=>`<section class="person-card"><div class="person-main"><div class="person-avatar">${esc(typeof initials==='function'?initials(c.name||c.role||'K'):String(c.name||'K').slice(0,1).toUpperCase())}</div><div class="person-text"><strong>${esc(c.name||'-')}</strong><span>${esc(c.role||c.contact_role||c.contact_type||'Kontakt')}</span></div></div><div class="person-meta"><div><small>E-post</small><b>${esc(c.email||'-')}</b></div><div><small>Telefon</small><b>${esc(c.phone||'-')}</b></div></div></section>`).join('')}</div>`;
+}
 function showPropertyForm(){
   const p=currentProperty();requireLive('endre eiendom');
-  showDrawer('Endre eiendom',`<label>Navn</label><input id="propName" value="${esc(p.name)}"><label>Adresse</label><input id="propAddress" value="${esc(p.address)}"><label>Type</label><input id="propType" value="${esc(p.type)}"><label>Gnr</label><input id="propGnr" value="${esc(p.gnr)}"><label>Bnr</label><input id="propBnr" value="${esc(p.bnr)}"><label>Enheter</label><input id="propUnits" type="number" value="${esc(p.units_count)}"><label>Areal</label><input id="propArea" type="number" value="${esc(p.gross_area)}"><label>Teknisk info</label><textarea id="propTech">${esc(p.technical_summary)}</textarea><button class="action primary" onclick="saveProperty()">Lagre</button>`);
+  showDrawer('Endre eiendom',`<div class="form-grid two"><label>Navn<input id="propName" value="${esc(p.name)}"></label><label>Adresse<input id="propAddress" value="${esc(p.address)}"></label><label>Type<input id="propType" value="${esc(p.type)}"></label><label>Oppført år<input id="propBuiltYear" type="number" value="${esc(p.built_year)}"></label><label>Gnr<input id="propGnr" value="${esc(p.gnr)}"></label><label>Bnr<input id="propBnr" value="${esc(p.bnr)}"></label><label>Enheter<input id="propUnits" type="number" value="${esc(p.units_count)}"></label><label>Areal m²<input id="propArea" type="number" value="${esc(p.gross_area)}"></label></div><label>Teknisk info</label><textarea id="propTech" rows="6">${esc(p.technical_summary)}</textarea><button class="action primary" onclick="saveProperty()">Lagre eiendom</button>`);
 }
 async function saveProperty(){
-  try{requireLive('lagre eiendom');const p=currentProperty();const payload={name:propName.value.trim(),address:propAddress.value.trim(),property_type:propType.value.trim(),gnr:propGnr.value.trim(),bnr:propBnr.value.trim(),units_count:+propUnits.value||0,gross_area:+propArea.value||0,technical_summary:propTech.value.trim()};const r=await db().from('properties').update(payload).eq('id',p.id).select().single();if(r.error)throw r.error;Object.assign(p,mapProperty({...r.data,customers:{name:p.customer}}));await insertActivity('Eiendom oppdatert','property',p.id);await finishAction('Eiendommen er lagret.','property')}catch(e){showDrawer('Eiendom ble ikke lagret',`<div class=\"output\">${esc(customerError(e))}</div>`)}}
+  try{requireLive('lagre eiendom');const p=currentProperty();const payload={name:propName.value.trim(),address:propAddress.value.trim(),property_type:propType.value.trim(),gnr:propGnr.value.trim(),bnr:propBnr.value.trim(),built_year:+propBuiltYear.value||null,units_count:+propUnits.value||0,gross_area:+propArea.value||0,technical_summary:propTech.value.trim()};const r=await db().from('properties').update(payload).eq('id',p.id).select().single();if(r.error)throw r.error;Object.assign(p,mapProperty({...r.data,customers:{name:p.customer,org_number:p.customer_org_number,invoice_address:p.customer_invoice_address,billing_email:p.customer_billing_email,status:p.customer_status,subscription_plan:p.subscription_plan,subscription_status:p.subscription_status,subscription_first_year_amount:p.subscription_first_year_amount,subscription_year_two_amount:p.subscription_year_two_amount}}));await insertActivity('Eiendom oppdatert','property',p.id);await finishAction('Eiendommen er lagret.','property')}catch(e){showDrawer('Eiendom ble ikke lagret',`<div class=\"output\">${esc(customerError(e))}</div>`)}}
+function showBuildingForm(id=''){
+  const b=(DP.cache.buildings||[]).find(x=>x.id===id)||{};
+  requireLive('endre bygg');
+  showDrawer(id?'Endre bygg':'Legg til bygg',`<div class="form-grid two"><label>Navn<input id="buildingName" value="${esc(b.name||'')}"></label><label>Type<input id="buildingType" value="${esc(b.building_type||'')}"></label><label>Adresse<input id="buildingAddress" value="${esc(b.address||'')}"></label><label>Oppført år<input id="buildingYear" type="number" value="${esc(b.built_year||'')}"></label><label>Areal m²<input id="buildingArea" type="number" value="${esc(b.gross_area||'')}"></label></div><label>Teknisk sammendrag</label><textarea id="buildingTech" rows="5">${esc(b.technical_summary||'')}</textarea><button class="action primary" onclick="saveBuilding('${esc(id)}')">${id?'Lagre bygg':'Opprett bygg'}</button>`);
+}
+async function saveBuilding(id=''){
+  try{requireLive('lagre bygg');const row={property_id:currentProperty().id,name:buildingName.value.trim(),building_type:buildingType.value.trim()||null,address:buildingAddress.value.trim()||null,built_year:+buildingYear.value||null,gross_area:+buildingArea.value||0,technical_summary:buildingTech.value.trim()||null};if(!row.name)throw new Error('Fyll inn navn på bygg.');const q=id?db().from('buildings').update(row).eq('id',id).select().single():db().from('buildings').insert(row).select().single();const r=await q;if(r.error)throw r.error;await insertActivity(id?'Bygg oppdatert':'Bygg opprettet','building',r.data.id);await finishAction(id?'Bygget er lagret.':'Bygget er opprettet.','property')}catch(e){showDrawer('Bygg ble ikke lagret',`<div class=\"output\">${esc(customerError(e))}</div>`)}}
+async function deleteBuilding(id){if(!confirm('Slette bygg? Dokumenter og saker beholder eiendommen, men mister byggkoblingen.'))return;try{requireLive('slette bygg');const r=await db().from('buildings').delete().eq('id',id);if(r.error)throw r.error;await insertActivity('Bygg slettet','building',id);await finishAction('Bygget er slettet.','property')}catch(e){showDrawer('Bygg ble ikke slettet',`<div class=\"output\">${esc(customerError(e))}</div>`)}}
 
 
 
