@@ -5,14 +5,20 @@
   const openDevs=devs.filter(open).length,openWos=wos.filter(open).length;
   const moneyRisk=dashboardMoneyRisk(),missingDocs=missingDocumentCount(docs);
   const boardDecisions=rfqs.filter(q=>String(q.status||'').toLowerCase().includes('utkast')).length+offers.length;
+  const brain=typeof propertyBrainAnalysis==='function'?propertyBrainAnalysis():null;
   return `<div class="grid dashboard-page">
-    <div class="card s12 executive-hero"><div><small>Styrets oversikt · Dashboard V2 live-graf</small><h2>${esc(currentProperty()?.name||'Valgt eiendom')}</h2><p>Live status fra avvik, arbeidsordre, dokumenter, økonomi og innkjøp. Bruk dette som beslutningsgrunnlag før neste styremøte.</p></div><div class="executive-actions"><button class="action primary" onclick="runAiDirector('styrapport')">Lag styrerapport</button><button class="action" onclick="hydrateAll().then(render)">Oppdater tall</button></div></div>
+    <div class="card s12 executive-hero"><div><small>Styrets oversikt</small><h2>${esc(currentProperty()?.name||'Valgt eiendom')}</h2><p>Live status fra avvik, arbeidsordre, dokumenter, økonomi og innkjøp. Bruk dette som beslutningsgrunnlag før neste styremøte.</p></div><div class="executive-actions"><button class="action primary" onclick="runAiDirector('styrapport')">Lag styrerapport</button><button class="action" onclick="openModule('brain')">Property Brain</button><button class="action" onclick="hydrateAll().then(render)">Oppdater tall</button></div></div>
     ${focusCard('Hva haster?',critical||openDevs,critical?'Kritiske avvik må behandles først':openDevs?'Åpne avvik bør fordeles og følges opp':'Ingen åpne avvik nå',critical?'bad':openDevs?'warn':'ok','cases')}
     ${focusCard('Hva koster penger?',money(moneyRisk.amount),moneyRisk.caption,moneyRisk.amount>0?'bad':'ok','finance')}
     ${focusCard('Hva mangler dokumentasjon?',missingDocs,missingDocs?'FDV, HMS, kontrakt eller styrepapir mangler':'Dokumentasjonen ser ryddig ut',missingDocs?'warn':'ok','documents')}
     ${focusCard('Hva må styret beslutte?',boardDecisions,boardDecisions?'Tilbud, RFQ eller sak bør avklares':'Ingen åpne beslutningspunkter',boardDecisions?'info':'ok','market')}
+    <div class="card s12 dashboard-priority">${DashboardPriorityPanel({brain,critical,openDevs,openWos,moneyRisk,missingDocs,boardDecisions})}</div>
     <div class="card s7 premium-finance-card">${DashboardFinanceChart()}</div>
     <div class="card s5 premium-deviation-card">${DashboardDeviationPie(devs)}</div>
+    <div class="card s8 dashboard-trend">${DashboardTrend30()}</div>
+    <div class="card s4 dashboard-subscription">${DashboardSubscriptionStatus()}</div>
+    <div class="card s6 dashboard-deadlines">${DashboardDeadlines()}</div>
+    <div class="card s6 dashboard-controls">${DashboardControls()}</div>
     ${dashboardMetric('Åpne avvik',openDevs,openDevs?'Må følges opp':'Ingen åpne avvik','info')}
     ${dashboardMetric('Kritiske avvik',critical,critical?'Krever rask handling':'Ingen kritiske avvik',critical?'bad':'ok')}
     ${dashboardMetric('Arbeidsordre',openWos,openWos?'Pågående oppgaver':'Ingen åpne ordre',openWos?'warn':'ok')}
@@ -23,7 +29,75 @@
     <div class="card s12 dashboard-ai">${AiDirectorCard()}</div>
     <div class="card s6 dashboard-list"><div class="dash-title"><h3>Siste avvik</h3><button class="action" onclick="openModule('cases')">Åpne avvik</button></div>${caseList(devs)}</div>
     <div class="card s6 dashboard-list"><div class="dash-title"><h3>Siste dokumenter</h3><button class="action" onclick="openModule('documents')">Åpne arkiv</button></div>${documentList(docs)}</div>
+    <div class="card s12 dashboard-activity">${DashboardActivityFeed()}</div>
   </div>`;
+}
+function DashboardPriorityPanel(data){
+  const brain=data.brain||{};
+  const action=(brain.actions||[])[0]||dashboardFallbackAction(data);
+  const decision=(brain.boardDecisions||[])[0];
+  const docText=brain.docRequired?`${brain.docFound}/${brain.docRequired.length}`:`${Math.max(0,4-data.missingDocs)}/4`;
+  const score=brain.score??'--';
+  return `<div class="dash-title"><div><h3>Neste beste handling</h3><p class="muted">Dette er det viktigste punktet å ta tak i akkurat nå.</p></div><button class="action primary" onclick="${esc(action.open||"hydrateAll().then(render)") }">Start handling</button></div>
+    <div class="dashboard-priority-grid">
+      <section class="priority-main"><small>Prioritet nå</small><strong>${esc(action.title||'Oppdater live grunnlag')}</strong><p>${esc(action.detail||'Hent nyeste data før styremøte eller rapport.')}</p></section>
+      <button onclick="openModule('brain')"><small>Property Brain</small><strong>${esc(score)}</strong><span>Tilstandscore</span></button>
+      <button onclick="openModule('documents')"><small>Dokumentasjon</small><strong>${esc(docText)}</strong><span>Nøkkeldokumenter</span></button>
+      <button onclick="${decision?`openModule('${esc(decision.module)}')`:"openModule('market')"}"><small>Styret må vurdere</small><strong>${decision?'1':'0'}</strong><span>${esc(decision?.title||'Ingen tydelige beslutningspunkter')}</span></button>
+    </div>`;
+}
+function dashboardFallbackAction(data){
+  if(data.critical)return {title:'Følg opp kritiske avvik',detail:'Kritiske avvik må fordeles og behandles først.',open:"openModule('cases')"};
+  if(data.openDevs)return {title:'Fordel åpne avvik',detail:'Åpne avvik bør tildeles ansvarlig og frist.',open:"openModule('cases')"};
+  if(data.missingDocs)return {title:'Tett dokumentasjonsmangler',detail:'Last opp manglende FDV, HMS, kontrakt eller styrepapir.',open:"openModule('documents')"};
+  if(data.moneyRisk.amount>0)return {title:'Forklar budsjettavvik',detail:'Økonomiavvik bør inn i styrerapporten.',open:"openModule('finance')"};
+  if(data.boardDecisions)return {title:'Avklar tilbud og RFQ',detail:'Tilbud eller forespørsler bør behandles av styret.',open:"openModule('market')"};
+  return {title:'Oppdater live grunnlag',detail:'Eiendommen ser rolig ut. Hent nyeste data før neste møte.',open:"hydrateAll().then(render)"};
+}
+function dashboardDate(value){const d=new Date(value);return Number.isNaN(d.getTime())?null:d}
+function dashboardDayLabel(value){const d=dashboardDate(value);return d?d.toLocaleDateString('nb-NO',{day:'2-digit',month:'short'}):'-'}
+function dashboardDeadlineRows(){
+  const now=new Date(),rows=[];
+  (DP.cache.work_orders||[]).forEach(w=>{if(w.due_date)rows.push({date:w.due_date,title:w.title||'Arbeidsordre',kind:'Arbeidsordre',module:'cases',status:w.status||''})});
+  (DP.cache.projects||[]).forEach(p=>{if(p.due_date)rows.push({date:p.due_date,title:p.name||p.title||'Prosjekt',kind:'Prosjekt',module:'finance',status:p.status||''})});
+  (DP.cache.quote_requests||[]).forEach(q=>{if(q.deadline)rows.push({date:q.deadline,title:q.title||'Tilbudsforespørsel',kind:'Tilbud',module:'market',status:q.status||''})});
+  (DP.cache.documents||[]).forEach(d=>{if(d.expires_at)rows.push({date:d.expires_at,title:d.title||'Dokument',kind:d.category||'Dokument',module:'documents',status:'Utløper'} )});
+  return rows.map(r=>({...r,dt:dashboardDate(r.date),past:dashboardDate(r.date)&&dashboardDate(r.date)<now})).filter(r=>r.dt).sort((a,b)=>a.dt-b.dt);
+}
+function DashboardDeadlines(){
+  const rows=dashboardDeadlineRows().filter(r=>!String(r.status).toLowerCase().match(/lukket|ferdig|utført|utfort|fullført|fullfort/)).slice(0,6);
+  return `<div class="dash-title"><div><h3>Varsler og frister</h3><p class="muted">Arbeidsordre, tilbud, prosjekter og dokumentfrister.</p></div><button class="action" onclick="openModule('cases')">Åpne saker</button></div>${rows.length?`<div class="deadline-list">${rows.map(r=>`<button class="${r.past?'bad':'info'}" onclick="openModule('${esc(r.module)}')"><span>${esc(dashboardDayLabel(r.date))}</span><div><strong>${esc(r.title)}</strong><small>${esc(r.kind)}${r.past?' · forfalt':''}</small></div></button>`).join('')}</div>`:'<div class="empty-state"><strong>Ingen kommende frister.</strong><span>Når du legger inn frister på arbeidsordre, prosjekter, RFQ eller dokumenter, vises de her.</span></div>'}`;
+}
+function DashboardControls(){
+  const docs=DP.cache.documents||[];
+  const controlWords=/kontroll|service|årskontroll|arskontroll|brann|heis|ventilasjon|hms|garanti|forsikring/i;
+  const rows=docs.filter(d=>d.expires_at||controlWords.test([d.title,d.category,d.notes].filter(Boolean).join(' '))).map(d=>({date:d.expires_at||d.created_at,title:d.title||'Kontroll',kind:d.category||'Dokument',module:'documents'})).sort((a,b)=>(dashboardDate(a.date)||new Date(8640000000000000))-(dashboardDate(b.date)||new Date(8640000000000000))).slice(0,6);
+  return `<div class="dash-title"><div><h3>Kommende kontroller</h3><p class="muted">Service, HMS, brann, heis, ventilasjon og dokumenter med dato.</p></div><button class="action" onclick="openModule('documents')">Åpne FDV</button></div>${rows.length?`<div class="deadline-list control">${rows.map(r=>`<button onclick="openModule('documents')"><span>${esc(dashboardDayLabel(r.date))}</span><div><strong>${esc(r.title)}</strong><small>${esc(r.kind)}</small></div></button>`).join('')}</div>`:'<div class="empty-state"><strong>Ingen kontroller registrert.</strong><span>Legg inn utløpsdato eller kontroll-dokumenter i FDV-arkivet.</span><button class="action primary" onclick="openModule(\'documents\')">Legg til kontroll</button></div>'}`;
+}
+function DashboardActivityFeed(){
+  const rows=(DP.cache.activity||[]).slice(0,10);
+  return `<div class="dash-title"><div><h3>E-post og aktivitet</h3><p class="muted">Siste hendelser på valgt eiendom.</p></div><button class="action" onclick="openModule('admin')">Åpne kontroll</button></div>${rows.length?`<div class="activity-feed">${rows.map(a=>`<section><span>${esc(activityIcon(a))}</span><div><strong>${esc(a.action||'Hendelse')}</strong><small>${esc([a.entity_type,dashboardDayLabel(a.created_at)].filter(Boolean).join(' · '))}</small></div></section>`).join('')}</div>`:'<div class="empty-state"><strong>Ingen aktivitet logget ennå.</strong><span>Når noe lagres, sendes eller slettes, vises historikken her.</span></div>'}`;
+}
+function activityIcon(a){return /e-?post|mail|send/i.test(String(a.action||''))?'E-post':/slett/i.test(String(a.action||''))?'Slett':'Logg'}
+function DashboardSubscriptionStatus(){
+  const p=currentProperty()||{},plan=String(p.subscription_plan||'Ikke valgt'),status=String(p.subscription_status||'pending'),first=Number(p.subscription_first_year_amount||0),yearTwo=Number(p.subscription_year_two_amount||0);
+  return `<div class="dash-title"><div><h3>Abonnement</h3><p class="muted">Kundestatus og fakturagrunnlag.</p></div><button class="action" onclick="openModule('admin')">Onboarding</button></div><div class="subscription-status-card"><small>Pakke</small><strong>${esc(planLabel(plan))}</strong><span class="${status==='active'?'ok':'warn'}">${esc(statusLabel(status))}</span><div><b>${money(first)}</b><small>Første år</small></div><div><b>${money(yearTwo)}</b><small>År 2 · 12 mnd</small></div></div>`;
+}
+function planLabel(plan){return ({start:'Start',pro:'Pro',premium:'Premium'}[String(plan).toLowerCase()]||plan||'Ikke valgt')}
+function statusLabel(status){return ({active:'Aktiv',pending:'Venter avtale',trial:'Pilot',paused:'Pause'}[String(status).toLowerCase()]||status||'Venter avtale')}
+function DashboardTrend30(){
+  const series=dashboardTrendSeries();
+  const max=Math.max(1,...series.map(d=>d.total));
+  const points=series.map((d,i)=>`${Math.round((i/(series.length-1))*100)},${Math.round(100-(d.total/max)*82)}`).join(' ');
+  const last=series[series.length-1]?.total||0,prev=series.slice(-8,-1).reduce((s,d)=>s+d.total,0);
+  return `<div class="dash-title"><div><h3>Siste 30 dager</h3><p class="muted">Trend fra avvik, arbeidsordre, dokumenter og aktivitet.</p></div><span class="badge info">${last} i dag</span></div><div class="trend-chart"><svg viewBox="0 0 100 100" preserveAspectRatio="none"><polyline points="${points}" fill="none" stroke="#2d72ff" stroke-width="3" vector-effect="non-scaling-stroke"/><polyline points="${points} 100,100 0,100" fill="rgba(45,114,255,.10)" stroke="none"/></svg></div><div class="trend-legend">${[['Avvik','devs'],['Arbeid','wos'],['Dokumenter','docs'],['Aktivitet','activity']].map(([label,key])=>`<span><i></i>${esc(label)}: ${series.reduce((s,d)=>s+d[key],0)}</span>`).join('')}<b>${prev} siste uke</b></div>`;
+}
+function dashboardTrendSeries(){
+  const today=new Date();today.setHours(0,0,0,0);
+  const days=Array.from({length:30},(_,i)=>{const d=new Date(today);d.setDate(today.getDate()-29+i);return {date:d,devs:0,wos:0,docs:0,activity:0,total:0}});
+  const add=(rows,key)=>rows.forEach(r=>{const d=dashboardDate(r.created_at);if(!d)return;d.setHours(0,0,0,0);const idx=Math.round((d-days[0].date)/86400000);if(idx>=0&&idx<days.length){days[idx][key]++;days[idx].total++}});
+  add(DP.cache.deviations||[],'devs');add(DP.cache.work_orders||[],'wos');add(DP.cache.documents||[],'docs');add(DP.cache.activity||[],'activity');
+  return days;
 }
 function DashboardFinanceChart(){
   const lines=DP.cache.budget_lines||[],projects=DP.cache.projects||[],finance=(DP.cache.finance||[])[0]||{};
@@ -71,7 +145,7 @@ function dashboardMoneyRisk(){
 }
 function missingDocumentCount(docs){
   const categories=(docs||[]).map(d=>String(d.category||'').toLowerCase());
-  return ['fdv','hms','kontrakt','styrepapir'].filter(c=>!categories.includes(c)).length;
+  return ['fdv','hms','tegning','kontrakt','garanti','serviceavtale','forsikring','brann','ventilasjon'].filter(c=>!categories.some(cat=>cat.includes(c))).length;
 }
 function focusCard(title,value,caption,type='info',module='dashboard'){
   return `<button class="card s3 executive-card ${type}" onclick="openModule('${module}')"><small>${esc(title)}</small><strong>${esc(value)}</strong><span>${esc(caption)}</span></button>`;

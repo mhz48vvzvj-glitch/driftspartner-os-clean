@@ -481,6 +481,43 @@ body:not(.public-mode):has(.ops-presentation) .main{padding:24px;max-width:none}
 .dashboard-flow .ops-budget-summary small{font-size:11px;text-transform:uppercase;letter-spacing:.04em}
 .dashboard-flow .ops-budget-summary b{font-size:22px}
 .dashboard-list .dash-title{margin-bottom:8px}
+.dashboard-priority{border-color:#35558a;background:linear-gradient(135deg,rgba(20,87,255,.18),rgba(8,18,32,.96))}
+.dashboard-priority-grid{display:grid;grid-template-columns:2fr repeat(3,minmax(0,1fr));gap:12px}
+.dashboard-priority-grid section,.dashboard-priority-grid button{border:1px solid #223149;border-radius:16px;background:#081220;color:#e7eefb;text-align:left;padding:16px;min-width:0}
+.dashboard-priority-grid button{cursor:pointer}
+.dashboard-priority-grid button:hover{border-color:#2d72ff;transform:translateY(-1px)}
+.dashboard-priority-grid small{display:block;color:#8fb5ff;font-size:11px;font-weight:950;text-transform:uppercase;letter-spacing:.08em}
+.dashboard-priority-grid strong{display:block;color:#fff;font-size:24px;line-height:1.12;margin-top:8px;overflow-wrap:anywhere}
+.dashboard-priority-grid p,.dashboard-priority-grid span{display:block;color:#b8c7dc;line-height:1.4;margin-top:8px}
+.priority-main{background:radial-gradient(circle at top right,rgba(45,114,255,.22),transparent 58%),#081220!important}
+.priority-main strong{font-size:28px}
+.deadline-list,.activity-feed{display:grid;gap:10px}
+.deadline-list button,.activity-feed section{border:1px solid #223149;border-radius:14px;background:#081220;color:#e7eefb;padding:12px;display:flex;gap:12px;align-items:flex-start;text-align:left;min-width:0}
+.deadline-list button{cursor:pointer}
+.deadline-list button:hover{border-color:#2d72ff;transform:translateY(-1px)}
+.deadline-list button>span,.activity-feed section>span{flex:0 0 auto;border-radius:999px;background:#102a58;color:#9cc5ff;padding:7px 9px;font-size:12px;font-weight:950;white-space:nowrap}
+.deadline-list button.bad>span{background:#45151b;color:#ff8b93}
+.deadline-list button.warn>span{background:#3b2d08;color:#f8b51d}
+.deadline-list button.info>span{background:#102a58;color:#9cc5ff}
+.deadline-list strong,.activity-feed strong{display:block;color:#fff;line-height:1.25;overflow-wrap:anywhere}
+.deadline-list small,.activity-feed small{display:block;color:#9aa8bc;margin-top:4px;line-height:1.35}
+.subscription-status-card{display:grid;gap:10px;border:1px solid #223149;border-radius:16px;background:radial-gradient(circle at top right,rgba(139,92,246,.2),transparent 55%),#081220;padding:16px}
+.subscription-status-card small{color:#91a2bb;font-size:11px;text-transform:uppercase;font-weight:950;letter-spacing:.06em}
+.subscription-status-card>strong{color:#fff;font-size:34px;line-height:1;overflow-wrap:anywhere}
+.subscription-status-card>span{justify-self:start;border-radius:999px;padding:6px 10px;font-size:12px;font-weight:950;background:#172033;color:#c7d2e5}
+.subscription-status-card>span.ok{background:#123c2a;color:#35d071}
+.subscription-status-card>span.warn{background:#3b2d08;color:#f8b51d}
+.subscription-status-card>span.bad{background:#45151b;color:#ff8b93}
+.subscription-status-card div{border:1px solid #1f2d44;border-radius:12px;background:#0c1524;padding:10px}
+.subscription-status-card b{display:block;color:#fff;font-size:18px;margin-top:3px}
+.trend-chart{height:210px;border:1px solid #1f2d44;border-radius:16px;background:linear-gradient(180deg,rgba(45,114,255,.10),rgba(8,18,32,.42));padding:10px;margin-top:10px}
+.trend-chart svg{width:100%;height:100%;display:block}
+.trend-legend{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:12px;color:#aab8cc;font-size:12px;font-weight:850}
+.trend-legend span{display:inline-flex;align-items:center;gap:7px}
+.trend-legend i{width:9px;height:9px;border-radius:50%;background:#2d72ff}
+.trend-legend i.warn{background:#f8b51d}
+.trend-legend i.ok{background:#35d071}
+.trend-legend b{margin-left:auto;color:#fff;font-size:13px}
 .clean-list{display:grid;gap:9px}
 .clean-row{width:100%;border:1px solid #1f2d44;border-radius:12px;background:#081220;color:#e7eefb;padding:12px 13px;display:flex;align-items:center;justify-content:space-between;gap:14px;text-align:left;cursor:pointer}
 .clean-row:hover{border-color:#2d72ff;background:#0b1728}
@@ -719,6 +756,7 @@ body:not(.public-mode) td,body:not(.public-mode) th{word-break:break-word}
   .executive-hero{display:block}
   .executive-actions{justify-content:flex-start;margin-top:14px}
   .dashboard-flow .ops-budget-summary{grid-template-columns:1fr}
+  .dashboard-priority-grid{grid-template-columns:1fr}
   .project-numbers{grid-template-columns:1fr}
   .person-meta{grid-template-columns:1fr}
   .case-flow-head,.case-flow-steps,.flow-actions,.flow-form-grid,.flow-context,.contract-step .flow-form-grid,.info-grid,.document-grid,.market-pipeline,.onboarding-entry-grid,.onboarding-entry-grid.two,.onboarding-entry-grid.three,.subscription-grid{grid-template-columns:1fr}

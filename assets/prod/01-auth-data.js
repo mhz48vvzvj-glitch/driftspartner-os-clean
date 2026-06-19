@@ -106,17 +106,17 @@ async function resumeSession(){
 async function loadProperties(){
   const client=db();
   if(DP.user.role==='superadmin'){
-    const r=await client.from('properties').select('*, customers(name)').order('name').limit(200);
+    const r=await client.from('properties').select('*, customers(*)').order('name').limit(200);
     if(r.error)throw r.error;
     DP.properties=(r.data||[]).map(mapProperty);
   }else{
-    const r=await client.from('property_access').select('access_role, properties(*, customers(name))').eq('user_id',DP.user.id);
+    const r=await client.from('property_access').select('access_role, properties(*, customers(*))').eq('user_id',DP.user.id);
     if(r.error)throw r.error;
     DP.properties=(r.data||[]).map(x=>mapProperty(x.properties)).filter(Boolean);
   }
   DP.propertyId=DP.propertyId||DP.properties[0]?.id||'';
 }
-function mapProperty(p){return p?{id:p.id,customer_id:p.customer_id,name:p.name||'Eiendom',customer:p.customers?.name||p.customer_name||'',address:p.address||'',type:p.property_type||'',gnr:p.gnr||'',bnr:p.bnr||'',built_year:p.built_year||'',units_count:p.units_count||0,gross_area:p.gross_area||0,technical_summary:p.technical_summary||'',access_role:p.access_role||''}:null}
+function mapProperty(p){return p?{id:p.id,customer_id:p.customer_id,name:p.name||'Eiendom',customer:p.customers?.name||p.customer_name||'',address:p.address||'',type:p.property_type||'',gnr:p.gnr||'',bnr:p.bnr||'',built_year:p.built_year||'',units_count:p.units_count||0,gross_area:p.gross_area||0,technical_summary:p.technical_summary||'',access_role:p.access_role||'',subscription_plan:p.customers?.subscription_plan||p.subscription_plan||'',subscription_status:p.customers?.subscription_status||p.subscription_status||'',subscription_first_year_amount:p.customers?.subscription_first_year_amount||p.subscription_first_year_amount||0,subscription_year_two_amount:p.customers?.subscription_year_two_amount||p.subscription_year_two_amount||0,subscription_billing_period:p.customers?.subscription_billing_period||p.subscription_billing_period||''}:null}
 async function hydrateAll(){
   const p=currentProperty();if(!p)return;
   const client=db(),id=p.id,errors=[];
