@@ -91,6 +91,96 @@ async function deleteContact(id){if(!confirm('Slette kontakt?'))return;try{requi
 function showUserForm(){showDrawer('Opprett bruker med innlogging',`<label>Navn</label><input id="newName"><label>E-post</label><input id="newEmail"><label>Telefon</label><input id="newPhone"><label>Rolle</label><select id="newRole"><option value="beboer">Beboer</option><option value="styreleder">Styreleder</option><option value="styremedlem">Styremedlem</option><option value="vaktmester">Vaktmester</option><option value="leverandor">Leverandør</option></select><label>Midlertidig passord</label><input id="newPassword" type="password"><button class="action primary" onclick="createUserLogin()">Opprett bruker</button><div id="newUserOut" class="output">Klar til å opprette bruker.</div>`)}
 async function createUserLogin(){const out=document.getElementById('newUserOut');try{requireLive('opprette bruker');const token=DP.session?.access_token;if(!token)throw new Error('Mangler innloggingstoken.');const access={beboer:'resident',styreleder:'owner',styremedlem:'member',vaktmester:'caretaker',leverandor:'vendor'}[newRole.value]||'member';const res=await fetch('/.netlify/functions/create-user',{method:'POST',headers:{'content-type':'application/json',authorization:`Bearer ${token}`},body:JSON.stringify({name:newName.value,email:newEmail.value,phone:newPhone.value,role:newRole.value,property_id:currentProperty().id,access_role:access,password:newPassword.value})});const data=await readJsonResponse(res,'Bruker-tjenesten svarte ikke riktig. Publiser siste pakke og prøv igjen.');if(!data.ok)throw new Error(data.message);await insertActivity(data.email_sent?'Bruker opprettet og e-post sendt':'Bruker opprettet','user',data.user?.id||newEmail.value);await finishAction(data.email_sent?'Bruker er opprettet og innloggingsmail er sendt.':'Bruker er opprettet. Innloggingsmail ble ikke sendt.','people')}catch(e){setOutputError(out,e)}}
 
+function PeoplePage(){
+  const contacts=DP.cache.contacts||[];
+  const roleOf=c=>String(c.role||c.contact_role||c.contact_type||c.type||'');
+  const board=contacts.filter(c=>/styre|leder|vara/i.test(roleOf(c)));
+  const res=contacts.filter(c=>/bebo|resident|leilighet|enhet/i.test(roleOf(c)));
+  const other=contacts.filter(c=>!board.includes(c)&&!res.includes(c));
+  return `<div class="grid people-page premium-people">
+    <div class="card s12 module-hero people-hero"><div><small>Beboere og styre</small><h2>${esc(currentProperty()?.name||'Valgt eiendom')}</h2><p>Kontaktregister, styreoversikt og innlogginger for valgt eiendom. Beboere skal kunne melde avvik, styret skal kunne behandle saker.</p></div><div class="module-actions"><button class="action primary" onclick="showPersonForm('Beboer')">Legg til beboer</button><button class="action" onclick="showPersonForm('Styremedlem')">Legg til styremedlem</button><button class="action" onclick="showUserForm()">Opprett innlogging</button></div></div>
+    ${peopleSummaryCard('Styre',board.length,'Styreleder, styremedlemmer og vara','showPersonForm("Styremedlem")','info')}
+    ${peopleSummaryCard('Beboere',res.length,'Kontakter som kan få beboertilgang','showPersonForm("Beboer")','ok')}
+    ${peopleSummaryCard('Andre kontakter',other.length,'Forvalter, vaktmester og faste kontakter','showPersonForm("Kontakt")','purple')}
+    ${peopleSummaryCard('Innlogging',contacts.filter(c=>String(c.email||'').includes('@')).length,'Kontakter med registrert e-post','showUserForm()','warn')}
+    <div class="card s7 people-section"><div class="dash-title"><div><h3>Styre</h3><p class="muted">Legg inn rolle, e-post, telefon og periode. Styremedlemmer kan få innlogging direkte.</p></div><button class="action primary" onclick="showPersonForm('Styremedlem')">Legg til</button></div>${personList(board,'Ingen styremedlemmer registrert.','Legg inn styreleder, styremedlemmer og vara for valgt eiendom.')}</div>
+    <div class="card s5 people-access-card"><h3>Tilgang per rolle</h3><div class="people-access-list"><section><strong>Styreleder</strong><span>Dashboard, eiendom, styre, økonomi, FDV og saker.</span></section><section><strong>Styremedlem</strong><span>Styre, saker, dokumenter og økonomigrunnlag.</span></section><section><strong>Beboer</strong><span>Kan melde avvik og følge egne saker.</span></section><section><strong>Vaktmester</strong><span>Arbeidsordre, avvik og dokumentasjon.</span></section></div></div>
+    <div class="card s6 people-section"><div class="dash-title"><div><h3>Beboere</h3><p class="muted">Beboere kan registreres som kontakt eller få egen innlogging.</p></div><button class="action primary" onclick="showPersonForm('Beboer')">Legg til</button></div>${personList(res,'Ingen beboere registrert.','Legg inn beboere eller kontaktpersoner som skal kunne melde avvik.')}</div>
+    <div class="card s6 people-section"><div class="dash-title"><div><h3>Andre kontakter</h3><p class="muted">Forvalter, vaktmester, leverandørkontakt eller annen fast kontakt.</p></div><button class="action" onclick="showPersonForm('Kontakt')">Legg til kontakt</button></div>${personList(other,'Ingen andre kontakter registrert.','Her kan forvalter, vaktmester eller andre faste kontaktpersoner ligge.')}</div>
+  </div>`;
+}
+function peopleSummaryCard(label,value,caption,action,type='info'){
+  return `<button class="card s3 people-summary ${type}" onclick="${action}"><small>${esc(label)}</small><strong>${esc(value)}</strong><span>${esc(caption)}</span></button>`;
+}
+function personCard(c){
+  const role=c.role||c.contact_role||c.contact_type||c.type||'Kontakt';
+  const email=c.email||'-',phone=c.phone||'-',notes=c.notes||c.unit||'-';
+  return `<section class="person-card"><div class="person-main"><div class="person-avatar">${esc(initials(c.name||role))}</div><div class="person-text"><strong>${esc(c.name||'-')}</strong><span>${esc(role)}</span></div></div><div class="person-meta"><div><small>E-post</small><b>${esc(email)}</b></div><div><small>Telefon</small><b>${esc(phone)}</b></div><div><small>Notat/enhet</small><b>${esc(notes)}</b></div></div><div class="row-actions"><button class="action" onclick="showPersonForm('${esc(role)}','${esc(c.id)}')">Endre</button><button class="action red" onclick="deleteContact('${esc(c.id)}')">Slett</button></div></section>`;
+}
+function showPersonForm(role,id=''){
+  const existing=(DP.cache.contacts||[]).find(c=>c.id===id)||{};
+  const currentRole=existing.role||existing.contact_role||existing.contact_type||existing.type||role;
+  const canCreateLogin=/beboer|styre|leder|vara/i.test(currentRole);
+  const loginRole=/beboer/i.test(currentRole)?'beboer':'styremedlem';
+  const accessText=/beboer/i.test(currentRole)?'beboerportal-tilgang':'styreportal-tilgang';
+  const loginBlock=canCreateLogin&&!id?`<section class="inline-option"><label><input id="personCreateLogin" type="checkbox" checked> Opprett innlogging og send e-post</label><small>Hvis e-post er fylt inn, opprettes ${accessText} til valgt eiendom.</small><input id="personLoginRole" type="hidden" value="${loginRole}"><label>Midlertidig passord</label><input id="personPassword" type="password" placeholder="La stå tomt for automatisk passord"></section>`:'';
+  const roleField=/styre|leder|vara/i.test(currentRole)?`<select id="personRole"><option ${currentRole==='Styreleder'?'selected':''}>Styreleder</option><option ${currentRole==='Nestleder'?'selected':''}>Nestleder</option><option ${currentRole==='Styremedlem'?'selected':''}>Styremedlem</option><option ${currentRole==='Vara'?'selected':''}>Vara</option></select>`:`<input id="personRole" value="${esc(currentRole||role)}">`;
+  showDrawer((id?'Endre ':'Legg til ')+role,`<input id="personId" type="hidden" value="${esc(id)}"><div class="form-grid two"><label>Navn<input id="personName" value="${esc(existing.name||'')}"></label><label>Rolle${roleField}</label><label>E-post<input id="personEmail" type="email" value="${esc(existing.email||'')}"></label><label>Telefon<input id="personPhone" value="${esc(existing.phone||'')}"></label></div><label>${/bebo/i.test(currentRole)?'Leilighet/enhet eller notat':'Periode, verv eller notat'}</label><textarea id="personNotes" rows="4">${esc(existing.notes||existing.unit||'')}</textarea>${loginBlock}<button class="action primary" onclick="saveContact()">${id?'Lagre endring':'Lagre'}</button><div id="personOut" class="output">${id?'Klar til å lagre endring.':'Klar til lagring.'}</div>`);
+}
+async function saveContact(){
+  const out=document.getElementById('personOut');
+  try{
+    requireLive('lagre kontakt');
+    if(out)out.textContent='Lagrer kontakt...';
+    const propertyId=currentProperty().id,id=document.getElementById('personId')?.value||'',name=personName.value.trim(),role=personRole.value.trim()||'Kontakt',email=personEmail.value.trim(),phone=personPhone.value.trim(),notes=personNotes.value.trim();
+    if(!name)throw new Error('Fyll inn navn.');
+    const variants=[
+      {property_id:propertyId,name,role,contact_role:role,contact_type:role,email,phone,notes},
+      {property_id:propertyId,name,role,contact_role:role,contact_type:role,email,phone},
+      {property_id:propertyId,name,role,email,phone,notes},
+      {property_id:propertyId,name,contact_role:role,email,phone,notes},
+      {property_id:propertyId,name,contact_type:role,email,phone,notes},
+      {property_id:propertyId,name,role,email,phone},
+      {property_id:propertyId,name,contact_role:role,email,phone},
+      {property_id:propertyId,name,contact_type:role,email,phone},
+      {property_id:propertyId,name,email,phone},
+      {property_id:propertyId,name,role},
+      {property_id:propertyId,name,contact_role:role},
+      {property_id:propertyId,name,contact_type:role},
+      {property_id:propertyId,name}
+    ];
+    let r,lastError=null;
+    for(const row of variants){
+      r=id?await db().from('property_contacts').update(row).eq('id',id).select().single():await db().from('property_contacts').insert(row).select().single();
+      if(!r.error)break;
+      lastError=r.error;
+      if(!isPeopleSchemaError(r.error))break;
+    }
+    if(r?.error)throw lastError||r.error;
+    if(id){
+      await insertActivity('Kontakt oppdatert','contact',id);
+      await finishAction('Kontakt er oppdatert.','people');
+      return;
+    }
+    const shouldCreateLogin=Boolean(document.getElementById('personCreateLogin')?.checked);
+    if(shouldCreateLogin){
+      if(!email.includes('@'))throw new Error('Fyll inn e-post for å opprette innlogging.');
+      if(out)out.textContent='Kontakt lagret. Oppretter innlogging og sender e-post...';
+      const loginRole=boardLoginRole(role,document.getElementById('personLoginRole')?.value||'');
+      const login=await createPersonLogin({name,email,phone,role:loginRole,password:document.getElementById('personPassword')?.value||''});
+      const label=loginRole==='beboer'?'Beboer':'Styremedlem';
+      await insertActivity(login.email_sent?`${label} og innlogging opprettet`:`${label} opprettet, e-post ikke sendt`,'user',login.user?.id||email);
+      await finishAction(login.email_sent?`${label} er lagret, innlogging er opprettet og e-post er sendt.`:`${label} er lagret og innlogging er opprettet. E-post ble ikke sendt.`,'people');
+      return;
+    }
+    await insertActivity('Kontakt lagret','contact',r.data?.id||name);
+    await finishAction('Kontakt er lagret.','people');
+  }catch(e){
+    const msg=isPeopleSchemaError(e)?'Kontakt-tabellen mangler riktig oppsett eller tilgang. Kjør supabase-people-v1.sql i Supabase og prøv igjen.':customerError(e);
+    showDrawer('Kontakt ble ikke lagret',`<div class=\"output\">${esc(msg)}</div>`);
+  }
+}
+
 function CasesPage(){const devs=DP.cache.deviations||[],wos=DP.cache.work_orders||[];return `<div class="grid cases-page"><div class="card s12 module-hero"><div><small>Drift</small><h2>Avvik og arbeidsordre</h2><p>Registrer avvik, fordel ansvar og følg saken videre til tilbud, kontrakt, FDV og rapport.</p></div><div class="module-actions"><button class="action primary" onclick="showDeviationForm()">Nytt avvik</button><button class="action" onclick="showWorkOrderForm()">Ny arbeidsordre</button><button class="action" onclick="showCaseFlow()">Fullt saksløp</button></div></div><div class="card s6"><h3>Avvik</h3>${caseCards(devs,'deviation')}</div><div class="card s6"><h3>Arbeidsordre</h3>${caseCards(wos,'work_order')}</div></div>`}
 function deviationTable(rows){return table(['Tittel','Kategori','Prioritet','Status','Handling'],rows.map(d=>`<tr><td>${esc(d.title)}</td><td>${esc(d.category)}</td><td>${esc(d.priority)}</td><td>${esc(d.status)}</td><td><button class="action" onclick="showCaseFlow('${esc(d.id)}')">Saksløp</button><button class="action" onclick="showWorkOrderForm('${esc(d.id)}')">Arbeidsordre</button><button class="action red" onclick="deleteRow('deviations','${esc(d.id)}')">Slett</button></td></tr>`))}
 function workOrderTable(rows){return table(['Tittel','Frist','Status','Handling'],rows.map(w=>`<tr><td>${esc(w.title)}</td><td>${esc(w.due_date||'-')}</td><td>${esc(w.status)}</td><td><button class="action" onclick="showRfqForm('${esc(w.id)}')">Tilbudsforespørsel</button><button class="action red" onclick="deleteRow('work_orders','${esc(w.id)}')">Slett</button></td></tr>`))}

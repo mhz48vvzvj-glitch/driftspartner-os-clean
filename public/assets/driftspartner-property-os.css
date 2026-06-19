@@ -582,6 +582,21 @@ body:not(.public-mode) td,body:not(.public-mode) th{word-break:break-word}
 .person-meta div{border:1px solid #1f2d44;border-radius:10px;background:#0c1524;padding:9px;min-width:0}
 .person-meta small{display:block;color:#93a4bb;font-size:10px;text-transform:uppercase;letter-spacing:.04em}
 .person-meta b{display:block;color:#fff;margin-top:4px;font-size:13px;line-height:1.25;overflow-wrap:anywhere;word-break:break-word}
+.people-hero{background:radial-gradient(circle at top right,rgba(53,208,113,.16),transparent 48%),linear-gradient(135deg,rgba(16,42,88,.58),rgba(8,18,32,.96))}
+.people-summary{position:relative;text-align:left;cursor:pointer;border-left:4px solid #2d72ff;background:linear-gradient(180deg,rgba(17,27,44,.98),rgba(8,18,32,.98));display:grid;gap:8px;min-height:122px}
+.people-summary:hover{border-color:#6f45ff;transform:translateY(-1px)}
+.people-summary small{color:#9fb0c7;font-size:12px;font-weight:950;text-transform:uppercase;letter-spacing:.04em}
+.people-summary strong{font-size:32px;color:#fff;line-height:1}
+.people-summary span{color:#d7e4f7;line-height:1.35;font-weight:700}
+.people-summary.ok{border-left-color:#35d071}.people-summary.info{border-left-color:#5b9dff}.people-summary.warn{border-left-color:#f8b51d}.people-summary.purple{border-left-color:#b784ff}
+.people-section .person-list{grid-template-columns:repeat(2,minmax(0,1fr))}
+.people-section .person-card{background:linear-gradient(180deg,#0b1524,#07111f)}
+.people-section .person-meta{grid-template-columns:repeat(3,minmax(0,1fr))}
+.people-access-card{background:linear-gradient(180deg,rgba(16,42,88,.38),rgba(8,18,32,.96))}
+.people-access-list{display:grid;gap:10px;margin-top:12px}
+.people-access-list section{border:1px solid #223149;border-radius:14px;background:#081220;padding:13px}
+.people-access-list strong{display:block;color:#fff;font-size:15px}
+.people-access-list span{display:block;color:#a9b7cc;margin-top:5px;line-height:1.4}
 .case-flow{display:grid;gap:18px}
 .case-flow-head{display:grid;grid-template-columns:minmax(0,1fr) minmax(260px,360px);gap:16px;align-items:end;border:1px solid #1f2d44;border-radius:16px;background:linear-gradient(135deg,rgba(16,42,88,.42),rgba(8,18,32,.96));padding:16px}
 .case-flow-head small{display:block;color:#77a8ff;font-size:11px;font-weight:950;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
@@ -792,7 +807,7 @@ body:not(.public-mode) td,body:not(.public-mode) th{word-break:break-word}
   .dashboard-flow .ops-budget-summary{grid-template-columns:1fr}
   .dashboard-priority-grid{grid-template-columns:1fr}
   .project-numbers{grid-template-columns:1fr}
-  .person-meta{grid-template-columns:1fr}
+  .person-meta,.people-section .person-meta,.people-section .person-list{grid-template-columns:1fr}
   .case-flow-head,.case-flow-steps,.flow-actions,.flow-form-grid,.flow-context,.contract-step .flow-form-grid,.info-grid,.document-grid,.market-pipeline,.onboarding-entry-grid,.onboarding-entry-grid.two,.onboarding-entry-grid.three,.subscription-grid,.property-key-grid,.building-list,.form-grid.two,.person-list.compact,.property-shortcuts{grid-template-columns:1fr}
   .finance-summary-strip,.premium-pie-wrap,.finance-bar-row,.brain-metrics,.brain-actions,.brain-area-grid{grid-template-columns:1fr}
   .finance-bar-value{text-align:left}
