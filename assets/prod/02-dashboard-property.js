@@ -173,6 +173,10 @@ function PropertyBrainPage(){
     <div class="card s8"><div class="brain-metrics">${analysis.metrics.map(m=>`<button class="${esc(m.type)}" onclick="openModule('${esc(m.module)}')"><small>${esc(m.label)}</small><strong>${esc(m.value)}</strong><span>${esc(m.caption)}</span></button>`).join('')}</div></div>
     <div class="card s6"><div class="dash-title"><h3>Risikofunn</h3><button class="action" onclick="openModule('cases')">Åpne saker</button></div>${brainFindingList(analysis.risks,'Ingen kritiske risikofunn akkurat nå.')}</div>
     <div class="card s6"><div class="dash-title"><h3>Dokumentasjon</h3><button class="action" onclick="openModule('documents')">Åpne arkiv</button></div>${brainFindingList(analysis.documentation,'Dokumentasjonen ser komplett ut for V1-kontroll.')}</div>
+    <div class="card s7"><div class="dash-title"><h3>Risiko per område</h3><button class="action" onclick="openModule('cases')">Åpne avvik</button></div>${brainAreaRisk(analysis.areaRisks)}</div>
+    <div class="card s5"><h3>Dokumentasjonsgrad</h3><div class="brain-doc-score"><strong>${analysis.docFound}/${analysis.docRequired.length}</strong><span>${analysis.docPercent}% komplett</span></div><p class="muted">${esc(analysis.docPercent===100?'Alle nøkkeldokumenter er registrert.':'Mangler: '+analysis.missing.join(', '))}</p><button class="action primary" onclick="openModule('documents')">Last opp dokumentasjon</button></div>
+    <div class="card s6"><h3>Styrets beslutningspunkter</h3>${brainFindingList(analysis.boardDecisions,'Ingen tydelige beslutningspunkter akkurat nå.')}</div>
+    <div class="card s6"><h3>Vedlikeholdsforslag</h3>${brainFindingList(analysis.maintenance,'Ingen ekstra vedlikeholdsforslag nå.')}</div>
     <div class="card s12"><h3>Anbefalt neste handling</h3><div class="brain-actions">${analysis.actions.map(a=>`<button onclick="${esc(a.open)}"><span>${esc(a.priority)}</span><strong>${esc(a.title)}</strong><small>${esc(a.detail)}</small></button>`).join('')}</div></div>
     <div id="propertyBrainAiPanel" class="card s12 brain-ai-panel"><div class="dash-title"><div><h3>AI-vurdering</h3><p class="muted">Sender live eiendomsdata til AI Director hvis API-kvote er tilgjengelig.</p></div><button class="action primary" onclick="scrollToPropertyBrainAi();runPropertyBrainAi()">Analyser med AI</button></div><label>Spørsmål til Property Brain</label><textarea id="brainQuestion">Hva er største tekniske risiko for eiendommen nå, og hva bør styret gjøre først?</textarea><div id="propertyBrainOut" class="ai-report">${formatAiReport(DP.cache.property_brain_answer||propertyBrainTextFallback(analysis))}</div></div>
   </div>`;
@@ -180,51 +184,106 @@ function PropertyBrainPage(){
 function propertyBrainAnalysis(){
   const devs=DP.cache.deviations||[],wos=DP.cache.work_orders||[],docs=DP.cache.documents||[],buildings=DP.cache.buildings||[],projects=DP.cache.projects||[],lines=DP.cache.budget_lines||[],offers=DP.cache.offers||[],rfqs=DP.cache.quote_requests||[];
   const open=x=>!['lukket','ferdig','utført','utfort','fullført','fullfort'].includes(String(x.status||'').toLowerCase());
+  const done=x=>['lukket','ferdig','utført','utfort','fullført','fullfort'].includes(String(x.status||'').toLowerCase());
   const openDevs=devs.filter(open),critical=openDevs.filter(d=>/kritisk|høy|hoy/i.test(String(d.priority||'')));
   const openWos=wos.filter(open),overdue=wos.filter(w=>w.due_date&&new Date(w.due_date)<new Date()&&open(w));
   const categories=(docs||[]).map(d=>String(d.category||'').toLowerCase());
-  const missing=['FDV','HMS','Kontrakt','Styrepapir','Tegning'].filter(c=>!categories.includes(c.toLowerCase()));
+  const docRequired=['FDV','HMS','Tegning','Kontrakt','Garanti','Serviceavtale','Forsikring','Brann','Ventilasjon'];
+  const missing=docRequired.filter(c=>!categories.some(cat=>cat.includes(c.toLowerCase())));
+  const docFound=docRequired.length-missing.length,docPercent=Math.round((docFound/docRequired.length)*100);
   const budget=lines.reduce((s,l)=>s+Number(l.budget_amount||l.budget||0),0),actual=lines.reduce((s,l)=>s+Number(l.actual_amount||l.actual||0),0),variance=actual-budget;
   const projectOver=projects.filter(pr=>Number(pr.actual_cost||pr.actual_amount||0)>Number(pr.budget||pr.budget_amount||0));
+  const areaRisks=propertyBrainAreaRisks(devs,wos);
+  const repeatedAreas=areaRisks.filter(a=>a.deviations>=2);
+  const doneWithoutDocs=wos.filter(w=>done(w)&&!docs.some(d=>String(d.work_order_id||'')===String(w.id)||String(d.title||'').toLowerCase().includes(String(w.title||'').toLowerCase().slice(0,18))));
+  const draftRfqs=rfqs.filter(q=>/utkast|ny|sendt/i.test(String(q.status||'')));
   let score=100;
   score-=Math.min(30,critical.length*12);
   score-=Math.min(18,openWos.length*4);
   score-=Math.min(20,missing.length*5);
+  score-=Math.min(12,repeatedAreas.length*4);
+  score-=Math.min(10,doneWithoutDocs.length*5);
   if(variance>0)score-=Math.min(18,Math.round((variance/Math.max(1,budget))*20));
   score-=Math.min(10,overdue.length*5);
   score=Math.max(0,Math.min(100,score));
   const risks=[
     ...critical.map(d=>({type:'bad',title:d.title||'Kritisk avvik',detail:`Prioritet: ${d.priority||'ikke satt'} · status: ${d.status||'ny'}`,module:'cases'})),
+    ...repeatedAreas.map(a=>({type:a.type,title:`Gjentakende avvik: ${a.area}`,detail:`${a.deviations} avvik registrert. Vurder samlet kontroll.`,module:'cases'})),
     ...overdue.map(w=>({type:'warn',title:w.title||'Forfalt arbeidsordre',detail:`Frist: ${w.due_date}`,module:'cases'})),
     ...(variance>0?[{type:'bad',title:'Økonomiavvik',detail:`Faktisk er ${money(variance)} over budsjett.`,module:'finance'}]:[]),
     ...projectOver.map(pr=>({type:'warn',title:pr.name||'Prosjekt over budsjett',detail:`Faktisk: ${money(pr.actual_cost||pr.actual_amount)} · budsjett: ${money(pr.budget||pr.budget_amount)}`,module:'finance'}))
   ].slice(0,8);
   const documentation=missing.map(c=>({type:'warn',title:`Mangler ${c}`,detail:'Last opp eller knytt dokumentasjon til valgt eiendom.',module:'documents'}));
+  doneWithoutDocs.slice(0,4).forEach(w=>documentation.push({type:'bad',title:'Utført arbeid mangler dokumentasjon',detail:`${w.title||'Arbeidsordre'} er utført, men mangler rapport, FDV, kontrakt eller vedlegg.`,module:'documents'}));
   if(!buildings.length)documentation.push({type:'info',title:'Ingen bygg registrert',detail:'Legg inn bygg for bedre FDV- og risikovurdering.',module:'property'});
+  const boardDecisions=[
+    ...critical.map(d=>({type:'bad',title:'Beslutning: kritisk avvik',detail:`Avklar tiltak og ansvar for ${d.title||'kritisk avvik'}.`,module:'cases'})),
+    ...(variance>0?[{type:'bad',title:'Beslutning: budsjettavvik',detail:`Forklar og godkjenn avvik på ${money(variance)}.`,module:'finance'}]:[]),
+    ...draftRfqs.map(q=>({type:'info',title:'Beslutning: tilbudsforespørsel',detail:`${q.title||'RFQ'} bør sendes, avklares eller lukkes.`,module:'market'})),
+    ...(offers.length?[{type:'info',title:'Beslutning: tilbud mottatt',detail:`${offers.length} tilbud bør vurderes og eventuelt tildeles.`,module:'market'}]:[]),
+    ...(doneWithoutDocs.length?[{type:'warn',title:'Beslutning: dokumentasjon før lukking',detail:`${doneWithoutDocs.length} utførte ordre bør dokumenteres før saken regnes som komplett.`,module:'documents'}]:[])
+  ].slice(0,8);
+  const maintenance=[
+    ...areaRisks.filter(a=>a.score>0).slice(0,4).map(a=>({type:a.type,title:`Kontroll av ${a.area} innen 30 dager`,detail:`Risikonivå ${a.level}. Basert på avvik og åpne arbeidsordre.`,module:'cases'})),
+    ...(missing.includes('Serviceavtale')?[{type:'warn',title:'Registrer serviceavtaler',detail:'Serviceavtaler bør ligge i FDV for å fange kommende kontroller.',module:'documents'}]:[]),
+    ...(missing.includes('Garanti')?[{type:'warn',title:'Registrer garantier',detail:'Garantier bør lagres før frister og reklamasjonsmuligheter går tapt.',module:'documents'}]:[]),
+    ...(variance>0?[{type:'bad',title:'Kostnadsrisiko ved utsettelse',detail:'Budsjettavvik bør vurderes før nye tiltak bestilles.',module:'finance'}]:[])
+  ].slice(0,8);
   const actions=[
     critical.length?{priority:'1',title:'Følg opp kritiske avvik',detail:`${critical.length} kritiske/høye avvik bør behandles først.`,open:"openModule('cases')"}:null,
-    missing.length?{priority:critical.length?'2':'1',title:'Tett FDV-mangler',detail:`Mangler: ${missing.join(', ')}.`,open:"openModule('documents')"}:null,
-    variance>0?{priority:'3',title:'Forklar budsjettavvik',detail:`Avvik på ${money(variance)} bør inn i styrerapport.`,open:"openModule('finance')"}:null,
-    rfqs.length||offers.length?{priority:'4',title:'Avklar innkjøp og tilbud',detail:`${rfqs.length} forespørsler og ${offers.length} tilbud er registrert.`,open:"openModule('market')"}:null,
+    doneWithoutDocs.length?{priority:'2',title:'Dokumenter utført arbeid',detail:`${doneWithoutDocs.length} utførte arbeidsordre mangler dokumentasjon.`,open:"openModule('documents')"}:null,
+    missing.length?{priority:critical.length?'3':'1',title:'Tett FDV-mangler',detail:`Dokumentasjonsgrad ${docFound}/${docRequired.length}. Mangler: ${missing.join(', ')}.`,open:"openModule('documents')"}:null,
+    variance>0?{priority:'4',title:'Forklar budsjettavvik',detail:`Avvik på ${money(variance)} kan gi kostnadsrisiko og bør inn i styrerapport.`,open:"openModule('finance')"}:null,
+    rfqs.length||offers.length?{priority:'5',title:'Avklar innkjøp og tilbud',detail:`${rfqs.length} forespørsler og ${offers.length} tilbud er registrert.`,open:"openModule('market')"}:null,
     {priority:'+',title:'Oppdater live grunnlag',detail:'Hent nyeste data før styremøte eller rapport.',open:"hydrateAll().then(render)"}
   ].filter(Boolean).slice(0,5);
   const metrics=[
     {label:'Åpne avvik',value:openDevs.length,caption:'Live fra avvik',type:openDevs.length?'warn':'ok',module:'cases'},
     {label:'Høy risiko',value:critical.length,caption:'Kritisk/høy prioritet',type:critical.length?'bad':'ok',module:'cases'},
-    {label:'FDV-mangler',value:missing.length,caption:'Kravdokumenter',type:missing.length?'warn':'ok',module:'documents'},
+    {label:'Dokumentasjon',value:`${docFound}/${docRequired.length}`,caption:'Nøkkeldokumenter',type:missing.length?'warn':'ok',module:'documents'},
     {label:'Forfalte ordre',value:overdue.length,caption:'Frist passert',type:overdue.length?'bad':'ok',module:'cases'},
     {label:'Budsjettavvik',value:money(Math.max(0,variance)),caption:'Faktisk over budsjett',type:variance>0?'bad':'ok',module:'finance'},
-    {label:'Dokumenter',value:docs.length,caption:'I arkivet',type:'info',module:'documents'}
+    {label:'Gjentakende',value:repeatedAreas.length,caption:'Områder med flere avvik',type:repeatedAreas.length?'warn':'ok',module:'cases'},
+    {label:'Utført uten dok.',value:doneWithoutDocs.length,caption:'Mangler rapport/FDV',type:doneWithoutDocs.length?'bad':'ok',module:'documents'}
   ];
   const summary=score>=85?'Eiendommen ser godt kontrollert ut basert på registrert live-data.':score>=65?'Eiendommen har noen punkter styret bør følge opp.':'Eiendommen har flere risikopunkter som bør prioriteres før nye tiltak.';
-  return {score,summary,risks,documentation,actions,metrics,missing,variance,openDevs,critical,openWos,docs};
+  return {score,summary,risks,documentation,actions,metrics,missing,variance,openDevs,critical,openWos,docs,areaRisks,docRequired,docFound,docPercent,boardDecisions,maintenance,doneWithoutDocs,repeatedAreas};
+}
+function propertyBrainAreaRisks(devs,wos){
+  const areas=['Tak','VVS','Elektro','Brann','HMS','Heis','Uteområde','Bygg','Annet'];
+  const map=Object.fromEntries(areas.map(a=>[a,{area:a,deviations:0,critical:0,workOrders:0,score:0,level:'Lav',type:'ok'}]));
+  const areaOf=row=>{
+    const text=String([row.category,row.title,row.description,row.notes].filter(Boolean).join(' ')).toLowerCase();
+    if(/tak|membran|pipe|lekkasje tak/.test(text))return 'Tak';
+    if(/vvs|rør|ror|vann|lekkasje|sluk|avløp|avlop/.test(text))return 'VVS';
+    if(/el|elektro|strøm|strom|lys|sikring/.test(text))return 'Elektro';
+    if(/brann|alarm|sprinkler|røyk|royk/.test(text))return 'Brann';
+    if(/hms|sikkerhet|avvik hms/.test(text))return 'HMS';
+    if(/heis|lift/.test(text))return 'Heis';
+    if(/ute|parkering|garasje|snø|sno|fasade|område|omrade/.test(text))return 'Uteområde';
+    if(/bygg|fasade|vegg|dør|dor|vindu/.test(text))return 'Bygg';
+    return 'Annet';
+  };
+  devs.forEach(d=>{const a=map[areaOf(d)]||map.Annet;a.deviations++;if(/kritisk|høy|hoy/i.test(String(d.priority||'')))a.critical++;});
+  wos.forEach(w=>{const a=map[areaOf(w)]||map.Annet;a.workOrders++;});
+  return Object.values(map).map(a=>{
+    a.score=a.deviations*2+a.critical*4+a.workOrders;
+    a.level=a.score>=8?'Høy':a.score>=4?'Medium':a.score>0?'Lav':'Normal';
+    a.type=a.level==='Høy'?'bad':a.level==='Medium'?'warn':a.score>0?'info':'ok';
+    return a;
+  }).sort((a,b)=>b.score-a.score);
+}
+function brainAreaRisk(areas){
+  const rows=(areas||[]).filter(a=>a.score>0).slice(0,8);
+  if(!rows.length)return '<div class="empty-state"><strong>Ingen område-risiko registrert.</strong><span>Når avvik eller arbeidsordre knyttes til Tak, VVS, elektro eller andre fag, vises risikonivå her.</span></div>';
+  return `<div class="brain-area-grid">${rows.map(a=>`<button class="${esc(a.type)}" onclick="openModule('cases')"><strong>${esc(a.area)}</strong><span>${esc(a.level)} risiko</span><small>${a.deviations} avvik · ${a.workOrders} ordre</small></button>`).join('')}</div>`;
 }
 function brainFindingList(items,empty){
   if(!items.length)return `<div class="empty-state"><strong>${esc(empty)}</strong><span>Property Brain bruker kun live data fra valgt eiendom.</span></div>`;
   return `<div class="brain-findings">${items.map(i=>`<button onclick="openModule('${esc(i.module)}')" class="${esc(i.type)}"><strong>${esc(i.title)}</strong><span>${esc(i.detail)}</span></button>`).join('')}</div>`;
 }
 function propertyBrainTextFallback(a){
-  return `1. Kort status\n${a.summary}\n\n2. Viktigste funn\nÅpne avvik: ${a.openDevs.length}\nKritiske/høye avvik: ${a.critical.length}\nÅpne arbeidsordre: ${a.openWos.length}\nDokumenter: ${a.docs.length}\nFDV-mangler: ${a.missing.length}\nBudsjettavvik: ${money(Math.max(0,a.variance))}\n\n3. Anbefalt neste handling\n${a.actions.map(x=>`${x.priority}. ${x.title} - ${x.detail}`).join('\n')}`;
+  return `1. Kort status\n${a.summary}\nTilstandscore: ${a.score}/100.\nDokumentasjonsgrad: ${a.docFound}/${a.docRequired.length} nøkkeldokumenter (${a.docPercent}%).\n\n2. Viktigste funn\nÅpne avvik: ${a.openDevs.length}\nKritiske/høye avvik: ${a.critical.length}\nÅpne arbeidsordre: ${a.openWos.length}\nGjentakende avviksområder: ${a.repeatedAreas.length}\nUtført arbeid uten dokumentasjon: ${a.doneWithoutDocs.length}\nBudsjettavvik: ${money(Math.max(0,a.variance))}\n\n3. Styrets beslutningspunkter\n${a.boardDecisions.length?a.boardDecisions.map(x=>`- ${x.title}: ${x.detail}`).join('\n'):'Ingen tydelige beslutningspunkter akkurat nå.'}\n\n4. Vedlikeholdsforslag\n${a.maintenance.length?a.maintenance.map(x=>`- ${x.title}: ${x.detail}`).join('\n'):'Ingen ekstra vedlikeholdsforslag akkurat nå.'}\n\n5. Anbefalt neste handling\n${a.actions.map(x=>`${x.priority}. ${x.title} - ${x.detail}`).join('\n')}`;
 }
 async function runPropertyBrainAi(){
   const out=document.getElementById('propertyBrainOut');

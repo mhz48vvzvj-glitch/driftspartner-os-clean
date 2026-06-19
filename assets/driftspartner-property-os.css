@@ -686,6 +686,19 @@ body:not(.public-mode) td,body:not(.public-mode) th{word-break:break-word}
 .brain-findings button{border:1px solid #223149;border-radius:14px;background:#081220;color:#e7eefb;text-align:left;padding:13px;display:grid;gap:5px;cursor:pointer}
 .brain-findings strong{color:#fff;line-height:1.25}
 .brain-findings span{color:#a9b7cc;font-size:13px;line-height:1.35}
+.brain-area-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.brain-area-grid button{border:1px solid #223149;border-radius:14px;background:#081220;color:#e7eefb;text-align:left;padding:13px;display:grid;gap:6px;cursor:pointer;min-width:0}
+.brain-area-grid button:hover{border-color:#2d72ff;transform:translateY(-1px)}
+.brain-area-grid strong{color:#fff;font-size:16px}
+.brain-area-grid span{font-size:12px;font-weight:950;text-transform:uppercase;letter-spacing:.06em}
+.brain-area-grid small{color:#a9b7cc;line-height:1.35}
+.brain-area-grid .ok{border-color:#1f7a4d;background:linear-gradient(180deg,rgba(18,60,42,.20),#081220)}
+.brain-area-grid .info{border-color:#235aa2;background:linear-gradient(180deg,rgba(16,42,88,.25),#081220)}
+.brain-area-grid .warn{border-color:#7a5a1f;background:linear-gradient(180deg,rgba(59,45,8,.30),#081220)}
+.brain-area-grid .bad{border-color:#8c2633;background:linear-gradient(180deg,rgba(69,21,27,.34),#081220)}
+.brain-doc-score{border:1px solid #223149;border-radius:18px;background:radial-gradient(circle at top right,rgba(45,114,255,.20),transparent 54%),#081220;padding:22px;margin:12px 0 14px;text-align:center}
+.brain-doc-score strong{display:block;color:#fff;font-size:42px;line-height:1}
+.brain-doc-score span{display:block;color:#a9b7cc;font-size:13px;font-weight:950;text-transform:uppercase;letter-spacing:.08em;margin-top:8px}
 .brain-actions{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
 .brain-actions button{border:1px solid #223149;border-radius:16px;background:linear-gradient(180deg,#0b1524,#07111f);color:#e7eefb;text-align:left;padding:15px;display:grid;gap:8px;cursor:pointer;min-width:0}
 .brain-actions span{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;background:#1457ff;color:#fff;font-weight:950}
@@ -709,7 +722,7 @@ body:not(.public-mode) td,body:not(.public-mode) th{word-break:break-word}
   .project-numbers{grid-template-columns:1fr}
   .person-meta{grid-template-columns:1fr}
   .case-flow-head,.case-flow-steps,.flow-actions,.flow-form-grid,.flow-context,.contract-step .flow-form-grid,.info-grid,.document-grid,.market-pipeline,.onboarding-entry-grid,.onboarding-entry-grid.two,.onboarding-entry-grid.three,.subscription-grid{grid-template-columns:1fr}
-  .finance-summary-strip,.premium-pie-wrap,.finance-bar-row,.brain-metrics,.brain-actions{grid-template-columns:1fr}
+  .finance-summary-strip,.premium-pie-wrap,.finance-bar-row,.brain-metrics,.brain-actions,.brain-area-grid{grid-template-columns:1fr}
   .finance-bar-value{text-align:left}
   .premium-pie{margin:auto}
   .dp-notice{left:16px;right:16px;top:14px}
