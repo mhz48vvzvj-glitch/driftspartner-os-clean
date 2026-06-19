@@ -888,6 +888,14 @@ body:not(.public-mode) td,body:not(.public-mode) th{word-break:break-word}
 .brain-score-ring strong,.brain-score-ring span{position:relative;z-index:1;text-align:center}
 .brain-score-ring strong{display:block;color:#fff;font-size:46px;line-height:1}
 .brain-score-ring span{display:block;color:#aab8cc;font-size:12px;font-weight:950;text-transform:uppercase;letter-spacing:.08em;margin-top:54px;position:absolute}
+.brain-score-factors{border:1px solid #223149;border-radius:16px;background:#081220;padding:13px;display:grid;gap:8px}
+.brain-score-factors>strong{color:#fff;font-size:14px}
+.brain-score-factors>span{display:grid;gap:3px;color:#aab8cc;font-size:12px;line-height:1.35;border-left:3px solid #2d72ff;padding-left:9px}
+.brain-score-factors span b{display:block;color:#edf4ff;font-size:12px}
+.brain-score-factors span.bad{border-left-color:#ff4d58}
+.brain-score-factors span.warn{border-left-color:#f8b51d}
+.brain-score-factors span.info{border-left-color:#5b9dff}
+.brain-score-factors span.ok{border-left-color:#35d071}
 .brain-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
 .brain-metrics button{border:1px solid #223149;border-radius:16px;background:#081220;color:#e7eefb;text-align:left;padding:15px;display:grid;gap:7px;cursor:pointer;min-width:0}
 .brain-metrics button:hover,.brain-findings button:hover,.brain-actions button:hover{border-color:#2d72ff;transform:translateY(-1px)}

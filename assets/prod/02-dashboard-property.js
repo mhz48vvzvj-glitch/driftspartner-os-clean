@@ -243,7 +243,7 @@ function PropertyBrainPage(){
   const p=currentProperty(),analysis=propertyBrainAnalysis();
   return `<div class="grid property-brain-page">
     <div class="card s12 module-hero brain-hero"><div><small>Property Brain</small><h2>Teknisk analyse av ${esc(p?.name||'valgt eiendom')}</h2><p>Live vurdering av FDV, avvik, arbeidsordre, økonomi, prosjekter og dokumentasjon. Brukes som beslutningsgrunnlag for styre og forvalter.</p></div><div class="module-actions"><button class="action primary" onclick="scrollToPropertyBrainAi();runPropertyBrainAi()">Kjør AI-vurdering</button><button class="action" onclick="hydrateAll().then(render)">Oppdater live data</button></div></div>
-    <div class="card s4 brain-score-card"><div class="brain-score-ring" style="--score:${analysis.score}"><strong>${analysis.score}</strong><span>Tilstandscore</span></div><p>${esc(analysis.summary)}</p></div>
+    <div class="card s4 brain-score-card"><div class="brain-score-ring" style="--score:${analysis.score}"><strong>${analysis.score}</strong><span>Tilstandscore</span></div><p>${esc(analysis.summary)}</p>${brainScoreFactors(analysis)}</div>
     <div class="card s8"><div class="brain-metrics">${analysis.metrics.map(m=>`<button class="${esc(m.type)}" onclick="openModule('${esc(m.module)}')"><small>${esc(m.label)}</small><strong>${esc(m.value)}</strong><span>${esc(m.caption)}</span></button>`).join('')}</div></div>
     <div class="card s6"><div class="dash-title"><h3>Risikofunn</h3><button class="action" onclick="openModule('cases')">Åpne saker</button></div>${brainFindingList(analysis.risks,'Ingen kritiske risikofunn akkurat nå.')}</div>
     <div class="card s6"><div class="dash-title"><h3>Dokumentasjon</h3><button class="action" onclick="openModule('documents')">Åpne arkiv</button></div>${brainFindingList(analysis.documentation,'Dokumentasjonen ser komplett ut for V1-kontroll.')}</div>
@@ -280,6 +280,15 @@ function propertyBrainAnalysis(){
   if(variance>0)score-=Math.min(18,Math.round((variance/Math.max(1,budget))*20));
   score-=Math.min(10,overdue.length*5);
   score=Math.max(0,Math.min(100,score));
+  const scoreFactors=[
+    critical.length?{type:'bad',title:'Kritiske/høye avvik',detail:`${critical.length} sak(er) trekker scoren ned.`}:null,
+    openWos.length?{type:'warn',title:'Åpne arbeidsordre',detail:`${openWos.length} oppgave(r) står fortsatt åpne.`}:null,
+    missing.length?{type:'warn',title:'Manglende dokumentasjon',detail:`${missing.length} nøkkeldokument(er) mangler.`}:null,
+    repeatedAreas.length?{type:'warn',title:'Gjentakende områder',detail:`${repeatedAreas.length} fagområde(r) har flere avvik.`}:null,
+    doneWithoutDocs.length?{type:'bad',title:'Utført uten dokumentasjon',detail:`${doneWithoutDocs.length} utført(e) ordre mangler rapport/FDV.`}:null,
+    variance>0?{type:'bad',title:'Budsjettavvik',detail:`${money(variance)} over registrert budsjett.`}:null,
+    overdue.length?{type:'bad',title:'Forfalte frister',detail:`${overdue.length} arbeidsordre har passert frist.`}:null
+  ].filter(Boolean);
   const risks=[
     ...critical.map(d=>({type:'bad',title:d.title||'Kritisk avvik',detail:`Prioritet: ${d.priority||'ikke satt'} · status: ${d.status||'ny'}`,module:'cases'})),
     ...repeatedAreas.map(a=>({type:a.type,title:`Gjentakende avvik: ${a.area}`,detail:`${a.deviations} avvik registrert. Vurder samlet kontroll.`,module:'cases'})),
@@ -321,7 +330,7 @@ function propertyBrainAnalysis(){
     {label:'Utført uten dok.',value:doneWithoutDocs.length,caption:'Mangler rapport/FDV',type:doneWithoutDocs.length?'bad':'ok',module:'documents'}
   ];
   const summary=score>=85?'Eiendommen ser godt kontrollert ut basert på registrert live-data.':score>=65?'Eiendommen har noen punkter styret bør følge opp.':'Eiendommen har flere risikopunkter som bør prioriteres før nye tiltak.';
-  return {score,summary,risks,documentation,actions,metrics,missing,variance,openDevs,critical,openWos,docs,areaRisks,docRequired,docFound,docPercent,boardDecisions,maintenance,doneWithoutDocs,repeatedAreas};
+  return {score,summary,risks,documentation,actions,metrics,missing,variance,openDevs,critical,openWos,docs,areaRisks,docRequired,docFound,docPercent,boardDecisions,maintenance,doneWithoutDocs,repeatedAreas,scoreFactors};
 }
 function propertyBrainAreaRisks(devs,wos){
   const areas=['Tak','VVS','Elektro','Brann','HMS','Heis','Uteområde','Bygg','Annet'];
@@ -355,6 +364,11 @@ function brainAreaRisk(areas){
 function brainFindingList(items,empty){
   if(!items.length)return `<div class="empty-state"><strong>${esc(empty)}</strong><span>Property Brain bruker kun live data fra valgt eiendom.</span></div>`;
   return `<div class="brain-findings">${items.map(i=>`<button onclick="openModule('${esc(i.module)}')" class="${esc(i.type)}"><strong>${esc(i.title)}</strong><span>${esc(i.detail)}</span></button>`).join('')}</div>`;
+}
+function brainScoreFactors(a){
+  const rows=a.scoreFactors||[];
+  if(!rows.length)return '<div class="brain-score-factors"><strong>Hvorfor høy score?</strong><span>Ingen store risikofaktorer trekker scoren ned akkurat nå.</span></div>';
+  return `<div class="brain-score-factors"><strong>Hvorfor denne scoren?</strong>${rows.slice(0,4).map(r=>`<span class="${esc(r.type)}"><b>${esc(r.title)}</b>${esc(r.detail)}</span>`).join('')}</div>`;
 }
 function propertyBrainTextFallback(a){
   return `1. Kort status\n${a.summary}\nTilstandscore: ${a.score}/100.\nDokumentasjonsgrad: ${a.docFound}/${a.docRequired.length} nøkkeldokumenter (${a.docPercent}%).\n\n2. Viktigste funn\nÅpne avvik: ${a.openDevs.length}\nKritiske/høye avvik: ${a.critical.length}\nÅpne arbeidsordre: ${a.openWos.length}\nGjentakende avviksområder: ${a.repeatedAreas.length}\nUtført arbeid uten dokumentasjon: ${a.doneWithoutDocs.length}\nBudsjettavvik: ${money(Math.max(0,a.variance))}\n\n3. Styrets beslutningspunkter\n${a.boardDecisions.length?a.boardDecisions.map(x=>`- ${x.title}: ${x.detail}`).join('\n'):'Ingen tydelige beslutningspunkter akkurat nå.'}\n\n4. Vedlikeholdsforslag\n${a.maintenance.length?a.maintenance.map(x=>`- ${x.title}: ${x.detail}`).join('\n'):'Ingen ekstra vedlikeholdsforslag akkurat nå.'}\n\n5. Anbefalt neste handling\n${a.actions.map(x=>`${x.priority}. ${x.title} - ${x.detail}`).join('\n')}`;
