@@ -16,6 +16,22 @@ const escapeHtml = (value) =>
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
 
+const safeTagValue = (value, fallback = "unknown") => {
+  const cleaned = String(value || "")
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/æ/g, "ae")
+    .replace(/ø/g, "o")
+    .replace(/å/g, "a")
+    .replace(/Æ/g, "AE")
+    .replace(/Ø/g, "O")
+    .replace(/Å/g, "A")
+    .replace(/[^A-Za-z0-9_-]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 50);
+  return cleaned || fallback;
+};
+
 const templateLabels = {
   demo: "Demoforespørsel",
   purchase: "Bestilling",
@@ -106,8 +122,8 @@ exports.handler = async (event) => {
           caseId
         }),
         tags: [
-          { name: "kind", value: kind },
-          { name: "property", value: property || "unknown" }
+          { name: "kind", value: safeTagValue(kind, "general") },
+          { name: "property", value: safeTagValue(property, "unknown") }
         ]
       })
     });
