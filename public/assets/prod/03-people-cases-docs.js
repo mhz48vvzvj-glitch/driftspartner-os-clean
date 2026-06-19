@@ -607,5 +607,73 @@ async function deleteDocument(id,path){
   }catch(e){showDrawer('Dokument ble ikke slettet',`<div class=\"output\">${esc(customerError(e))}</div>`)}
 }
 
+function DocumentsPage(){
+  const docs=DP.cache.documents||[],versions=DP.cache.document_versions||[];
+  const cats=['Alle','FDV','HMS','Tilbud','Kontrakt','Styrepapir','Bilde','Tegning','Annet'];
+  const active=DP.docCat||'Alle';
+  const filtered=active==='Alle'?docs:docs.filter(d=>String(d.category||'')===active);
+  const byCat=c=>docs.filter(d=>String(d.category||'')===c).length;
+  const required=['FDV','HMS','Tegning','Kontrakt','Styrepapir'];
+  const missing=required.filter(c=>!docs.some(d=>String(d.category||'')===c));
+  const expiring=documentsExpiring(docs);
+  const stats=cats.map(c=>`<button class="doc-filter ${active===c?'active':''}" onclick="DP.docCat='${esc(c)}';render()"><span>${esc(c)}</span><b>${c==='Alle'?docs.length:byCat(c)}</b></button>`).join('');
+  return `<div class="grid documents-page premium-documents">
+    <div class="card s12 module-hero documents-hero"><div><small>FDV og dokumentarkiv</small><h2>Dokumentasjon for ${esc(currentProperty()?.name||'valgt eiendom')}</h2><p>FDV, HMS, tegninger, kontrakter, styrepapirer, bilder og tilbud lagres på valgt eiendom og kan knyttes til bygg eller sak.</p></div><div class="module-actions"><button class="action primary" onclick="showDocForm()">Last opp dokument</button><button class="action" onclick="showStandaloneContractForm()">Lag kontrakt</button><button class="action" onclick="openModule('brain')">Property Brain</button></div></div>
+    ${docSummaryCard('Dokumenter',docs.length,'Lagret på eiendommen','showDocForm()','info')}
+    ${docSummaryCard('Dokumentasjonsgrad',`${required.length-missing.length}/${required.length}`,missing.length?'Mangler nøkkeldokumenter':'Nøkkeldokumenter finnes','openModule("brain")',missing.length?'warn':'ok')}
+    ${docSummaryCard('Utløper snart',expiring.length,'Kontroller, avtaler og frister','showExpiringDocuments()','warn')}
+    ${docSummaryCard('Versjoner',versions.length,'Registrerte dokumentversjoner','DP.docCat="Alle";render()','purple')}
+    <div class="card s8 document-health-card"><div class="dash-title"><div><h3>Arkivstatus</h3><p class="muted">Nøkkeldokumenter styret bør ha kontroll på.</p></div><button class="action" onclick="openModule('brain')">Analyser</button></div>${documentHealthGrid(required,docs)}</div>
+    <div class="card s4 document-deadline-card"><h3>Kommende kontroller</h3>${documentDeadlineList(expiring)}</div>
+    <div class="card s12 document-filters">${stats}</div>
+    <div class="card s12"><div class="dash-title"><div><h3>${esc(active==='Alle'?'Alle dokumenter':active)}</h3><p class="muted">Åpne, versjoner, detaljvis eller slett dokumenter fra valgt eiendom.</p></div><button class="action primary" onclick="showDocForm()">Last opp</button></div>${documentCards(filtered)}</div>
+  </div>`;
+}
+function docSummaryCard(label,value,caption,action,type='info'){
+  return `<button class="card s3 doc-summary ${type}" onclick="${action}"><small>${esc(label)}</small><strong>${esc(value)}</strong><span>${esc(caption)}</span></button>`;
+}
+function documentsExpiring(docs){
+  const now=new Date(),limit=new Date();limit.setDate(limit.getDate()+120);
+  return (docs||[]).filter(d=>d.expires_at).map(d=>({...d,dt:new Date(d.expires_at)})).filter(d=>!Number.isNaN(d.dt.getTime())&&d.dt<=limit).sort((a,b)=>a.dt-b.dt).slice(0,8);
+}
+function documentHealthGrid(required,docs){
+  return `<div class="document-health-grid">${required.map(cat=>{const found=docs.find(d=>String(d.category||'')===cat);return `<button class="${found?'ok':'warn'}" onclick="${found?`showDocumentDetails('${esc(found.id)}')`:'showDocForm()'}"><span>${found?'På plass':'Mangler'}</span><strong>${esc(cat)}</strong><small>${found?esc(found.title||'Dokument registrert'):'Last opp eller knytt dokument til kategorien'}</small></button>`}).join('')}</div>`;
+}
+function documentDeadlineList(rows){
+  if(!rows.length)return '<div class="empty-state"><strong>Ingen utløp registrert.</strong><span>Legg inn utløpsdato på garantier, serviceavtaler, HMS eller kontroller.</span></div>';
+  return `<div class="document-deadlines">${rows.map(d=>`<button onclick="showDocumentDetails('${esc(d.id)}')"><span>${esc(new Date(d.expires_at).toLocaleDateString('nb-NO',{day:'2-digit',month:'short'}))}</span><div><strong>${esc(d.title||'Dokument')}</strong><small>${esc(d.category||'Dokument')}</small></div></button>`).join('')}</div>`;
+}
+function showExpiringDocuments(){
+  const rows=documentsExpiring(DP.cache.documents||[]);
+  showDrawer('Utløper snart',rows.length?`<div class="document-deadlines drawer-list">${rows.map(d=>`<button onclick="showDocumentDetails('${esc(d.id)}')"><span>${esc(new Date(d.expires_at).toLocaleDateString('nb-NO'))}</span><div><strong>${esc(d.title||'Dokument')}</strong><small>${esc(d.category||'Dokument')} · ${esc(documentLinkLabel(d))}</small></div></button>`).join('')}</div>`:'<div class="empty-state"><strong>Ingen dokumentfrister.</strong><span>Legg inn utløpsdato på dokumenter for å få varsler.</span></div>');
+}
+function documentCards(docs){
+  if(!docs.length)return '<div class="empty-state"><strong>Ingen dokumenter i denne visningen.</strong><span>Last opp første FDV-fil, tegning, kontrakt eller styrepapir for valgt eiendom.</span><button class="action primary" onclick="showDocForm()">Last opp dokument</button></div>';
+  return `<div class="document-grid premium-document-grid">${docs.map(d=>documentCard(d)).join('')}</div>`;
+}
+function documentCard(d){
+  const exp=d.expires_at?new Date(d.expires_at):null,isSoon=exp&&!Number.isNaN(exp.getTime())&&exp<(new Date(Date.now()+1000*60*60*24*60));
+  return `<section class="document-card premium-doc-card ${isSoon?'warn':''}">
+    <div class="document-head"><div><span>${esc(d.category||'Dokument')}</span><strong>${esc(d.title||'Uten tittel')}</strong></div><b>v${esc(d.version||1)}</b></div>
+    <div class="document-meta"><div><small>Knyttet til</small><b>${esc(documentLinkLabel(d))}</b></div><div><small>Status</small><b>${esc(d.status||'Arkivert')}</b></div><div><small>Utløp</small><b>${esc(d.expires_at||'Ikke satt')}</b></div></div>
+    ${d.notes?`<p>${esc(d.notes)}</p>`:''}
+    <div class="row-actions"><button class="action primary" onclick="openDocument('${esc(d.id)}')">Åpne</button><button class="action" onclick="showDocumentDetails('${esc(d.id)}')">Detaljer</button><button class="action" onclick="showDocumentVersionForm('${esc(d.id)}')">Ny versjon</button><button class="action red" onclick="deleteDocument('${esc(d.id)}','${esc(d.storage_path)}')">Slett</button></div>
+  </section>`;
+}
+function showDocForm(){
+  const buildings=DP.cache.buildings||[],devs=DP.cache.deviations||[],wos=DP.cache.work_orders||[];
+  showDrawer('Last opp dokument',`<div class="doc-upload-panel"><div class="form-grid two"><label>Tittel<input id="docTitle" placeholder="Branninstruks, taktegning, serviceavtale..."></label><label>Kategori<select id="docCat"><option>FDV</option><option>HMS</option><option>Tilbud</option><option>Kontrakt</option><option>Styrepapir</option><option>Bilde</option><option>Tegning</option><option>Annet</option></select></label><label>Bygg<select id="docBuilding"><option value="">Hele eiendommen</option>${docOptions(buildings)}</select></label><label>Knytt til sak<select id="docCase"><option value="">Ingen sak</option><optgroup label="Avvik">${docOptions(devs)}</optgroup><optgroup label="Arbeidsordre">${docOptions(wos)}</optgroup></select></label><label>Utløpsdato / fornyelse<input id="docExpires" type="date"></label><label>Fil<input id="docFile" type="file"></label></div><label>Notat</label><textarea id="docNotes" rows="4" placeholder="Kort beskrivelse, garanti, kontrollfrist, leverandør eller annen relevant informasjon"></textarea><div class="flow-note">Dokumentet lagres live på valgt eiendom. Velg riktig kategori og bygg/sak hvis dokumentet skal brukes i Property Brain og rapporter.</div><button class="action primary" onclick="uploadDocument()">Last opp dokument</button><div id="docOut" class="output"></div></div>`);
+}
+function showDocumentDetails(id){
+  const d=(DP.cache.documents||[]).find(x=>x.id===id);if(!d)return;
+  const versions=(DP.cache.document_versions||[]).filter(v=>v.document_id===id);
+  const info=[['Kategori',d.category],['Knyttet til',documentLinkLabel(d)],['Versjon','v'+(d.version||1)],['Utløpsdato',d.expires_at||'-'],['Status',d.status||'Arkivert'],['Notat',d.notes||'-']];
+  showDrawer('Dokumentdetaljer',`<section class="document-detail"><div class="document-detail-head"><span>${esc(d.category||'Dokument')}</span><h3>${esc(d.title||'Uten tittel')}</h3><p>${esc(documentLinkLabel(d))}</p></div><div class="property-key-grid">${info.map(x=>`<div><small>${esc(x[0])}</small><b>${esc(x[1])}</b></div>`).join('')}</div><div class="row-actions"><button class="action primary" onclick="openDocument('${esc(id)}')">Åpne siste versjon</button><button class="action" onclick="showDocumentVersionForm('${esc(id)}')">Last opp ny versjon</button><button class="action red" onclick="deleteDocument('${esc(id)}','${esc(d.storage_path)}')">Slett</button></div><h3>Versjoner</h3>${documentVersionCards(versions)}</section>`);
+}
+function documentVersionCards(versions){
+  if(!versions.length)return '<div class="empty-state"><strong>Ingen versjonshistorikk.</strong><span>Når ny versjon lastes opp, vises historikken her.</span></div>';
+  return `<div class="document-version-list">${versions.map(v=>`<button onclick="openDocumentVersion('${esc(v.storage_path)}')"><span>v${esc(v.version||'-')}</span><div><strong>${esc(v.file_name||'Dokumentversjon')}</strong><small>${esc(v.created_at||'-')}</small></div></button>`).join('')}</div>`;
+}
+
 
 
