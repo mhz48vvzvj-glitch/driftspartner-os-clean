@@ -194,6 +194,101 @@ function showWorkOrderForm(deviationId=''){showDrawer('Ny arbeidsordre',`<input 
 async function saveWorkOrder(){try{requireLive('lagre arbeidsordre');let row={property_id:currentProperty().id,title:woTitle.value,description:woDesc.value,due_date:woDue.value||null,status:'Ny'};if(isUuid(woDev.value))row.deviation_id=woDev.value;const r=await db().from('work_orders').insert(row).select().single();if(r.error)throw r.error;hideDrawer();showNotice('Arbeidsordren er lagret. Oppdaterer listen...','ok');await insertActivity('Arbeidsordre opprettet','work_order',r.data.id);await finishAction('Arbeidsordren er opprettet.','cases')}catch(e){showDrawer('Arbeidsordre ble ikke lagret',`<div class=\"output\">${esc(customerError(e))}</div>`)}}
 async function deleteRow(tableName,id){if(!confirm('Slette raden?'))return;try{requireLive('slette');const r=await db().from(tableName).delete().eq('id',id);if(r.error)throw r.error;await insertActivity('Slettet '+tableName,'delete',id);await finishAction('Elementet er slettet.',DP.module)}catch(e){showDrawer('Sletting feilet',`<div class=\"output\">${esc(customerError(e))}</div>`)}}
 
+function CasesPage(){
+  const devs=DP.cache.deviations||[],wos=DP.cache.work_orders||[];
+  const open=x=>!['lukket','ferdig','utført','utfort','fullført','fullfort'].includes(String(x.status||'').toLowerCase());
+  const critical=devs.filter(d=>open(d)&&/kritisk|høy|hoy/i.test(String(d.priority||''))).length;
+  const overdue=wos.filter(w=>open(w)&&w.due_date&&new Date(w.due_date)<new Date()).length;
+  const waiting=devs.filter(d=>/venter|leverandør|leverandor|arbeidsordre/i.test(String(d.status||''))).length;
+  return `<div class="grid cases-page premium-cases">
+    <div class="card s12 module-hero cases-hero"><div><small>Avvik og arbeidsordre</small><h2>Driftssaker for ${esc(currentProperty()?.name||'valgt eiendom')}</h2><p>Registrer avvik, fordel ansvar, sett frister og følg saken videre til tilbud, kontrakt, FDV og rapport.</p></div><div class="module-actions"><button class="action primary" onclick="showDeviationForm()">Nytt avvik</button><button class="action" onclick="showWorkOrderForm()">Ny arbeidsordre</button><button class="action" onclick="showCaseFlow()">Fullt saksløp</button></div></div>
+    ${caseSummaryCard('Åpne avvik',devs.filter(open).length,'Avvik som må behandles','showDeviationForm()','info')}
+    ${caseSummaryCard('Kritisk/høy',critical,'Bør prioriteres først','openCaseFilter("critical")','bad')}
+    ${caseSummaryCard('Arbeidsordre',wos.filter(open).length,'Pågående oppgaver','showWorkOrderForm()','warn')}
+    ${caseSummaryCard('Forfalt',overdue,'Oppgaver over frist','openCaseFilter("overdue")','bad')}
+    <div class="card s8 case-priority-board"><div class="dash-title"><div><h3>Hva bør følges opp nå?</h3><p class="muted">Basert på prioritet, status og frister for valgt eiendom.</p></div><button class="action" onclick="openModule('brain')">Property Brain</button></div>${casePriorityList(devs,wos)}</div>
+    <div class="card s4 case-pipeline"><h3>Status</h3><div class="case-pipeline-list">${casePipelineRows(devs,wos,waiting)}</div></div>
+    <div class="card s6 case-section"><div class="dash-title"><div><h3>Avvik</h3><p class="muted">Registrerte avvik med kategori, prioritet og status.</p></div><button class="action primary" onclick="showDeviationForm()">Nytt avvik</button></div>${caseCards(devs,'deviation')}</div>
+    <div class="card s6 case-section"><div class="dash-title"><div><h3>Arbeidsordre</h3><p class="muted">Oppgaver som kan sendes til vaktmester, styre eller leverandør.</p></div><button class="action primary" onclick="showWorkOrderForm()">Ny arbeidsordre</button></div>${caseCards(wos,'work_order')}</div>
+  </div>`;
+}
+function caseSummaryCard(label,value,caption,action,type='info'){
+  return `<button class="card s3 case-summary ${type}" onclick="${action}"><small>${esc(label)}</small><strong>${esc(value)}</strong><span>${esc(caption)}</span></button>`;
+}
+function casePipelineRows(devs,wos,waiting){
+  const open=x=>!['lukket','ferdig','utført','utfort','fullført','fullfort'].includes(String(x.status||'').toLowerCase());
+  const rows=[['Nye avvik',devs.filter(d=>/ny/i.test(String(d.status||''))).length,'info'],['Venter avklaring',waiting,'warn'],['Pågående ordre',wos.filter(open).length,'purple'],['Ferdig/lukket',devs.filter(d=>!open(d)).length+wos.filter(w=>!open(w)).length,'ok']];
+  return rows.map(r=>`<section class="${esc(r[2])}"><span>${esc(r[0])}</span><strong>${esc(r[1])}</strong></section>`).join('');
+}
+function casePriorityList(devs,wos){
+  const open=x=>!['lukket','ferdig','utført','utfort','fullført','fullfort'].includes(String(x.status||'').toLowerCase());
+  const items=[
+    ...devs.filter(open).map(d=>({kind:'Avvik',title:d.title||'Avvik',meta:[d.category,d.priority,d.status].filter(Boolean).join(' · '),priority:/kritisk/i.test(d.priority||'')?1:/høy|hoy/i.test(d.priority||'')?2:4,open:`showCaseFlow('${esc(d.id)}')`})),
+    ...wos.filter(open).map(w=>({kind:'Arbeidsordre',title:w.title||'Arbeidsordre',meta:[w.due_date,w.status].filter(Boolean).join(' · '),priority:w.due_date&&new Date(w.due_date)<new Date()?1:3,open:`showWorkOrderForm('${esc(w.deviation_id||'')}','${esc(w.id)}')`}))
+  ].sort((a,b)=>a.priority-b.priority).slice(0,5);
+  if(!items.length)return '<div class="empty-state"><strong>Ingen åpne driftssaker.</strong><span>Registrer avvik eller arbeidsordre når noe må følges opp.</span><button class="action primary" onclick="showDeviationForm()">Registrer avvik</button></div>';
+  return `<div class="case-priority-list">${items.map((x,i)=>`<button onclick="${x.open}" class="${x.priority===1?'bad':'info'}"><span>${i+1}</span><div><strong>${esc(x.title)}</strong><small>${esc(x.kind)} · ${esc(x.meta||'Ikke klassifisert')}</small></div></button>`).join('')}</div>`;
+}
+function openCaseFilter(kind){showDrawer(kind==='critical'?'Kritiske/høye saker':'Forfalte arbeidsordre',`<div class="output">Listen er filtrert i oversikten. Bruk kortene under Avvik og Arbeidsordre for å åpne sakene.</div><button class="action primary" onclick="hideDrawer();openModule('cases')">Til oversikten</button>`)}
+function caseCards(rows,type){
+  if(!rows.length)return `<div class="empty-state"><strong>${type==='deviation'?'Ingen avvik registrert.':'Ingen arbeidsordre registrert.'}</strong><span>${type==='deviation'?'Registrer første avvik hvis noe må følges opp.':'Lag arbeidsordre fra et avvik eller som egen oppgave.'}</span><button class="action primary" onclick="${type==='deviation'?'showDeviationForm()':'showWorkOrderForm()'}">${type==='deviation'?'Nytt avvik':'Ny arbeidsordre'}</button></div>`;
+  return `<div class="case-card-list">${rows.map(r=>caseCard(r,type)).join('')}</div>`;
+}
+function caseCard(r,type){
+  const isDev=type==='deviation',prio=priorityClass(r.priority),status=String(r.status||'Ny');
+  const meta=isDev?[r.category,r.priority,status].filter(Boolean).join(' · '):[r.due_date?`Frist ${r.due_date}`:'Ingen frist',status].join(' · ');
+  const primary=isDev?`showCaseFlow('${esc(r.id)}')`:`showWorkOrderForm('${esc(r.deviation_id||'')}','${esc(r.id)}')`;
+  return `<section class="case-card ${isDev?prio:statusClass(status)}"><div class="case-card-head"><div><small>${isDev?'Avvik':'Arbeidsordre'}</small><strong>${esc(r.title||'Uten tittel')}</strong><span>${esc(meta)}</span></div><b>${esc(status)}</b></div><p>${esc(r.description||'Ingen beskrivelse registrert.')}</p><div class="row-actions"><button class="action primary" onclick="${primary}">${isDev?'Åpne saksløp':'Endre ordre'}</button>${isDev?`<button class="action" onclick="showWorkOrderForm('${esc(r.id)}')">Lag arbeidsordre</button>`:`<button class="action" onclick="showRfqForm('${esc(r.id)}')">Tilbud</button>`}<button class="action" onclick="showCaseStatusForm('${type==='deviation'?'deviations':'work_orders'}','${esc(r.id)}','${esc(status)}')">Status</button><button class="action red" onclick="deleteRow('${type==='deviation'?'deviations':'work_orders'}','${esc(r.id)}')">Slett</button></div></section>`;
+}
+function statusClass(status){const s=String(status||'').toLowerCase();if(/kritisk|forfalt|venter/.test(s))return 'warn';if(/utført|utfort|fullført|fullfort|lukket|ferdig/.test(s))return 'ok';return 'info'}
+function showCaseStatusForm(tableName,id,status='Ny'){
+  const options=['Ny','Under behandling','Venter leverandør','Arbeidsordre opprettet','I arbeid','Utført','Ferdig','Lukket'].map(s=>`<option ${s===status?'selected':''}>${esc(s)}</option>`).join('');
+  showDrawer('Endre status',`<label>Status</label><select id="caseStatus">${options}</select><label>Kommentar</label><textarea id="caseStatusNote" rows="4" placeholder="Kort kommentar til endringen"></textarea><button class="action primary" onclick="updateCaseStatus('${esc(tableName)}','${esc(id)}')">Lagre status</button>`);
+}
+async function updateCaseStatus(tableName,id){
+  try{requireLive('endre status');const r=await db().from(tableName).update({status:caseStatus.value}).eq('id',id).select().single();if(r.error)throw r.error;await insertActivity(`Status endret til ${caseStatus.value}`,'case',id);await finishAction('Status er oppdatert.','cases')}catch(e){showDrawer('Status ble ikke lagret',`<div class=\"output\">${esc(customerError(e))}</div>`)}
+}
+function showDeviationForm(id=''){
+  const d=(DP.cache.deviations||[]).find(x=>x.id===id)||{},buildings=DP.cache.buildings||[];
+  const buildingOptions=`<option value="">Hele eiendommen</option>${buildings.map(b=>`<option value="${esc(b.id)}" ${b.id===d.building_id?'selected':''}>${esc(b.name)}</option>`).join('')}`;
+  showDrawer(id?'Endre avvik':'Nytt avvik',`<input id="devId" type="hidden" value="${esc(id)}"><div class="form-grid two"><label>Tittel<input id="devTitle" value="${esc(d.title||'')}"></label><label>Kategori<select id="devCat">${['Tak','VVS','Elektro','Brann','HMS','Heis','Uteområde','Bygg','Annet'].map(c=>`<option ${c===d.category?'selected':''}>${c}</option>`).join('')}</select></label><label>Prioritet<select id="devPrio">${['Lav','Medium','Høy','Kritisk'].map(c=>`<option ${c===d.priority?'selected':''}>${c}</option>`).join('')}</select></label><label>Bygg/anlegg<select id="devBuilding">${buildingOptions}</select></label><label>Leilighet/område<input id="devUnit" value="${esc(d.unit||d.area||'')}"></label><label>Innsender<select id="devReporter">${['Styremedlem','Beboer','Vaktmester','Leverandør','Forvalter'].map(c=>`<option ${c===d.reporter_type?'selected':''}>${c}</option>`).join('')}</select></label></div><label>Beskrivelse</label><textarea id="devDesc" rows="5">${esc(d.description||'')}</textarea><label>Tildel/send til flere</label><input id="devAssign" value="${esc(d.assigned_to||'')}" placeholder="post@kunde.no, vaktmester@kunde.no"><button class="action primary" onclick="saveDeviation()">${id?'Lagre avvik':'Lagre avvik'}</button>`);
+}
+async function saveDeviation(){
+  try{
+    requireLive('lagre avvik');
+    const id=document.getElementById('devId')?.value||'';
+    const base={property_id:currentProperty().id,title:devTitle.value.trim(),description:devDesc.value.trim(),category:devCat.value,priority:devPrio.value,status:id?undefined:'Ny',building_id:devBuilding.value||null,unit:devUnit.value.trim()||null,reporter_type:devReporter.value,assigned_to:devAssign.value.trim()||null};
+    if(!base.title)throw new Error('Fyll inn tittel.');
+    const variants=[base,{property_id:base.property_id,title:base.title,description:base.description,category:base.category,priority:base.priority,status:id?undefined:'Ny',building_id:base.building_id},{property_id:base.property_id,title:base.title,description:base.description,category:base.category,priority:base.priority,status:id?undefined:'Ny'}].map(x=>Object.fromEntries(Object.entries(x).filter(([,v])=>v!==undefined)));
+    let r,lastError=null;
+    for(const row of variants){r=id?await db().from('deviations').update(row).eq('id',id).select().single():await db().from('deviations').insert(row).select().single();if(!r.error)break;lastError=r.error;if(!isPeopleSchemaError(r.error))break}
+    if(r?.error)throw lastError||r.error;
+    await insertActivity(id?'Avvik oppdatert':'Avvik opprettet','deviation',r.data.id);
+    await finishAction(id?'Avviket er oppdatert.':'Avviket er opprettet.','cases');
+  }catch(e){showDrawer('Avvik ble ikke lagret',`<div class=\"output\">${esc(customerError(e))}</div>`)}
+}
+function showWorkOrderForm(deviationId='',id=''){
+  const w=(DP.cache.work_orders||[]).find(x=>x.id===id)||{},devs=DP.cache.deviations||[];
+  const selectedDev=deviationId||w.deviation_id||'';
+  const devOptions=`<option value="">Ingen avvik</option>${devs.map(d=>`<option value="${esc(d.id)}" ${d.id===selectedDev?'selected':''}>${esc(d.title)}</option>`).join('')}`;
+  showDrawer(id?'Endre arbeidsordre':'Ny arbeidsordre',`<input id="woId" type="hidden" value="${esc(id)}"><div class="form-grid two"><label>Knytt til avvik<select id="woDev">${devOptions}</select></label><label>Tittel<input id="woTitle" value="${esc(w.title||devs.find(d=>d.id===selectedDev)?.title||'')}"></label><label>Frist<input id="woDue" type="date" value="${esc(w.due_date||'')}"></label><label>Status<select id="woStatus">${['Ny','Planlagt','I arbeid','Venter leverandør','Utført','Lukket'].map(s=>`<option ${s===w.status?'selected':''}>${s}</option>`).join('')}</select></label></div><label>Arbeidsbeskrivelse</label><textarea id="woDesc" rows="5">${esc(w.description||devs.find(d=>d.id===selectedDev)?.description||'')}</textarea><label>Ansvarlig / send til</label><input id="woAssignee" value="${esc(w.assigned_to||'')}" placeholder="vaktmester@kunde.no, leverandør@firma.no"><button class="action primary" onclick="saveWorkOrder()">${id?'Lagre arbeidsordre':'Lagre arbeidsordre'}</button>`);
+}
+async function saveWorkOrder(){
+  try{
+    requireLive('lagre arbeidsordre');
+    const id=document.getElementById('woId')?.value||'';
+    const base={property_id:currentProperty().id,title:woTitle.value.trim(),description:woDesc.value.trim(),due_date:woDue.value||null,status:woStatus.value||'Ny',deviation_id:isUuid(woDev.value)?woDev.value:null,assigned_to:woAssignee.value.trim()||null};
+    if(!base.title)throw new Error('Fyll inn tittel.');
+    const variants=[base,{property_id:base.property_id,title:base.title,description:base.description,due_date:base.due_date,status:base.status,deviation_id:base.deviation_id},{property_id:base.property_id,title:base.title,description:base.description,due_date:base.due_date,status:base.status}];
+    let r,lastError=null;
+    for(const row of variants){r=id?await db().from('work_orders').update(row).eq('id',id).select().single():await db().from('work_orders').insert(row).select().single();if(!r.error)break;lastError=r.error;if(!isPeopleSchemaError(r.error))break}
+    if(r?.error)throw lastError||r.error;
+    if(base.deviation_id&&!id)await db().from('deviations').update({status:'Arbeidsordre opprettet'}).eq('id',base.deviation_id);
+    await insertActivity(id?'Arbeidsordre oppdatert':'Arbeidsordre opprettet','work_order',r.data.id);
+    await finishAction(id?'Arbeidsordren er oppdatert.':'Arbeidsordren er opprettet.','cases');
+  }catch(e){showDrawer('Arbeidsordre ble ikke lagret',`<div class=\"output\">${esc(customerError(e))}</div>`)}
+}
+
 function findCaseParts(deviationId=''){
   const devs=DP.cache.deviations||[],wos=DP.cache.work_orders||[],rfqs=DP.cache.quote_requests||[],offers=DP.cache.offers||[],docs=DP.cache.documents||[];
   const deviation=devs.find(d=>d.id===deviationId)||devs[0]||null;
