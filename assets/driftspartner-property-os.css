@@ -794,6 +794,34 @@ body:not(.public-mode) td,body:not(.public-mode) th{word-break:break-word}
 .document-detail-head p{margin:8px 0 0;color:#b8c7dc}
 .market-pipeline{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
 .market-pipeline span{display:block;color:#9aa8bc;font-size:12px;margin-top:4px}
+.premium-market-page .market-hero{background:linear-gradient(135deg,rgba(75,45,143,.52),rgba(8,18,32,.96));border-color:#3a2c64}
+.premium-market-metrics{grid-template-columns:repeat(5,minmax(0,1fr))}
+.market-flow-card,.market-recommendation{min-width:0;overflow:hidden}
+.procurement-steps{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+.procurement-step{border:1px solid #223149;border-radius:16px;background:#081220;padding:14px;display:grid;grid-template-columns:38px 1fr;gap:12px;align-items:start;min-width:0}
+.procurement-step>span{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:#101b2d;color:#cfe1ff;font-weight:950}
+.procurement-step b{display:block;color:#fff;font-size:14px;line-height:1.25}
+.procurement-step strong{display:block;color:#fff;font-size:24px;margin:6px 0 4px;font-variant-numeric:tabular-nums}
+.procurement-step small{display:block;color:#9aa8bc;line-height:1.35}
+.procurement-step.ok{border-left:4px solid #35d071}
+.procurement-step.warn{border-left:4px solid #f8b51d}
+.market-card-list{display:grid;gap:12px}
+.market-record{border:1px solid #223149;border-radius:16px;background:#081220;padding:14px;display:grid;gap:12px;min-width:0}
+.market-record.best{border-color:#35d071;box-shadow:0 12px 38px rgba(53,208,113,.08)}
+.market-record-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.market-record strong{display:block;color:#fff;line-height:1.25;overflow-wrap:anywhere}
+.market-record small{display:block;color:#9aa8bc;margin-top:4px;line-height:1.35;overflow-wrap:anywhere}
+.market-record-meta{display:flex;gap:8px;flex-wrap:wrap}
+.market-record-meta span{border:1px solid #1f2d44;border-radius:999px;background:#0c1524;color:#c5d2e5;padding:6px 9px;font-size:12px;font-weight:800;overflow-wrap:anywhere}
+.offer-price{font-size:26px;font-weight:950;color:#fff;font-variant-numeric:tabular-nums}
+.offer-recommend{display:grid;gap:10px}
+.offer-recommend strong{color:#fff;font-size:18px}
+.offer-recommend b{display:block;color:#fff;font-size:30px;font-variant-numeric:tabular-nums}
+.offer-recommend span{display:inline-flex;align-self:flex-start;border-radius:999px;background:#123c2a;color:#35d071;padding:6px 10px;font-weight:900;font-size:12px}
+.offer-recommend p{color:#aab8cc;line-height:1.45;margin:0}
+.choice-list{border:1px solid #1f2d44;border-radius:12px;background:#081220;padding:10px;display:grid;gap:8px;max-height:180px;overflow:auto}
+.check-row{display:flex;align-items:center;gap:8px;color:#dce6f5;font-weight:800;font-size:13px}
+.check-row input{width:auto}
 .stack-list{display:grid;gap:10px}
 .mini-record{border:1px solid #1f2d44;border-radius:14px;background:#081220;padding:12px;display:flex;justify-content:space-between;gap:12px;align-items:flex-start;min-width:0}
 .mini-record strong{display:block;color:#fff;line-height:1.25;overflow-wrap:anywhere}
@@ -914,10 +942,11 @@ body:not(.public-mode) td,body:not(.public-mode) th{word-break:break-word}
   .dashboard-priority-grid{grid-template-columns:1fr}
   .project-numbers{grid-template-columns:1fr}
   .person-meta,.people-section .person-meta,.people-section .person-list{grid-template-columns:1fr}
-  .case-flow-head,.case-flow-steps,.flow-actions,.flow-form-grid,.flow-context,.contract-step .flow-form-grid,.info-grid,.document-grid,.document-health-grid,.market-pipeline,.onboarding-entry-grid,.onboarding-entry-grid.two,.onboarding-entry-grid.three,.subscription-grid,.property-key-grid,.building-list,.form-grid.two,.person-list.compact,.property-shortcuts,.finance-module-row,.finance-report-grid{grid-template-columns:1fr}
+  .case-flow-head,.case-flow-steps,.flow-actions,.flow-form-grid,.flow-context,.contract-step .flow-form-grid,.info-grid,.document-grid,.document-health-grid,.market-pipeline,.premium-market-metrics,.procurement-steps,.procurement-step,.onboarding-entry-grid,.onboarding-entry-grid.two,.onboarding-entry-grid.three,.subscription-grid,.property-key-grid,.building-list,.form-grid.two,.person-list.compact,.property-shortcuts,.finance-module-row,.finance-report-grid{grid-template-columns:1fr}
   .finance-module-value{text-align:left}
   .finance-module-label{white-space:normal}
   .budget-line-head{display:grid}
+  .market-record-head{display:grid}
   .finance-summary-strip,.premium-pie-wrap,.finance-bar-row,.brain-metrics,.brain-actions,.brain-area-grid{grid-template-columns:1fr}
   .finance-bar-value{text-align:left}
   .premium-pie{margin:auto}
