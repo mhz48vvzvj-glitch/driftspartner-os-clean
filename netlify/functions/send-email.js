@@ -32,6 +32,19 @@ const safeTagValue = (value, fallback = "unknown") => {
   return cleaned || fallback;
 };
 
+const emailAddressFrom = (from) => {
+  const match = String(from || "").match(/<([^>]+)>/);
+  if (match) return match[1].trim();
+  return String(from || "").trim();
+};
+
+const buildFrom = (baseFrom, displayName) => {
+  const address = emailAddressFrom(baseFrom);
+  const name = String(displayName || "").trim().replace(/[<>\r\n]+/g, " ").slice(0, 80);
+  if (!name || !address.includes("@")) return baseFrom;
+  return `${name} <${address}>`;
+};
+
 const templateLabels = {
   demo: "Demoforespørsel",
   purchase: "Bestilling",
@@ -101,6 +114,8 @@ exports.handler = async (event) => {
     const property = String(payload.property || "").slice(0, 100);
     const caseId = String(payload.caseId || payload.case_id || "").slice(0, 100);
     const replyTo = String(payload.reply_to || payload.replyTo || "").trim();
+    const fromName = String(payload.from_name || payload.fromName || "").trim();
+    const finalFrom = buildFrom(from, fromName);
 
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -109,7 +124,7 @@ exports.handler = async (event) => {
         "content-type": "application/json"
       },
       body: JSON.stringify({
-        from,
+        from: finalFrom,
         to: uniqueRecipients,
         reply_to: replyTo && replyTo.includes("@") ? replyTo : undefined,
         subject: payload.subject,
@@ -132,7 +147,8 @@ exports.handler = async (event) => {
     return json(res.ok ? 200 : 502, {
       ok: res.ok,
       id: data?.id,
-      from,
+      from: finalFrom,
+      reply_to: replyTo && replyTo.includes("@") ? replyTo : undefined,
       to: uniqueRecipients,
       resend_status: res.status,
       message: res.ok ? "E-post sendt via Resend." : (data?.message || data?.error || "Resend avviste sendingen."),

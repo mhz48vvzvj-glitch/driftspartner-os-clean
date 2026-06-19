@@ -386,7 +386,8 @@ function integrationItems(){
     {name:'Resend',status:'Aktiv',type:'ok',area:'E-post',detail:'Brukes til demoforespørsler, bestilling, varsler og systemmeldinger.',button:'Åpne e-posttest',action:"location.href='mail-test.html'"},
     {name:'OpenAI',status:'Aktiv når kvote er tilgjengelig',type:'warn',area:'AI Director og Property Brain',detail:'Gir anbefalinger fra live data. Krever aktiv API-kvote for å svare.',button:'Test AI',action:'testAiIntegration()'},
     {name:'Brønnøysundregistrene',status:'Klar for onboarding',type:'ok',area:'Kunde og leverandører',detail:'Org.nr-oppslag kan fylle inn firmanavn og adresse ved opprettelse.',button:'Ny kunde',action:'showNewCustomerWizard()'},
-    {name:'Microsoft 365 / Outlook',status:'Anbefalt neste',type:'warn',area:'E-post, kalender og styremøter',detail:'Bør kobles mot møteinnkalling, styrekalender, saksdokumenter og varsler.',button:'Se anbefaling',action:"showIntegrationInfo('Microsoft 365 / Outlook')"},
+    {name:'Kundeavsender / svar til',status:'Aktiv enkel løsning',type:'ok',area:'E-post',detail:'E-post sendes via Driftspartner, men vises med kundens/styrets navn og svar går til kunden.',button:'Send e-post',action:"showEmailFlow('all')"},
+    {name:'Microsoft 365 / Outlook',status:'Premium senere',type:'info',area:'E-post, kalender og styremøter',detail:'Kan senere kobles for ekte Outlook-avsender, møteinnkalling og kalender.',button:'Se anbefaling',action:"showIntegrationInfo('Microsoft 365 / Outlook')"},
     {name:'Signering',status:'Anbefalt V1',type:'warn',area:'Kontrakter og vedtak',detail:'Digital signering bør brukes for kontrakter, styrevedtak og godkjenninger.',button:'Se anbefaling',action:"showIntegrationInfo('Signering')"},
     {name:'Tripletex',status:'Planlagt',type:'info',area:'Regnskap',detail:'Aktuell for faktura, prosjektkostnader, budsjett og rapportering.',button:'Se anbefaling',action:"showIntegrationInfo('Tripletex')"},
     {name:'PowerOffice Go',status:'Planlagt',type:'info',area:'Regnskap',detail:'Alternativ regnskapsintegrasjon for borettslag, sameier og forvaltere.',button:'Se anbefaling',action:"showIntegrationInfo('PowerOffice Go')"},
@@ -396,7 +397,7 @@ function integrationItems(){
 }
 function IntegrationsPage(){
   const items=integrationItems(),active=items.filter(i=>i.type==='ok').length,next=items.filter(i=>i.type==='warn').length,planned=items.filter(i=>i.type==='info').length;
-  return `<div class="grid integrations-page"><div class="card s12 module-hero integration-hero"><div><small>Integrasjoner</small><h2>Koble Driftspartner OS til verktøyene kundene bruker</h2><p>Her samles e-post, AI, regnskap, signering, offentlige data og kalender. Målet er mindre manuelt arbeid og mer live informasjon på valgt eiendom.</p></div><div class="module-actions"><button class="action primary" onclick="testAiIntegration()">Test AI</button><button class="action" onclick="showEmailFlow('general')">Send e-post</button><button class="action" onclick="location.href='mail-test.html'">Test e-post</button><button class="action" onclick="showNewCustomerWizard()">Ny kunde</button></div></div><div class="card s12 integration-summary"><section><small>Aktive</small><b>${active}</b><span>Koblinger i bruk nå</span></section><section><small>Anbefalt neste</small><b>${next}</b><span>Gir raskest kundeverdi</span></section><section><small>Planlagt</small><b>${planned}</b><span>Regnskap og bank</span></section><section><small>Prioritet</small><b>Brønnøysund</b><span>Best premium-effekt i onboarding</span></section></div><div class="card s8"><div class="dash-title"><div><h3>Integrasjonsstatus</h3><p class="muted">Bare koblinger som faktisk er klare bør merkes som aktive.</p></div></div><div class="integration-card-grid">${items.map(integrationCard).join('')}</div></div><div class="card s4 integration-stack"><h3>Anbefalt rekkefølge</h3>${integrationRoadmap()}<div class="integration-note"><strong>V1 for salg</strong><span>Start med Brønnøysund, Microsoft 365/Outlook, signering og én regnskapskobling. Resten kan komme etter pilot.</span></div></div></div>`;
+  return `<div class="grid integrations-page"><div class="card s12 module-hero integration-hero"><div><small>Integrasjoner</small><h2>Koble Driftspartner OS til verktøyene kundene bruker</h2><p>Her samles e-post, AI, regnskap, signering, offentlige data og kalender. Målet er mindre manuelt arbeid og mer live informasjon på valgt eiendom.</p></div><div class="module-actions"><button class="action primary" onclick="showEmailFlow('all')">Send som kunde/styre</button><button class="action" onclick="testAiIntegration()">Test AI</button><button class="action" onclick="location.href='mail-test.html'">Test e-post</button><button class="action" onclick="showNewCustomerWizard()">Ny kunde</button></div></div><div class="card s12 integration-summary"><section><small>Aktive</small><b>${active}</b><span>Koblinger i bruk nå</span></section><section><small>Anbefalt neste</small><b>${next}</b><span>Gir raskest kundeverdi</span></section><section><small>Planlagt</small><b>${planned}</b><span>Regnskap og bank</span></section><section><small>Prioritet</small><b>Kundeavsender</b><span>Enkel løsning uten Microsoft-admin</span></section></div><div class="card s8"><div class="dash-title"><div><h3>Integrasjonsstatus</h3><p class="muted">Bare koblinger som faktisk er klare bør merkes som aktive.</p></div></div><div class="integration-card-grid">${items.map(integrationCard).join('')}</div></div><div class="card s4 integration-stack"><h3>Anbefalt rekkefølge</h3>${integrationRoadmap()}<div class="integration-note"><strong>V1 for salg</strong><span>Start med Brønnøysund, kundeavsender/svar-til, signering og én regnskapskobling. Outlook kan komme senere som premium-integrasjon.</span></div></div></div>`;
 }
 function integrationCard(item){
   const label=item.type==='ok'?'Aktiv':item.type==='warn'?'Neste steg':'Planlagt';
@@ -429,6 +430,17 @@ function showIntegrationInfo(name){
     'Bank / kontoutskrift':'Bankimport bør brukes når økonomidelen skal vise faktiske transaksjoner, saldo og avvik uten manuell punching.'
   }[name]||'Denne integrasjonen bør beskrives med formål, dataflyt, tilgang og hva kunden får ut av den.';
   showDrawer(name,`<div class="output">${esc(text)}</div><div class="integration-note"><strong>Anbefalt krav før bygging</strong><span>Avklar API-tilgang, kostnad, sikkerhet, kundesamtykke og hvilke felter som skal synkroniseres.</span></div>`);
+}
+
+async function connectMicrosoft365(){
+  try{
+    if(!DP.session?.access_token)throw new Error('Logg inn før du kobler Microsoft 365.');
+    const p=currentProperty();
+    const res=await fetch('/.netlify/functions/microsoft-auth-start',{method:'POST',headers:{'content-type':'application/json',authorization:`Bearer ${DP.session.access_token}`},body:JSON.stringify({property_id:p?.id||''})});
+    const data=await readJsonResponse(res,'Microsoft-koblingen svarte ikke riktig. Publiser siste pakke og sjekk miljøvariablene.');
+    if(!data.ok)throw new Error(data.message||'Kunne ikke starte Microsoft-kobling.');
+    window.location.href=data.url;
+  }catch(e){showDrawer('Microsoft 365',`<div class="output">${esc(customerError(e,'Microsoft 365 kunne ikke kobles akkurat nå.'))}</div><div class="integration-note"><strong>Mangler oppsett?</strong><span>Legg inn MICROSOFT_TENANT_ID, MICROSOFT_CLIENT_ID, MICROSOFT_CLIENT_SECRET og kjør supabase-microsoft-outlook-v1.sql.</span></div>`)}
 }
 
 function mailKindLabel(kind){
@@ -484,30 +496,56 @@ function mailBody(kind='general',caseId=''){
 function showEmailFlow(kind='general',caseId=''){
   const recipients=collectMailRecipients(kind);
   const checks=recipients.map((r,i)=>`<label class="check-row recipient-email"><input class="mailRecipient" type="checkbox" value="${esc(r.email)}" ${i===0?'checked':''}> <span>${esc(r.label)}</span><small>${esc(r.email)}</small></label>`).join('');
-  showDrawer('Send e-post',`<div class="mail-compose"><div class="mail-template-head"><div><small>${esc(mailKindLabel(kind))}</small><h3>Send direkte fra Driftspartner OS</h3><p>Velg mottakere, legg til ekstra adresser og send via Resend. Hendelsen logges på valgt eiendom.</p></div><span>${esc(currentProperty()?.name||'Eiendom')}</span></div><div class="mail-audience-grid"><button class="${kind==='all'?'active':''}" onclick="showEmailFlow('all','${esc(caseId)}')">Alle</button><button class="${kind==='resident'?'active':''}" onclick="showEmailFlow('resident','${esc(caseId)}')">Beboere</button><button class="${kind==='board'?'active':''}" onclick="showEmailFlow('board','${esc(caseId)}')">Styre</button><button class="${kind==='manager'?'active':''}" onclick="showEmailFlow('manager','${esc(caseId)}')">Forvalter</button><button class="${kind==='caretaker'?'active':''}" onclick="showEmailFlow('caretaker','${esc(caseId)}')">Vaktmester</button></div><label>Mottakere</label><div class="choice-list">${checks||'<div class="empty-state"><strong>Ingen mottakere funnet.</strong><span>Legg inn styre, beboere, forvalter eller vaktmester med e-post først.</span></div>'}</div><label>Ekstra e-postadresser</label><input id="emailExtra" placeholder="post@kunde.no, styret@kunde.no"><p class="mail-field-note">Du kan sende til flere ved å skille e-postadresser med komma eller linjeskift.</p><label>Emne</label><input id="emailSubject" value="${esc(mailSubject(kind,caseId))}"><label>Melding</label><textarea id="emailBody">${esc(mailBody(kind,caseId))}</textarea><div class="module-actions"><button class="action primary" onclick="sendEmailLog('${esc(kind)}','${esc(caseId)}')">Send e-post</button><button class="action" onclick="location.href='mail-test.html'">Åpne e-posttest</button></div><div id="emailOut" class="output">Klar til sending.</div></div>`);
+  const p=currentProperty();
+  const board=(DP.cache.contacts||[]).find(c=>/styreleder|leder|styre/i.test(String(c.role||c.contact_role||''))&&String(c.email||'').includes('@'));
+  const reply=board?.email||p?.customer_billing_email||DP.user?.email||'';
+  const fromName=kind==='resident'||kind==='all'?`Styret i ${p?.name||'borettslaget'}`:`${p?.name||'Kunde'} via Driftspartner OS`;
+  showDrawer('Send e-post',`<div class="mail-compose"><div class="mail-template-head"><div><small>${esc(mailKindLabel(kind))}</small><h3>Send direkte fra Driftspartner OS</h3><p>E-posten sendes trygt via Driftspartner, men vises med kundens/styrets navn. Svar går til adressen du velger under.</p></div><span>${esc(currentProperty()?.name||'Eiendom')}</span></div><div class="mail-audience-grid"><button class="${kind==='all'?'active':''}" onclick="showEmailFlow('all','${esc(caseId)}')">Alle</button><button class="${kind==='resident'?'active':''}" onclick="showEmailFlow('resident','${esc(caseId)}')">Beboere</button><button class="${kind==='board'?'active':''}" onclick="showEmailFlow('board','${esc(caseId)}')">Styre</button><button class="${kind==='manager'?'active':''}" onclick="showEmailFlow('manager','${esc(caseId)}')">Forvalter</button><button class="${kind==='caretaker'?'active':''}" onclick="showEmailFlow('caretaker','${esc(caseId)}')">Vaktmester</button></div><div class="form-grid two"><label>Vis som avsender<input id="emailFromName" value="${esc(fromName)}"></label><label>Svar går til<input id="emailReplyTo" value="${esc(reply)}" placeholder="styreleder@kunde.no"></label></div><p class="mail-field-note">Mottaker ser navnet over som avsender. Teknisk sendes e-posten fra godkjent Driftspartner-domene for best leveringssikkerhet.</p><label>Mottakere</label><div class="choice-list">${checks||'<div class="empty-state"><strong>Ingen mottakere funnet.</strong><span>Legg inn styre, beboere, forvalter eller vaktmester med e-post først.</span></div>'}</div><label>Ekstra e-postadresser</label><input id="emailExtra" placeholder="post@kunde.no, styret@kunde.no"><p class="mail-field-note">Du kan sende til flere ved å skille e-postadresser med komma eller linjeskift.</p><label>Emne</label><input id="emailSubject" value="${esc(mailSubject(kind,caseId))}"><label>Melding</label><textarea id="emailBody">${esc(mailBody(kind,caseId))}</textarea><div class="module-actions"><button class="action primary" onclick="sendEmailLog('${esc(kind)}','${esc(caseId)}')">Send som kunde/styre</button><button class="action" onclick="location.href='mail-test.html'">Åpne e-posttest</button></div><div id="emailOut" class="output">Klar til sending.</div></div>`);
 }
 function parseMailAddresses(value){return String(value||'').split(/[,\n;\s]+/).map(x=>x.trim()).filter(x=>x.includes('@'))}
+function emailPayloadFromForm(kind='general',caseId=''){
+  const checked=[...document.querySelectorAll('.mailRecipient:checked')].map(x=>x.value);
+  const extra=parseMailAddresses(document.getElementById('emailExtra')?.value);
+  const to=[...new Set([...checked,...extra].map(x=>String(x).trim()).filter(x=>x.includes('@')))];
+  const subject=document.getElementById('emailSubject')?.value.trim()||'Melding fra Driftspartner OS';
+  const message=document.getElementById('emailBody')?.value.trim()||'';
+  if(!to.length)throw new Error('Velg minst én mottaker eller skriv inn en e-postadresse.');
+  if(!message)throw new Error('Skriv en melding før du sender.');
+  const fromName=document.getElementById('emailFromName')?.value.trim()||`Styret i ${currentProperty()?.name||'eiendommen'}`;
+  const replyTo=document.getElementById('emailReplyTo')?.value.trim()||DP.user?.email||'';
+  return {to,subject,message,kind,caseId,property:currentProperty()?.name||'',property_id:currentProperty()?.id||'',reply_to:replyTo,from_name:fromName};
+}
 async function sendEmailLog(kind='general',caseId=''){
   const out=document.getElementById('emailOut');
   try{
-    const checked=[...document.querySelectorAll('.mailRecipient:checked')].map(x=>x.value);
-    const extra=parseMailAddresses(document.getElementById('emailExtra')?.value);
-    const to=[...new Set([...checked,...extra].map(x=>String(x).trim()).filter(x=>x.includes('@')))];
-    const subject=document.getElementById('emailSubject')?.value.trim()||'Melding fra Driftspartner OS';
-    const message=document.getElementById('emailBody')?.value.trim()||'';
-    if(!to.length)throw new Error('Velg minst én mottaker eller skriv inn en e-postadresse.');
-    if(!message)throw new Error('Skriv en melding før du sender.');
+    const payload=emailPayloadFromForm(kind,caseId);
     if(out)out.textContent='Sender e-post...';
     if(location.protocol==='file:'||location.hostname==='localhost'||location.hostname==='127.0.0.1')throw new Error('Direkte e-post må testes fra publisert Netlify-side.');
-    const res=await fetch('/.netlify/functions/send-email',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({to,subject,message,kind,caseId,property:currentProperty()?.name||'',reply_to:DP.user?.email||''})});
+    const res=await fetch('/.netlify/functions/send-email',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});
     const data=await readJsonResponse(res,'E-postfunksjonen svarte ikke riktig. Publiser siste pakke og prøv igjen.');
     if(!res.ok||!data.ok)throw new Error(data.message||'E-post ble ikke sendt.');
     await insertActivity(`E-post sendt: ${mailKindLabel(kind)}`,'email',caseId||currentProperty()?.id||'-');
-    await finishAction(`E-post sendt til ${to.length} mottaker${to.length===1?'':'e'}.`,DP.module||'dashboard');
+    await finishAction(`E-post sendt til ${payload.to.length} mottaker${payload.to.length===1?'':'e'}.`,DP.module||'dashboard');
   }catch(e){setOutputError(out,e,'E-post kunne ikke sendes akkurat nå. Sjekk mottaker og prøv igjen fra live-siden.')}
+}
+async function sendEmailMicrosoft(kind='general',caseId=''){
+  const out=document.getElementById('emailOut');
+  try{
+    const payload=emailPayloadFromForm(kind,caseId);
+    if(!DP.session?.access_token)throw new Error('Logg inn før du sender fra Outlook.');
+    if(out)out.textContent='Sender via tilkoblet Outlook-konto...';
+    if(location.protocol==='file:'||location.hostname==='localhost'||location.hostname==='127.0.0.1')throw new Error('Outlook-sending må testes fra publisert Netlify-side.');
+    const res=await fetch('/.netlify/functions/microsoft-send-mail',{method:'POST',headers:{'content-type':'application/json',authorization:`Bearer ${DP.session.access_token}`},body:JSON.stringify(payload)});
+    const data=await readJsonResponse(res,'Outlook-funksjonen svarte ikke riktig. Publiser siste pakke og sjekk Microsoft-oppsettet.');
+    if(!res.ok||!data.ok)throw new Error(data.message||'E-post ble ikke sendt via Outlook.');
+    await insertActivity(`E-post sendt fra Outlook: ${mailKindLabel(kind)}`,'email',caseId||currentProperty()?.id||'-');
+    await finishAction(`E-post sendt fra ${data.from||'tilkoblet Outlook-konto'} til ${payload.to.length} mottaker${payload.to.length===1?'':'e'}.`,DP.module||'dashboard');
+  }catch(e){setOutputError(out,e,'Outlook-sending kunne ikke fullføres. Koble Microsoft 365 og prøv igjen.')}
 }
 window.showEmailFlow=showEmailFlow;
 window.sendEmailLog=sendEmailLog;
+window.connectMicrosoft365=connectMicrosoft365;
+window.sendEmailMicrosoft=sendEmailMicrosoft;
 
 function subscriptionPlans(){
   return [
