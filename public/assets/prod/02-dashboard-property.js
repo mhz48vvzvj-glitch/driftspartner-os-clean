@@ -168,13 +168,13 @@ async function runAiDirector(mode='prioritering'){
 function PropertyBrainPage(){
   const p=currentProperty(),analysis=propertyBrainAnalysis();
   return `<div class="grid property-brain-page">
-    <div class="card s12 module-hero brain-hero"><div><small>Property Brain</small><h2>Teknisk analyse av ${esc(p?.name||'valgt eiendom')}</h2><p>Live vurdering av FDV, avvik, arbeidsordre, økonomi, prosjekter og dokumentasjon. Brukes som beslutningsgrunnlag for styre og forvalter.</p></div><div class="module-actions"><button class="action primary" onclick="runPropertyBrainAi()">Kjør AI-vurdering</button><button class="action" onclick="hydrateAll().then(render)">Oppdater live data</button></div></div>
+    <div class="card s12 module-hero brain-hero"><div><small>Property Brain</small><h2>Teknisk analyse av ${esc(p?.name||'valgt eiendom')}</h2><p>Live vurdering av FDV, avvik, arbeidsordre, økonomi, prosjekter og dokumentasjon. Brukes som beslutningsgrunnlag for styre og forvalter.</p></div><div class="module-actions"><button class="action primary" onclick="scrollToPropertyBrainAi();runPropertyBrainAi()">Kjør AI-vurdering</button><button class="action" onclick="hydrateAll().then(render)">Oppdater live data</button></div></div>
     <div class="card s4 brain-score-card"><div class="brain-score-ring" style="--score:${analysis.score}"><strong>${analysis.score}</strong><span>Tilstandscore</span></div><p>${esc(analysis.summary)}</p></div>
     <div class="card s8"><div class="brain-metrics">${analysis.metrics.map(m=>`<button class="${esc(m.type)}" onclick="openModule('${esc(m.module)}')"><small>${esc(m.label)}</small><strong>${esc(m.value)}</strong><span>${esc(m.caption)}</span></button>`).join('')}</div></div>
     <div class="card s6"><div class="dash-title"><h3>Risikofunn</h3><button class="action" onclick="openModule('cases')">Åpne saker</button></div>${brainFindingList(analysis.risks,'Ingen kritiske risikofunn akkurat nå.')}</div>
     <div class="card s6"><div class="dash-title"><h3>Dokumentasjon</h3><button class="action" onclick="openModule('documents')">Åpne arkiv</button></div>${brainFindingList(analysis.documentation,'Dokumentasjonen ser komplett ut for V1-kontroll.')}</div>
     <div class="card s12"><h3>Anbefalt neste handling</h3><div class="brain-actions">${analysis.actions.map(a=>`<button onclick="${esc(a.open)}"><span>${esc(a.priority)}</span><strong>${esc(a.title)}</strong><small>${esc(a.detail)}</small></button>`).join('')}</div></div>
-    <div class="card s12"><div class="dash-title"><div><h3>AI-vurdering</h3><p class="muted">Sender live eiendomsdata til AI Director hvis API-kvote er tilgjengelig.</p></div><button class="action primary" onclick="runPropertyBrainAi()">Analyser med AI</button></div><label>Spørsmål til Property Brain</label><textarea id="brainQuestion">Hva er største tekniske risiko for eiendommen nå, og hva bør styret gjøre først?</textarea><div id="propertyBrainOut" class="ai-report">${formatAiReport(DP.cache.property_brain_answer||propertyBrainTextFallback(analysis))}</div></div>
+    <div id="propertyBrainAiPanel" class="card s12 brain-ai-panel"><div class="dash-title"><div><h3>AI-vurdering</h3><p class="muted">Sender live eiendomsdata til AI Director hvis API-kvote er tilgjengelig.</p></div><button class="action primary" onclick="scrollToPropertyBrainAi();runPropertyBrainAi()">Analyser med AI</button></div><label>Spørsmål til Property Brain</label><textarea id="brainQuestion">Hva er største tekniske risiko for eiendommen nå, og hva bør styret gjøre først?</textarea><div id="propertyBrainOut" class="ai-report">${formatAiReport(DP.cache.property_brain_answer||propertyBrainTextFallback(analysis))}</div></div>
   </div>`;
 }
 function propertyBrainAnalysis(){
@@ -229,6 +229,7 @@ function propertyBrainTextFallback(a){
 async function runPropertyBrainAi(){
   const out=document.getElementById('propertyBrainOut');
   try{
+    scrollToPropertyBrainAi();
     requireLive('Property Brain');
     if(!DP.session?.access_token)throw new Error('Du må være innlogget for å bruke Property Brain.');
     const p=currentProperty();
@@ -244,6 +245,14 @@ async function runPropertyBrainAi(){
     const msg=String(e?.message||e||'Property Brain kunne ikke fullføre analysen.');
     if(out)out.textContent=msg;
     showDrawer('Property Brain kunne ikke kjøre',`<div class="output">${esc(customerError(e,msg))}</div>`);
+  }
+}
+function scrollToPropertyBrainAi(){
+  const panel=document.getElementById('propertyBrainAiPanel')||document.getElementById('propertyBrainOut');
+  if(panel){
+    panel.scrollIntoView({behavior:'smooth',block:'start'});
+    panel.classList.add('attention');
+    setTimeout(()=>panel.classList.remove('attention'),1300);
   }
 }
 function PropertyPage(){
