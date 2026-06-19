@@ -90,7 +90,7 @@ function FinancePage(){
   return `<div class="grid finance-page premium-finance-module">
     <div class="card s12 module-hero finance-hero">
       <div><small>Økonomi</small><h2>Styreklart økonomibilde</h2><p>Bank, reservefond, budsjett, faktiske kostnader og prosjektøkonomi for valgt eiendom. Tallene hentes live fra Supabase.</p></div>
-      <div class="module-actions"><button class="action primary" onclick="showFinanceForm()">Konto og fond</button><button class="action" onclick="showBudgetForm()">Ny budsjettlinje</button><button class="action" onclick="showActualCostForm()">Registrer kostnad</button><button class="action" onclick="showProjectForm()">Nytt prosjekt</button><button class="action" onclick="saveBoardFinanceReport()">Lag styrerapport</button></div>
+      <div class="module-actions"><button class="action primary" onclick="showFinanceForm()">Konto og fond</button><button class="action" onclick="showBudgetForm()">Ny budsjettlinje</button><button class="action" onclick="showActualCostForm()">Registrer kostnad</button><button class="action" onclick="showProjectForm()">Nytt prosjekt</button><button class="action" onclick="saveBoardFinanceReport()">Lag styrerapport</button><button class="action" onclick="showEmailFlow('board')">Send e-post</button></div>
     </div>
     ${financeMetric('Bank/konto',money(f.bank_balance),'Registrert banksaldo','ok')}
     ${financeMetric('Reservefond',money(f.reserved_funds),reserveShare?`${reserveShare}% av bank/konto`:'Avsatt reserve','info')}
@@ -179,7 +179,7 @@ function MarketPage(){
   const sent=rfqs.filter(r=>/sendt|aktiv|publisert/i.test(r.status||'')).length,totalOfferValue=offers.reduce((s,o)=>s+Number(o.price||0),0);
   const best=offers.filter(o=>Number(o.price||0)>0).sort((a,b)=>Number(a.price||0)-Number(b.price||0))[0];
   return `<div class="grid market-page premium-market-page">
-    <div class="card s12 module-hero market-hero"><div><small>Marked og tilbud</small><h2>Innkjøp fra behov til valgt leverandør</h2><p>Registrer leverandører, lag tilbudsforespørsel, last opp PDF og vurder pris, forbehold og risiko på valgt eiendom.</p></div><div class="module-actions"><button class="action primary" onclick="showRfqForm()">Lag tilbudsforespørsel</button><button class="action" onclick="showSupplierForm()">Registrer leverandør</button><button class="action" onclick="showOfferForm()">Last opp tilbud</button></div></div>
+    <div class="card s12 module-hero market-hero"><div><small>Marked og tilbud</small><h2>Innkjøp fra behov til valgt leverandør</h2><p>Registrer leverandører, lag tilbudsforespørsel, last opp PDF og vurder pris, forbehold og risiko på valgt eiendom.</p></div><div class="module-actions"><button class="action primary" onclick="showRfqForm()">Lag tilbudsforespørsel</button><button class="action" onclick="showSupplierForm()">Registrer leverandør</button><button class="action" onclick="showOfferForm()">Last opp tilbud</button><button class="action" onclick="showEmailFlow('quote')">Send RFQ e-post</button></div></div>
     <div class="card s12 market-pipeline premium-market-metrics">
       <div><small>Leverandører</small><b>${suppliers.length}</b><span>Firma med e-post</span></div>
       <div><small>Forespørsler</small><b>${rfqs.length}</b><span>RFQ på eiendommen</span></div>
@@ -396,7 +396,7 @@ function integrationItems(){
 }
 function IntegrationsPage(){
   const items=integrationItems(),active=items.filter(i=>i.type==='ok').length,next=items.filter(i=>i.type==='warn').length,planned=items.filter(i=>i.type==='info').length;
-  return `<div class="grid integrations-page"><div class="card s12 module-hero integration-hero"><div><small>Integrasjoner</small><h2>Koble Driftspartner OS til verktøyene kundene bruker</h2><p>Her samles e-post, AI, regnskap, signering, offentlige data og kalender. Målet er mindre manuelt arbeid og mer live informasjon på valgt eiendom.</p></div><div class="module-actions"><button class="action primary" onclick="testAiIntegration()">Test AI</button><button class="action" onclick="location.href='mail-test.html'">Test e-post</button><button class="action" onclick="showNewCustomerWizard()">Ny kunde</button></div></div><div class="card s12 integration-summary"><section><small>Aktive</small><b>${active}</b><span>Koblinger i bruk nå</span></section><section><small>Anbefalt neste</small><b>${next}</b><span>Gir raskest kundeverdi</span></section><section><small>Planlagt</small><b>${planned}</b><span>Regnskap og bank</span></section><section><small>Prioritet</small><b>Brønnøysund</b><span>Best premium-effekt i onboarding</span></section></div><div class="card s8"><div class="dash-title"><div><h3>Integrasjonsstatus</h3><p class="muted">Bare koblinger som faktisk er klare bør merkes som aktive.</p></div></div><div class="integration-card-grid">${items.map(integrationCard).join('')}</div></div><div class="card s4 integration-stack"><h3>Anbefalt rekkefølge</h3>${integrationRoadmap()}<div class="integration-note"><strong>V1 for salg</strong><span>Start med Brønnøysund, Microsoft 365/Outlook, signering og én regnskapskobling. Resten kan komme etter pilot.</span></div></div></div>`;
+  return `<div class="grid integrations-page"><div class="card s12 module-hero integration-hero"><div><small>Integrasjoner</small><h2>Koble Driftspartner OS til verktøyene kundene bruker</h2><p>Her samles e-post, AI, regnskap, signering, offentlige data og kalender. Målet er mindre manuelt arbeid og mer live informasjon på valgt eiendom.</p></div><div class="module-actions"><button class="action primary" onclick="testAiIntegration()">Test AI</button><button class="action" onclick="showEmailFlow('general')">Send e-post</button><button class="action" onclick="location.href='mail-test.html'">Test e-post</button><button class="action" onclick="showNewCustomerWizard()">Ny kunde</button></div></div><div class="card s12 integration-summary"><section><small>Aktive</small><b>${active}</b><span>Koblinger i bruk nå</span></section><section><small>Anbefalt neste</small><b>${next}</b><span>Gir raskest kundeverdi</span></section><section><small>Planlagt</small><b>${planned}</b><span>Regnskap og bank</span></section><section><small>Prioritet</small><b>Brønnøysund</b><span>Best premium-effekt i onboarding</span></section></div><div class="card s8"><div class="dash-title"><div><h3>Integrasjonsstatus</h3><p class="muted">Bare koblinger som faktisk er klare bør merkes som aktive.</p></div></div><div class="integration-card-grid">${items.map(integrationCard).join('')}</div></div><div class="card s4 integration-stack"><h3>Anbefalt rekkefølge</h3>${integrationRoadmap()}<div class="integration-note"><strong>V1 for salg</strong><span>Start med Brønnøysund, Microsoft 365/Outlook, signering og én regnskapskobling. Resten kan komme etter pilot.</span></div></div></div>`;
 }
 function integrationCard(item){
   const label=item.type==='ok'?'Aktiv':item.type==='warn'?'Neste steg':'Planlagt';
@@ -430,6 +430,84 @@ function showIntegrationInfo(name){
   }[name]||'Denne integrasjonen bør beskrives med formål, dataflyt, tilgang og hva kunden får ut av den.';
   showDrawer(name,`<div class="output">${esc(text)}</div><div class="integration-note"><strong>Anbefalt krav før bygging</strong><span>Avklar API-tilgang, kostnad, sikkerhet, kundesamtykke og hvilke felter som skal synkroniseres.</span></div>`);
 }
+
+function mailKindLabel(kind){
+  return ({general:'Melding',all:'Alle kontakter',deviation:'Avvik',workorder:'Arbeidsordre',quote:'Tilbudsforespørsel',board:'Styresak',resident:'Beboere',manager:'Forvaltere',caretaker:'Vaktmestere',contract:'Kontrakt',purchase:'Bestilling',demo:'Demo'})[kind]||'Melding';
+}
+function collectMailRecipients(kind='general'){
+  const contacts=DP.cache.contacts||[],suppliers=DP.suppliers||[],p=currentProperty();
+  const rows=[];
+  const add=(email,label,group)=>{email=String(email||'').trim();if(email.includes('@')&&!rows.some(r=>r.email.toLowerCase()===email.toLowerCase()))rows.push({email,label:label||email,group:group||'Kontakt'})};
+  add(DP.user?.email,'Meg','Bruker');
+  add(p?.customer_billing_email,'Kunde/faktura','Kunde');
+  contacts.forEach(c=>{
+    const role=String(c.role||c.contact_role||'Kontakt');
+    if(kind==='all'){add(c.email,`${c.name||c.email} · ${role}`,'Eiendom');return}
+    if(kind==='board'&&!/styre|leder|vara/i.test(role))return;
+    if(kind==='resident'&&!/bebo|enhet|leilighet/i.test(role))return;
+    if(kind==='manager'&&!/forvalt|manager/i.test(role))return;
+    if(kind==='caretaker'&&!/vaktmester|drift|caretaker/i.test(role))return;
+    add(c.email,`${c.name||c.email} · ${role}`,'Eiendom');
+  });
+  if(kind==='all'||kind==='quote'||kind==='workorder'||kind==='contract'||kind==='general')suppliers.forEach(s=>add(s.email,`${s.name||s.email} · ${s.trade||'Leverandør'}`,'Leverandør'));
+  add('post@driftspartnernord.no','Driftspartner Nord','Admin');
+  return rows;
+}
+function mailSubject(kind='general',caseId=''){
+  const p=currentProperty(),name=p?.name||'valgt eiendom';
+  if(kind==='all')return `Viktig melding - ${name}`;
+  if(kind==='deviation')return `Avvik på ${name}`;
+  if(kind==='workorder')return `Arbeidsordre på ${name}`;
+  if(kind==='quote')return `Tilbudsforespørsel - ${name}`;
+  if(kind==='board')return `Styresak - ${name}`;
+  if(kind==='manager')return `Oppfølging for forvalter - ${name}`;
+  if(kind==='caretaker')return `Driftsmelding til vaktmester - ${name}`;
+  if(kind==='contract')return `Kontrakt - ${name}`;
+  if(kind==='resident')return `Melding fra ${name}`;
+  return `Oppdatering - ${name}`;
+}
+function mailBody(kind='general',caseId=''){
+  const p=currentProperty(),name=p?.name||'valgt eiendom',address=p?.address||'';
+  const hello='Hei,\n\n';
+  const sign='\n\nVennlig hilsen\nDriftspartner Nord';
+  if(kind==='all')return `${hello}Dette er en felles melding til kontakter knyttet til ${name}${address?', '+address:''}.\n\nSkriv inn informasjonen som skal sendes her.${sign}`;
+  if(kind==='deviation')return `${hello}Det er registrert et avvik på ${name}${address?', '+address:''}.\n\nSak: ${caseId||'-'}\n\nVennligst se på saken og gi tilbakemelding.`;
+  if(kind==='workorder')return `${hello}Det er opprettet en arbeidsordre på ${name}${address?', '+address:''}.\n\nSak: ${caseId||'-'}\n\nOppgaven bes fulgt opp innen avtalt frist.${sign}`;
+  if(kind==='quote')return `${hello}Vi ønsker tilbud på arbeid knyttet til ${name}${address?', '+address:''}.\n\nSak: ${caseId||'-'}\n\nSend pris, forbehold, leveringstid og relevant dokumentasjon.${sign}`;
+  if(kind==='board')return `${hello}Dette gjelder styresak for ${name}.\n\nSak: ${caseId||'-'}\n\nSe saksgrunnlag og gi tilbakemelding/godkjenning.${sign}`;
+  if(kind==='resident')return `${hello}Dette er en melding til beboere i ${name}.\n\nSkriv inn informasjonen som skal sendes til beboerne her.${sign}`;
+  if(kind==='manager')return `${hello}Dette er en melding til forvalter for ${name}.\n\nSkriv inn hva som skal følges opp.${sign}`;
+  if(kind==='caretaker')return `${hello}Dette er en driftsmelding til vaktmester for ${name}.\n\nSkriv inn oppgaven eller informasjonen som skal følges opp.${sign}`;
+  if(kind==='contract')return `${hello}Vedlagt/lenket følger kontrakt eller avtalegrunnlag for ${name}.\n\nSak: ${caseId||'-'}\n\nVennligst gjennomgå og bekreft videre prosess.${sign}`;
+  return `${hello}Dette gjelder ${name}${address?', '+address:''}.\n\nSak: ${caseId||'-'}${sign}`;
+}
+function showEmailFlow(kind='general',caseId=''){
+  const recipients=collectMailRecipients(kind);
+  const checks=recipients.map((r,i)=>`<label class="check-row recipient-email"><input class="mailRecipient" type="checkbox" value="${esc(r.email)}" ${i===0?'checked':''}> <span>${esc(r.label)}</span><small>${esc(r.email)}</small></label>`).join('');
+  showDrawer('Send e-post',`<div class="mail-compose"><div class="mail-template-head"><div><small>${esc(mailKindLabel(kind))}</small><h3>Send direkte fra Driftspartner OS</h3><p>Velg mottakere, legg til ekstra adresser og send via Resend. Hendelsen logges på valgt eiendom.</p></div><span>${esc(currentProperty()?.name||'Eiendom')}</span></div><div class="mail-audience-grid"><button class="${kind==='all'?'active':''}" onclick="showEmailFlow('all','${esc(caseId)}')">Alle</button><button class="${kind==='resident'?'active':''}" onclick="showEmailFlow('resident','${esc(caseId)}')">Beboere</button><button class="${kind==='board'?'active':''}" onclick="showEmailFlow('board','${esc(caseId)}')">Styre</button><button class="${kind==='manager'?'active':''}" onclick="showEmailFlow('manager','${esc(caseId)}')">Forvalter</button><button class="${kind==='caretaker'?'active':''}" onclick="showEmailFlow('caretaker','${esc(caseId)}')">Vaktmester</button></div><label>Mottakere</label><div class="choice-list">${checks||'<div class="empty-state"><strong>Ingen mottakere funnet.</strong><span>Legg inn styre, beboere, forvalter eller vaktmester med e-post først.</span></div>'}</div><label>Ekstra e-postadresser</label><input id="emailExtra" placeholder="post@kunde.no, styret@kunde.no"><p class="mail-field-note">Du kan sende til flere ved å skille e-postadresser med komma eller linjeskift.</p><label>Emne</label><input id="emailSubject" value="${esc(mailSubject(kind,caseId))}"><label>Melding</label><textarea id="emailBody">${esc(mailBody(kind,caseId))}</textarea><div class="module-actions"><button class="action primary" onclick="sendEmailLog('${esc(kind)}','${esc(caseId)}')">Send e-post</button><button class="action" onclick="location.href='mail-test.html'">Åpne e-posttest</button></div><div id="emailOut" class="output">Klar til sending.</div></div>`);
+}
+function parseMailAddresses(value){return String(value||'').split(/[,\n;\s]+/).map(x=>x.trim()).filter(x=>x.includes('@'))}
+async function sendEmailLog(kind='general',caseId=''){
+  const out=document.getElementById('emailOut');
+  try{
+    const checked=[...document.querySelectorAll('.mailRecipient:checked')].map(x=>x.value);
+    const extra=parseMailAddresses(document.getElementById('emailExtra')?.value);
+    const to=[...new Set([...checked,...extra].map(x=>String(x).trim()).filter(x=>x.includes('@')))];
+    const subject=document.getElementById('emailSubject')?.value.trim()||'Melding fra Driftspartner OS';
+    const message=document.getElementById('emailBody')?.value.trim()||'';
+    if(!to.length)throw new Error('Velg minst én mottaker eller skriv inn en e-postadresse.');
+    if(!message)throw new Error('Skriv en melding før du sender.');
+    if(out)out.textContent='Sender e-post...';
+    if(location.protocol==='file:'||location.hostname==='localhost'||location.hostname==='127.0.0.1')throw new Error('Direkte e-post må testes fra publisert Netlify-side.');
+    const res=await fetch('/.netlify/functions/send-email',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({to,subject,message,kind,caseId,property:currentProperty()?.name||'',reply_to:DP.user?.email||''})});
+    const data=await readJsonResponse(res,'E-postfunksjonen svarte ikke riktig. Publiser siste pakke og prøv igjen.');
+    if(!res.ok||!data.ok)throw new Error(data.message||'E-post ble ikke sendt.');
+    await insertActivity(`E-post sendt: ${mailKindLabel(kind)}`,'email',caseId||currentProperty()?.id||'-');
+    await finishAction(`E-post sendt til ${to.length} mottaker${to.length===1?'':'e'}.`,DP.module||'dashboard');
+  }catch(e){setOutputError(out,e,'E-post kunne ikke sendes akkurat nå. Sjekk mottaker og prøv igjen fra live-siden.')}
+}
+window.showEmailFlow=showEmailFlow;
+window.sendEmailLog=sendEmailLog;
 
 function subscriptionPlans(){
   return [

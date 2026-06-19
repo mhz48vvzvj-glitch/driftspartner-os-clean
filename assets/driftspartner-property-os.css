@@ -430,8 +430,12 @@ body:not(.public-mode):has(.ops-presentation) .main{padding:24px;max-width:none}
   font-size:12px;
   margin:4px 0 8px;
 }
+.mail-audience-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin:12px 0 16px}
+.mail-audience-grid button{border:1px solid #223149;border-radius:12px;background:#081220;color:#dce8f8;padding:10px 8px;font-weight:850;cursor:pointer;min-width:0}
+.mail-audience-grid button:hover,.mail-audience-grid button.active{border-color:#2d72ff;background:#102a58;color:#fff}
+.scan-panel .flow-note strong{color:#fff}
 @media(max-width:720px){
-  .recipient-grid{grid-template-columns:1fr}
+  .recipient-grid,.mail-audience-grid{grid-template-columns:1fr}
 }
 .ai-report{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:14px;white-space:normal}
 .ai-section{background:#081220;border:1px solid #223149;border-left:4px solid #2d72ff;border-radius:14px;padding:15px;min-width:0}
