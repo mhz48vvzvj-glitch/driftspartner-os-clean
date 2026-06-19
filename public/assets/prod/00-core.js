@@ -3,14 +3,14 @@
   session:null,user:null,properties:[],propertyId:'',suppliers:[],tab:'dashboard',module:'dashboard',cache:{},
   menus:[
     ['dashboard','Dashboard'],['property','Eiendom'],['people','Beboere/styre'],['cases','Avvik/arbeid'],
-    ['documents','FDV/dokumenter'],['finance','Økonomi'],['market','Marked/tilbud'],['admin','Kontroll']
+    ['documents','FDV/dokumenter'],['finance','Økonomi'],['market','Marked/tilbud'],['brain','Property Brain'],['admin','Kontroll']
   ]
 };
 const ROLE_MENUS={
-  superadmin:['dashboard','property','people','cases','documents','finance','market','admin'],
-  forvalter:['dashboard','property','people','cases','documents','finance','market','admin'],
-  styreleder:['dashboard','property','people','cases','documents','finance','market'],
-  styremedlem:['dashboard','people','cases','documents','finance'],
+  superadmin:['dashboard','property','people','cases','documents','finance','market','brain','admin'],
+  forvalter:['dashboard','property','people','cases','documents','finance','market','brain','admin'],
+  styreleder:['dashboard','property','people','cases','documents','finance','market','brain'],
+  styremedlem:['dashboard','people','cases','documents','finance','brain'],
   vaktmester:['dashboard','cases','documents'],
   beboer:['cases'],
   leverandor:['market']
@@ -116,7 +116,7 @@ function render(){
   if(!DP.session){renderPublic();return}
   if(DP.closePanelsOnRender)closeTransientPanels();
   renderShell();
-  const map={dashboard:DashboardPage,property:PropertyPage,people:PeoplePage,cases:CasesPage,documents:DocumentsPage,finance:FinancePage,market:MarketPage,admin:AdminPage};
+  const map={dashboard:DashboardPage,property:PropertyPage,people:PeoplePage,cases:CasesPage,documents:DocumentsPage,finance:FinancePage,market:MarketPage,brain:PropertyBrainPage,admin:AdminPage};
   document.getElementById('title').textContent=(DP.menus.find(m=>m[0]===DP.module)||['','Dashboard'])[1];
   document.getElementById('tabs').innerHTML='';
   document.getElementById('content').innerHTML=(map[DP.module]||DashboardPage)();
