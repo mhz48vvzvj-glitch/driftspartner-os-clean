@@ -18,7 +18,10 @@ function initials(value){
   return String(value||'K').split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]).join('').toUpperCase()||'K';
 }
 function showPersonForm(role){
-  const loginBlock=/beboer/i.test(role)?`<section class="inline-option"><label><input id="personCreateLogin" type="checkbox" checked> Opprett innlogging og send e-post til beboer</label><small>Hvis e-post er fylt inn, opprettes beboerportal-tilgang til valgt eiendom.</small><label>Midlertidig passord</label><input id="personPassword" type="password" placeholder="La stå tomt for automatisk passord"></section>`:'';
+  const canCreateLogin=/beboer|styre|leder|vara/i.test(role);
+  const loginRole=/beboer/i.test(role)?'beboer':'styremedlem';
+  const accessText=/beboer/i.test(role)?'beboerportal-tilgang':'styreportal-tilgang';
+  const loginBlock=canCreateLogin?`<section class="inline-option"><label><input id="personCreateLogin" type="checkbox" checked> Opprett innlogging og send e-post</label><small>Hvis e-post er fylt inn, opprettes ${accessText} til valgt eiendom.</small><input id="personLoginRole" type="hidden" value="${loginRole}"><label>Midlertidig passord</label><input id="personPassword" type="password" placeholder="La stå tomt for automatisk passord"></section>`:'';
   showDrawer('Legg til '+role,`<label>Navn</label><input id="personName"><label>Rolle</label><input id="personRole" value="${esc(role)}"><label>E-post</label><input id="personEmail"><label>Telefon</label><input id="personPhone"><label>Notat/enhet</label><textarea id="personNotes"></textarea>${loginBlock}<button class="action primary" onclick="saveContact()">Lagre</button><div id="personOut" class="output">Klar til lagring.</div>`)
 }
 function isPeopleSchemaError(error){return /column|schema|cache|relation|does not exist|could not find|not-null|null value|violates/i.test(String(error?.message||error||''))}
@@ -54,11 +57,13 @@ async function saveContact(){
     if(r?.error)throw lastError||r.error;
     const shouldCreateLogin=Boolean(document.getElementById('personCreateLogin')?.checked);
     if(shouldCreateLogin){
-      if(!email.includes('@'))throw new Error('Fyll inn e-post for å opprette innlogging til beboer.');
+      if(!email.includes('@'))throw new Error('Fyll inn e-post for å opprette innlogging.');
       if(out)out.textContent='Kontakt lagret. Oppretter innlogging og sender e-post...';
-      const login=await createResidentLogin({name,email,phone,password:document.getElementById('personPassword')?.value||''});
-      await insertActivity(login.email_sent?'Beboer og innlogging opprettet':'Beboer opprettet, e-post ikke sendt','resident',login.user?.id||email);
-      await finishAction(login.email_sent?'Beboer er lagret, innlogging er opprettet og e-post er sendt.':'Beboer er lagret og innlogging er opprettet. E-post ble ikke sendt.','people');
+      const loginRole=boardLoginRole(role,document.getElementById('personLoginRole')?.value||'');
+      const login=await createPersonLogin({name,email,phone,role:loginRole,password:document.getElementById('personPassword')?.value||''});
+      const label=loginRole==='beboer'?'Beboer':'Styremedlem';
+      await insertActivity(login.email_sent?`${label} og innlogging opprettet`:`${label} opprettet, e-post ikke sendt`,'user',login.user?.id||email);
+      await finishAction(login.email_sent?`${label} er lagret, innlogging er opprettet og e-post er sendt.`:`${label} er lagret og innlogging er opprettet. E-post ble ikke sendt.`,'people');
       return;
     }
     await insertActivity('Kontakt lagret','contact',r.data?.id||name);
@@ -68,11 +73,18 @@ async function saveContact(){
     showDrawer('Kontakt ble ikke lagret',`<div class=\"output\">${esc(msg)}</div>`);
   }
 }
-async function createResidentLogin({name,email,phone,password=''}){
+function boardLoginRole(contactRole,forcedRole=''){
+  const value=String(contactRole||'').toLowerCase();
+  if(String(forcedRole||'').toLowerCase()==='beboer')return 'beboer';
+  if(value.includes('styreleder')||value.includes('leder'))return 'styreleder';
+  return 'styremedlem';
+}
+async function createPersonLogin({name,email,phone,role='beboer',password=''}){
   const token=DP.session?.access_token;if(!token)throw new Error('Mangler innloggingstoken.');
-  const res=await fetch('/.netlify/functions/create-user',{method:'POST',headers:{'content-type':'application/json',authorization:`Bearer ${token}`},body:JSON.stringify({name,email,phone,role:'beboer',property_id:currentProperty().id,access_role:'resident',password})});
+  const normalized=normalizeRole(role),access={beboer:'resident',styreleder:'owner',styremedlem:'member'}[normalized]||'member';
+  const res=await fetch('/.netlify/functions/create-user',{method:'POST',headers:{'content-type':'application/json',authorization:`Bearer ${token}`},body:JSON.stringify({name,email,phone,role:normalized,property_id:currentProperty().id,access_role:access,password})});
   const data=await readJsonResponse(res,'Bruker-tjenesten svarte ikke riktig. Publiser siste pakke og prøv igjen.');
-  if(!data.ok)throw new Error(data.message||'Beboerinnlogging kunne ikke opprettes.');
+  if(!data.ok)throw new Error(data.message||'Innlogging kunne ikke opprettes.');
   return data;
 }
 async function deleteContact(id){if(!confirm('Slette kontakt?'))return;try{requireLive('slette kontakt');const r=await db().from('property_contacts').delete().eq('id',id);if(r.error)throw r.error;await insertActivity('Kontakt slettet','contact',id);await finishAction('Kontakten er slettet.','people')}catch(e){showDrawer('Kontakt ble ikke slettet',`<div class=\"output\">${esc(customerError(e))}</div>`)}}
