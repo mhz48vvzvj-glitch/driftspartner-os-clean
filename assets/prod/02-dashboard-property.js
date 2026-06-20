@@ -6,14 +6,22 @@
   const moneyRisk=dashboardMoneyRisk(),missingDocs=missingDocumentCount(docs);
   const boardDecisions=rfqs.filter(q=>String(q.status||'').toLowerCase().includes('utkast')).length+offers.length;
   const brain=typeof propertyBrainAnalysis==='function'?propertyBrainAnalysis():null;
+  const hasFinance=subscriptionHas('finance'),hasMarket=subscriptionHas('market'),hasBrain=subscriptionHas('brain'),hasWorkOrders=subscriptionHas('work_orders');
+  const heroActions=[
+    `<button class="action primary" onclick="runAiDirector('styrapport')">Lag styrerapport</button>`,
+    `<button class="action primary" onclick="showEmailFlow('all')">Masseutsending</button>`,
+    `<button class="action" onclick="showEmailFlow('board')">Send til styret</button>`,
+    hasBrain?`<button class="action" onclick="openModule('brain')">Property Brain</button>`:'',
+    '<button class="action" onclick="hydrateAll().then(render)">Oppdater tall</button>'
+  ].filter(Boolean).join('');
   return `<div class="grid dashboard-page">
-    <div class="card s12 executive-hero"><div><small>Styrets oversikt</small><h2>${esc(currentProperty()?.name||'Valgt eiendom')}</h2><p>Live status fra avvik, arbeidsordre, dokumenter, økonomi og innkjøp. Bruk dette som beslutningsgrunnlag før neste styremøte.</p></div><div class="executive-actions"><button class="action primary" onclick="runAiDirector('styrapport')">Lag styrerapport</button><button class="action primary" onclick="showEmailFlow('all')">Masseutsending</button><button class="action" onclick="showEmailFlow('board')">Send til styret</button><button class="action" onclick="openModule('brain')">Property Brain</button><button class="action" onclick="hydrateAll().then(render)">Oppdater tall</button></div></div>
+    <div class="card s12 executive-hero"><div><small>Styrets oversikt</small><h2>${esc(currentProperty()?.name||'Valgt eiendom')}</h2><p>Live status fra valgt abonnement og eiendom. Start viser styre, avvik og FDV. Pro/Premium åpner flere drifts- og analysemoduler.</p></div><div class="executive-actions">${heroActions}</div></div>
     ${focusCard('Hva haster?',critical||openDevs,critical?'Kritiske avvik må behandles først':openDevs?'Åpne avvik bør fordeles og følges opp':'Ingen åpne avvik nå',critical?'bad':openDevs?'warn':'ok','cases')}
-    ${focusCard('Hva koster penger?',money(moneyRisk.amount),moneyRisk.caption,moneyRisk.amount>0?'bad':'ok','finance')}
+    ${hasFinance?focusCard('Hva koster penger?',money(moneyRisk.amount),moneyRisk.caption,moneyRisk.amount>0?'bad':'ok','finance'):''}
     ${focusCard('Hva mangler dokumentasjon?',missingDocs,missingDocs?'FDV, HMS, kontrakt eller styrepapir mangler':'Dokumentasjonen ser ryddig ut',missingDocs?'warn':'ok','documents')}
-    ${focusCard('Hva må styret beslutte?',boardDecisions,boardDecisions?'Tilbud, RFQ eller sak bør avklares':'Ingen åpne beslutningspunkter',boardDecisions?'info':'ok','market')}
+    ${hasMarket?focusCard('Hva må styret beslutte?',boardDecisions,boardDecisions?'Tilbud, RFQ eller sak bør avklares':'Ingen åpne beslutningspunkter',boardDecisions?'info':'ok','market'):''}
     <div class="card s12 dashboard-priority">${DashboardPriorityPanel({brain,critical,openDevs,openWos,moneyRisk,missingDocs,boardDecisions})}</div>
-    <div class="card s7 premium-finance-card">${DashboardFinanceChart()}</div>
+    ${hasFinance?`<div class="card s7 premium-finance-card">${DashboardFinanceChart()}</div>`:''}
     <div class="card s5 premium-deviation-card">${DashboardDeviationPie(devs)}</div>
     <div class="card s8 dashboard-trend">${DashboardTrend30()}</div>
     <div class="card s4 dashboard-subscription">${DashboardSubscriptionStatus()}</div>
@@ -21,10 +29,10 @@
     <div class="card s6 dashboard-controls">${DashboardControls()}</div>
     ${dashboardMetric('Åpne avvik',openDevs,openDevs?'Må følges opp':'Ingen åpne avvik','info')}
     ${dashboardMetric('Kritiske avvik',critical,critical?'Krever rask handling':'Ingen kritiske avvik',critical?'bad':'ok')}
-    ${dashboardMetric('Arbeidsordre',openWos,openWos?'Pågående oppgaver':'Ingen åpne ordre',openWos?'warn':'ok')}
+    ${hasWorkOrders?dashboardMetric('Arbeidsordre',openWos,openWos?'Pågående oppgaver':'Ingen åpne ordre',openWos?'warn':'ok'):''}
     ${dashboardMetric('Dokumenter',docs.length,'Lagret på valgt eiendom','ok')}
-    ${dashboardMetric('Tilbud/RFQ',`${rfqs.length}/${offers.length}`,'Forespørsler og tilbud','info')}
-    ${dashboardMetric('Konto',money(f.bank_balance),'Registrert banksaldo','purple')}
+    ${hasMarket?dashboardMetric('Tilbud/RFQ',`${rfqs.length}/${offers.length}`,'Forespørsler og tilbud','info'):''}
+    ${hasFinance?dashboardMetric('Konto',money(f.bank_balance),'Registrert banksaldo','purple'):''}
     <div class="card s12 dashboard-flow"><div class="dash-title"><div><h3>Saksløp</h3><p class="muted">Viser om eiendommen har en komplett driftssak fra avvik til rapport.</p></div><button class="action primary" onclick="openModule('cases')">Åpne saksløp</button></div>${ProductionFlowMini()}</div>
     <div class="card s12 dashboard-ai">${AiDirectorCard()}</div>
     <div class="card s6 dashboard-list"><div class="dash-title"><h3>Siste avvik</h3><button class="action" onclick="openModule('cases')">Åpne avvik</button></div>${caseList(devs)}</div>
@@ -38,20 +46,22 @@ function DashboardPriorityPanel(data){
   const decision=(brain.boardDecisions||[])[0];
   const docText=brain.docRequired?`${brain.docFound}/${brain.docRequired.length}`:`${Math.max(0,4-data.missingDocs)}/4`;
   const score=brain.score??'--';
+  const brainButton=subscriptionHas('brain')?`<button onclick="openModule('brain')"><small>Property Brain</small><strong>${esc(score)}</strong><span>Tilstandscore</span></button>`:'';
+  const decisionButton=subscriptionHas('market')?`<button onclick="${decision?`openModule('${esc(decision.module)}')`:"openModule('market')"}"><small>Styret må vurdere</small><strong>${decision?'1':'0'}</strong><span>${esc(decision?.title||'Ingen tydelige beslutningspunkter')}</span></button>`:'';
   return `<div class="dash-title"><div><h3>Neste beste handling</h3><p class="muted">Dette er det viktigste punktet å ta tak i akkurat nå.</p></div><button class="action primary" onclick="${esc(action.open||"hydrateAll().then(render)") }">Start handling</button></div>
     <div class="dashboard-priority-grid">
       <section class="priority-main"><small>Prioritet nå</small><strong>${esc(action.title||'Oppdater live grunnlag')}</strong><p>${esc(action.detail||'Hent nyeste data før styremøte eller rapport.')}</p></section>
-      <button onclick="openModule('brain')"><small>Property Brain</small><strong>${esc(score)}</strong><span>Tilstandscore</span></button>
+      ${brainButton}
       <button onclick="openModule('documents')"><small>Dokumentasjon</small><strong>${esc(docText)}</strong><span>Nøkkeldokumenter</span></button>
-      <button onclick="${decision?`openModule('${esc(decision.module)}')`:"openModule('market')"}"><small>Styret må vurdere</small><strong>${decision?'1':'0'}</strong><span>${esc(decision?.title||'Ingen tydelige beslutningspunkter')}</span></button>
+      ${decisionButton}
     </div>`;
 }
 function dashboardFallbackAction(data){
   if(data.critical)return {title:'Følg opp kritiske avvik',detail:'Kritiske avvik må fordeles og behandles først.',open:"openModule('cases')"};
   if(data.openDevs)return {title:'Fordel åpne avvik',detail:'Åpne avvik bør tildeles ansvarlig og frist.',open:"openModule('cases')"};
   if(data.missingDocs)return {title:'Tett dokumentasjonsmangler',detail:'Last opp manglende FDV, HMS, kontrakt eller styrepapir.',open:"openModule('documents')"};
-  if(data.moneyRisk.amount>0)return {title:'Forklar budsjettavvik',detail:'Økonomiavvik bør inn i styrerapporten.',open:"openModule('finance')"};
-  if(data.boardDecisions)return {title:'Avklar tilbud og RFQ',detail:'Tilbud eller forespørsler bør behandles av styret.',open:"openModule('market')"};
+  if(data.moneyRisk.amount>0&&subscriptionHas('finance'))return {title:'Forklar budsjettavvik',detail:'Økonomiavvik bør inn i styrerapporten.',open:"openModule('finance')"};
+  if(data.boardDecisions&&subscriptionHas('market'))return {title:'Avklar tilbud og RFQ',detail:'Tilbud eller forespørsler bør behandles av styret.',open:"openModule('market')"};
   return {title:'Oppdater live grunnlag',detail:'Eiendommen ser rolig ut. Hent nyeste data før neste møte.',open:"hydrateAll().then(render)"};
 }
 function dashboardDate(value){const d=new Date(value);return Number.isNaN(d.getTime())?null:d}
@@ -62,7 +72,7 @@ function dashboardDeadlineRows(){
   (DP.cache.projects||[]).forEach(p=>{if(p.due_date)rows.push({date:p.due_date,title:p.name||p.title||'Prosjekt',kind:'Prosjekt',module:'finance',status:p.status||''})});
   (DP.cache.quote_requests||[]).forEach(q=>{if(q.deadline)rows.push({date:q.deadline,title:q.title||'Tilbudsforespørsel',kind:'Tilbud',module:'market',status:q.status||''})});
   (DP.cache.documents||[]).forEach(d=>{if(d.expires_at)rows.push({date:d.expires_at,title:d.title||'Dokument',kind:d.category||'Dokument',module:'documents',status:'Utløper'} )});
-  return rows.map(r=>({...r,dt:dashboardDate(r.date),past:dashboardDate(r.date)&&dashboardDate(r.date)<now})).filter(r=>r.dt).sort((a,b)=>a.dt-b.dt);
+  return rows.map(r=>({...r,dt:dashboardDate(r.date),past:dashboardDate(r.date)&&dashboardDate(r.date)<now})).filter(r=>r.dt&&canOpenModule(r.module)).sort((a,b)=>a.dt-b.dt);
 }
 function DashboardDeadlines(){
   const rows=dashboardDeadlineRows().filter(r=>!String(r.status).toLowerCase().match(/lukket|ferdig|utført|utfort|fullført|fullfort/)).slice(0,6);
@@ -76,7 +86,8 @@ function DashboardControls(){
 }
 function DashboardActivityFeed(){
   const rows=(DP.cache.activity||[]).slice(0,10);
-  return `<div class="dash-title"><div><h3>E-post og aktivitet</h3><p class="muted">Siste hendelser på valgt eiendom.</p></div><button class="action" onclick="openModule('admin')">Åpne kontroll</button></div>${rows.length?`<div class="activity-feed">${rows.map(a=>`<section><span>${esc(activityIcon(a))}</span><div><strong>${esc(a.action||'Hendelse')}</strong><small>${esc([a.entity_type,dashboardDayLabel(a.created_at)].filter(Boolean).join(' · '))}</small></div></section>`).join('')}</div>`:'<div class="empty-state"><strong>Ingen aktivitet logget ennå.</strong><span>Når noe lagres, sendes eller slettes, vises historikken her.</span></div>'}`;
+  const adminButton=canOpenModule('admin')?`<button class="action" onclick="openModule('admin')">Åpne kontroll</button>`:'';
+  return `<div class="dash-title"><div><h3>E-post og aktivitet</h3><p class="muted">Siste hendelser på valgt eiendom.</p></div>${adminButton}</div>${rows.length?`<div class="activity-feed">${rows.map(a=>`<section><span>${esc(activityIcon(a))}</span><div><strong>${esc(a.action||'Hendelse')}</strong><small>${esc([a.entity_type,dashboardDayLabel(a.created_at)].filter(Boolean).join(' · '))}</small></div></section>`).join('')}</div>`:'<div class="empty-state"><strong>Ingen aktivitet logget ennå.</strong><span>Når noe lagres, sendes eller slettes, vises historikken her.</span></div>'}`;
 }
 function activityIcon(a){return /e-?post|mail|send/i.test(String(a.action||''))?'E-post':/slett/i.test(String(a.action||''))?'Slett':'Logg'}
 function DashboardSubscriptionStatus(){
