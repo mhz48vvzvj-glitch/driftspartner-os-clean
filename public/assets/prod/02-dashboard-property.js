@@ -105,9 +105,9 @@ async function savePropertySubscription(planId){
     if(!plan)throw new Error('Ugyldig pakke.');
     if(out)out.textContent='Lagrer abonnement...';
     const payload={subscription_plan:plan.id,subscription_first_year_amount:plan.firstYear,subscription_year_two_amount:plan.yearTwo,subscription_billing_period:'yearly',subscription_status:'active',subscription_started_at:new Date().toISOString().slice(0,10)};
-    let r=await db().from('customers').update(payload).eq('id',p.customer_id).select().single();
+    let r=await db().from('customers').update(payload).eq('id',p.customer_id);
     if(r.error&&/column|schema|cache/i.test(String(r.error.message||''))){
-      r=await db().from('customers').update({subscription_plan:plan.id}).eq('id',p.customer_id).select().single();
+      r=await db().from('customers').update({subscription_plan:plan.id}).eq('id',p.customer_id);
     }
     if(r.error)throw r.error;
     Object.assign(p,{subscription_plan:plan.id,subscription_status:'active',subscription_first_year_amount:plan.firstYear,subscription_year_two_amount:plan.yearTwo,subscription_billing_period:'yearly'});
