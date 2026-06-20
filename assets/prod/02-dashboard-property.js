@@ -92,7 +92,8 @@ function DashboardActivityFeed(){
 function activityIcon(a){return /e-?post|mail|send/i.test(String(a.action||''))?'E-post':/slett/i.test(String(a.action||''))?'Slett':'Logg'}
 function DashboardSubscriptionStatus(){
   const p=currentProperty()||{},plan=String(p.subscription_plan||''),meta=dashboardSubscriptionPlans().find(x=>x.id===plan.toLowerCase()),status=String(p.subscription_status||'pending'),first=Number(p.subscription_first_year_amount||meta?.firstYear||0),yearTwo=Number(p.subscription_year_two_amount||meta?.yearTwo||0);
-  return `<div class="dash-title"><div><h3>Abonnement</h3><p class="muted">Kundestatus og fakturagrunnlag.</p></div><button class="action" onclick="showSubscriptionPicker()">Velg pakke</button></div><div class="subscription-status-card"><small>Pakke</small><strong>${esc(planLabel(plan))}</strong><span class="${status==='active'?'ok':'warn'}">${esc(statusLabel(status))}</span><div><b>${money(first)}</b><small>Første år</small></div><div><b>${money(yearTwo)}</b><small>År 2 · 12 mnd</small></div></div>${PackageAccessSummary()}`;
+  const buttonLabel=(typeof canManageCustomers==='function'&&canManageCustomers())?'Velg pakke':'Be om endring';
+  return `<div class="dash-title"><div><h3>Abonnement</h3><p class="muted">Kundestatus og fakturagrunnlag.</p></div><button class="action" onclick="showSubscriptionPicker()">${buttonLabel}</button></div><div class="subscription-status-card"><small>Pakke</small><strong>${esc(planLabel(plan))}</strong><span class="${status==='active'?'ok':'warn'}">${esc(statusLabel(status))}</span><div><b>${money(first)}</b><small>Første år</small></div><div><b>${money(yearTwo)}</b><small>År 2 · 12 mnd</small></div></div>${PackageAccessSummary()}`;
 }
 function planLabel(plan){return ({start:'Start',pro:'Pro',premium:'Premium'}[String(plan).toLowerCase()]||plan||'Ikke valgt')}
 function statusLabel(status){return ({active:'Aktiv',pending:'Venter avtale',trial:'Pilot',paused:'Pause'}[String(status).toLowerCase()]||status||'Venter avtale')}
@@ -114,7 +115,11 @@ function PackageAccessSummary(){
 }
 function showSubscriptionPicker(){
   const p=currentProperty()||{},selected=String(p.subscription_plan||'pro').toLowerCase();
-  showDrawer('Velg abonnement',`<p class="muted">Oppdaterer valgt pakke på kunden som eier denne eiendommen.</p><div class="subscription-grid">${dashboardSubscriptionPlans().map(plan=>`<button type="button" class="subscription-card ${plan.id===selected?'selected':''}" onclick="savePropertySubscription('${plan.id}')"><span>${esc(plan.name)}</span><strong>${money(plan.firstYear)}</strong><small>Første år · faktureres årlig</small><em>År 2: ${money(plan.yearTwo)} for 12 mnd</em><ul>${plan.items.map(i=>`<li>${esc(i)}</li>`).join('')}</ul></button>`).join('')}</div><div id="subscriptionOut" class="output">Velg pakken som skal vises på dashboard og kundekort.</div>`);
+  const isAdmin=typeof canManageCustomers==='function'&&canManageCustomers();
+  const title=isAdmin?'Velg abonnement':'Be om abonnementendring';
+  const help=isAdmin?'Oppdaterer valgt pakke på kunden som eier denne eiendommen.':'Velg ønsket pakke. Forespørselen sendes til Driftspartner Nord og må godkjennes av superadmin før den aktiveres.';
+  const actionText=isAdmin?'Aktiver pakke':'Send forespørsel';
+  showDrawer(title,`<p class="muted">${help}</p><div class="subscription-grid">${dashboardSubscriptionPlans().map(plan=>`<button type="button" class="subscription-card ${plan.id===selected?'selected':''}" onclick="savePropertySubscription('${plan.id}')"><span>${esc(plan.name)}</span><strong>${money(plan.firstYear)}</strong><small>Første år · faktureres årlig</small><em>År 2: ${money(plan.yearTwo)} for 12 mnd</em><ul>${plan.items.map(i=>`<li>${esc(i)}</li>`).join('')}</ul><b class="subscription-action-label">${actionText}</b></button>`).join('')}</div><div id="subscriptionOut" class="output">${isAdmin?'Velg pakken som skal vises på dashboard og kundekort.':'Kunden kan ikke endre pakken direkte. Dette sender bare en forespørsel.'}</div>`);
 }
 async function savePropertySubscription(planId){
   const out=document.getElementById('subscriptionOut');
@@ -123,6 +128,10 @@ async function savePropertySubscription(planId){
     const p=currentProperty(),plan=dashboardSubscriptionPlans().find(x=>x.id===planId);
     if(!p?.customer_id)throw new Error('Eiendommen mangler kundekobling.');
     if(!plan)throw new Error('Ugyldig pakke.');
+    if(typeof canManageCustomers==='function'&&!canManageCustomers()){
+      await requestPropertySubscription(plan);
+      return;
+    }
     if(out)out.textContent='Lagrer abonnement...';
     const payload={subscription_plan:plan.id,subscription_first_year_amount:plan.firstYear,subscription_year_two_amount:plan.yearTwo,subscription_billing_period:'yearly',subscription_status:'active',subscription_started_at:new Date().toISOString().slice(0,10)};
     let r=await db().from('customers').update(payload).eq('id',p.customer_id);
@@ -134,6 +143,31 @@ async function savePropertySubscription(planId){
     await insertActivity('Abonnement oppdatert','subscription',p.id);
     await finishAction(`Abonnement er satt til ${plan.name}.`,'dashboard');
   }catch(e){setOutputError(out,e,'Abonnement ble ikke lagret. Sjekk at Supabase har abonnementfeltene fra onboarding-SQL.')}
+}
+async function requestPropertySubscription(plan){
+  const out=document.getElementById('subscriptionOut');
+  const p=currentProperty()||{},current=planLabel(p.subscription_plan||''),user=DP.user||{};
+  if(out)out.textContent='Sender forespørsel til Driftspartner Nord...';
+  const message=[
+    'Kunde ber om abonnementendring i Driftspartner OS.',
+    '',
+    `Eiendom: ${p.name||'-'}`,
+    `Kunde: ${p.customer||'-'}`,
+    `Nåværende pakke: ${current}`,
+    `Ønsket pakke: ${plan.name}`,
+    `Første år: ${money(plan.firstYear)}`,
+    `År 2: ${money(plan.yearTwo)} for 12 mnd`,
+    '',
+    `Bruker: ${user.name||'-'} (${user.email||'-'})`,
+    `Rolle: ${user.role||'-'}`,
+    `Tidspunkt: ${new Date().toLocaleString('nb-NO')}`,
+    `Lenke: ${location.href}`
+  ].join('\n');
+  const res=await fetch('/.netlify/functions/send-email',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({to:'post@driftspartnernord.no',subject:`Abonnementendring ønskes - ${p.name||'eiendom'} - ${plan.name}`,message,kind:'subscription-request',property:p.name||'',property_id:p.id||''})});
+  const data=await readJsonResponse(res,'E-postfunksjonen svarte ikke riktig. Publiser siste pakke og prøv igjen.');
+  if(!data?.ok)throw new Error(data?.message||'Forespørselen kunne ikke sendes.');
+  await insertActivity(`Abonnementendring ønsket: ${plan.name}`,'subscription_request',p.id);
+  showDrawer('Forespørsel sendt',`<div class="empty-state"><strong>Forespørsel sendt til Driftspartner Nord.</strong><span>Pakken er ikke endret ennå. Superadmin må godkjenne og aktivere endringen.</span></div><button class="action primary" onclick="hideDrawer();render()">Tilbake til dashboard</button>`);
 }
 function DashboardTrend30(){
   const series=dashboardTrendSeries();

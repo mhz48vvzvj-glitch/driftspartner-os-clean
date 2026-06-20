@@ -918,6 +918,7 @@ body:not(.public-mode) td,body:not(.public-mode) th{word-break:break-word}
 .subscription-card small,.subscription-card em{color:#a9b7cc;font-style:normal;font-size:12px;font-weight:800}
 .subscription-card p{margin:0;color:#d7e3f5;line-height:1.35}
 .subscription-card ul{margin:2px 0 0;padding-left:18px;color:#b8c7dc;line-height:1.55}
+.subscription-action-label{display:inline-flex;justify-content:center;align-items:center;margin-top:4px;border:1px solid rgba(45,114,255,.45);border-radius:999px;background:rgba(45,114,255,.14);color:#dce8ff;font-size:12px;font-weight:950;padding:8px 10px}
 .premium-finance-card,.premium-deviation-card{overflow:hidden;position:relative}
 .premium-finance-card:before,.premium-deviation-card:before{content:"";position:absolute;right:-70px;top:-90px;width:210px;height:210px;border-radius:50%;background:radial-gradient(circle,rgba(45,114,255,.18),transparent 68%);pointer-events:none}
 .finance-summary-strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:12px 0 16px}
