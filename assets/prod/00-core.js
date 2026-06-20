@@ -16,12 +16,13 @@ const ROLE_MENUS={
   leverandor:['market']
 };
 function appRole(){return String(DP.user?.role||'').toLowerCase()}
+function canManageCustomers(){return appRole()==='superadmin'}
 function subscriptionPlanId(){return String(currentProperty()?.subscription_plan||'').toLowerCase()}
 function subscriptionAllowedMenus(){
   const plan=subscriptionPlanId();
   if(!plan)return DP.menus.map(m=>m[0]);
-  if(plan==='start')return ['dashboard','property','people','cases','documents','admin'];
-  if(plan==='pro')return ['dashboard','property','people','cases','documents','maintenance','finance','reports','market','integrations','admin'];
+  if(plan==='start')return ['dashboard','property','people','cases','documents'];
+  if(plan==='pro')return ['dashboard','property','people','cases','documents','maintenance','finance','reports','market','integrations'];
   if(plan==='premium')return DP.menus.map(m=>m[0]);
   return DP.menus.map(m=>m[0]);
 }
@@ -41,7 +42,7 @@ function subscriptionHas(feature){
 function visibleMenus(){
   const allowed=ROLE_MENUS[appRole()]||['dashboard'];
   const packageAllowed=subscriptionAllowedMenus();
-  return DP.menus.filter(m=>allowed.includes(m[0])&&packageAllowed.includes(m[0]));
+  return DP.menus.filter(m=>allowed.includes(m[0])&&(packageAllowed.includes(m[0])||(m[0]==='admin'&&canManageCustomers())));
 }
 function canOpenModule(id){return visibleMenus().some(m=>m[0]===id)}
 function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
