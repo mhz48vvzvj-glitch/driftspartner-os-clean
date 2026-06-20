@@ -85,9 +85,9 @@ exports.handler = async (event) => {
     const role = String(profile.role || "").toLowerCase();
     let properties = [];
     if (role === "superadmin") {
-      properties = await supabaseFetch("/rest/v1/properties?select=*,customers(name)&order=name.asc&limit=200", { serviceKey, supabaseUrl });
+      properties = await supabaseFetch("/rest/v1/properties?select=*,customers(*)&order=name.asc&limit=200", { serviceKey, supabaseUrl });
     } else {
-      const access = await supabaseFetch(`/rest/v1/property_access?user_id=eq.${profile.id}&select=access_role,properties(*,customers(name))`, { serviceKey, supabaseUrl });
+      const access = await supabaseFetch(`/rest/v1/property_access?user_id=eq.${profile.id}&select=access_role,properties(*,customers(*))`, { serviceKey, supabaseUrl });
       properties = (access || []).map((row) => row.properties ? { ...row.properties, access_role: row.access_role } : null).filter(Boolean);
     }
 

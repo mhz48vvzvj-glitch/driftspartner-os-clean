@@ -117,9 +117,25 @@ async function loadProperties(){
   DP.propertyId=DP.propertyId||DP.properties[0]?.id||'';
 }
 function mapProperty(p){return p?{id:p.id,customer_id:p.customer_id,name:p.name||'Eiendom',customer:p.customers?.name||p.customer_name||'',customer_org_number:p.customers?.org_number||p.org_number||'',customer_invoice_address:p.customers?.invoice_address||p.invoice_address||'',customer_billing_email:p.customers?.billing_email||p.billing_email||'',customer_status:p.customers?.status||p.customer_status||'',address:p.address||'',type:p.property_type||'',status:p.status||'',sla:p.sla||'',gnr:p.gnr||'',bnr:p.bnr||'',built_year:p.built_year||'',units_count:p.units_count||0,gross_area:p.gross_area||0,technical_summary:p.technical_summary||'',access_role:p.access_role||'',subscription_plan:p.customers?.subscription_plan||p.subscription_plan||'',subscription_status:p.customers?.subscription_status||p.subscription_status||'',subscription_first_year_amount:p.customers?.subscription_first_year_amount||p.subscription_first_year_amount||0,subscription_year_two_amount:p.customers?.subscription_year_two_amount||p.subscription_year_two_amount||0,subscription_billing_period:p.customers?.subscription_billing_period||p.subscription_billing_period||''}:null}
+async function refreshCurrentSubscription(){
+  const p=currentProperty();
+  if(!p?.customer_id)return;
+  try{
+    const r=await db().from('customers').select('subscription_plan,subscription_status,subscription_first_year_amount,subscription_year_two_amount,subscription_billing_period,status').eq('id',p.customer_id).maybeSingle();
+    if(r.error||!r.data)return;
+    Object.assign(p,{
+      subscription_plan:r.data.subscription_plan||p.subscription_plan||'',
+      subscription_status:r.data.subscription_status||p.subscription_status||r.data.status||'',
+      subscription_first_year_amount:r.data.subscription_first_year_amount||p.subscription_first_year_amount||0,
+      subscription_year_two_amount:r.data.subscription_year_two_amount||p.subscription_year_two_amount||0,
+      subscription_billing_period:r.data.subscription_billing_period||p.subscription_billing_period||''
+    });
+  }catch(e){console.warn('Abonnement kunne ikke hentes',e)}
+}
 async function hydrateAll(){
   const p=currentProperty();if(!p)return;
   const client=db(),id=p.id,errors=[];
+  await refreshCurrentSubscription();
   async function q(key,call){const r=await call();if(r.error){errors.push(customerError(r.error));DP.cache[key]=[]}else DP.cache[key]=r.data||[]}
   await q('contacts',async()=>{let r=await client.from('property_contacts').select('*').eq('property_id',id).order('created_at',{ascending:false});if(r.error&&/column|schema|cache|created_at/i.test(String(r.error.message||'')))r=await client.from('property_contacts').select('*').eq('property_id',id);return r});
   await q('deviations',()=>client.from('deviations').select('*').eq('property_id',id).order('created_at',{ascending:false}));

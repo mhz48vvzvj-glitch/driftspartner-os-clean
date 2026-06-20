@@ -91,7 +91,7 @@ function DashboardActivityFeed(){
 }
 function activityIcon(a){return /e-?post|mail|send/i.test(String(a.action||''))?'E-post':/slett/i.test(String(a.action||''))?'Slett':'Logg'}
 function DashboardSubscriptionStatus(){
-  const p=currentProperty()||{},plan=String(p.subscription_plan||'Ikke valgt'),status=String(p.subscription_status||'pending'),first=Number(p.subscription_first_year_amount||0),yearTwo=Number(p.subscription_year_two_amount||0);
+  const p=currentProperty()||{},plan=String(p.subscription_plan||''),meta=dashboardSubscriptionPlans().find(x=>x.id===plan.toLowerCase()),status=String(p.subscription_status||'pending'),first=Number(p.subscription_first_year_amount||meta?.firstYear||0),yearTwo=Number(p.subscription_year_two_amount||meta?.yearTwo||0);
   return `<div class="dash-title"><div><h3>Abonnement</h3><p class="muted">Kundestatus og fakturagrunnlag.</p></div><button class="action" onclick="showSubscriptionPicker()">Velg pakke</button></div><div class="subscription-status-card"><small>Pakke</small><strong>${esc(planLabel(plan))}</strong><span class="${status==='active'?'ok':'warn'}">${esc(statusLabel(status))}</span><div><b>${money(first)}</b><small>Første år</small></div><div><b>${money(yearTwo)}</b><small>År 2 · 12 mnd</small></div></div>${PackageAccessSummary()}`;
 }
 function planLabel(plan){return ({start:'Start',pro:'Pro',premium:'Premium'}[String(plan).toLowerCase()]||plan||'Ikke valgt')}
