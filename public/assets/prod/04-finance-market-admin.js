@@ -691,9 +691,57 @@ async function insertWithFallback(tableName,row,minimalKeys){
 async function safeInsertMany(tableName,rows){
   if(!rows.length)return {ok:true,count:0};
   const r=await db().from(tableName).insert(rows);
-  if(r.error&&/relation|schema|cache|does not exist/i.test(String(r.error.message||'')))return {ok:false,count:0,skipped:true};
+  if(r.error&&/relation|schema|cache|does not exist|column/i.test(String(r.error.message||'')))return {ok:false,count:0,skipped:true,error:r.error};
   if(r.error)throw r.error;
   return {ok:true,count:rows.length};
+}
+async function safeInsertContacts(rows){
+  if(!rows.length)return {ok:true,count:0};
+  const variants=[
+    rows,
+    rows.map(r=>({property_id:r.property_id,name:r.name,role:r.role,email:r.email,phone:r.phone})),
+    rows.map(r=>({property_id:r.property_id,name:r.name,contact_role:r.role,contact_type:r.role,email:r.email,phone:r.phone})),
+    rows.map(r=>({property_id:r.property_id,name:r.name,email:r.email,phone:r.phone})),
+    rows.map(r=>({property_id:r.property_id,name:r.name}))
+  ];
+  let lastError=null;
+  for(const variant of variants){
+    const r=await db().from('property_contacts').insert(variant);
+    if(!r.error)return {ok:true,count:rows.length};
+    lastError=r.error;
+    if(!/column|schema|cache|contact_role|contact_type|role|email|phone|notes/i.test(String(r.error.message||'')))break;
+  }
+  if(lastError&&/relation|does not exist/i.test(String(lastError.message||'')))return {ok:false,count:0,skipped:true,error:lastError};
+  throw lastError||new Error('Kontakter kunne ikke lagres.');
+}
+async function safeUpsertFinance(row){
+  const variants=[
+    row,
+    {property_id:row.property_id,bank_balance:row.bank_balance,reserved_funds:row.reserved_funds,project_funds:row.project_funds,updated_at:row.updated_at},
+    {property_id:row.property_id,bank_balance:row.bank_balance,reserved_funds:row.reserved_funds,project_funds:row.project_funds},
+    {property_id:row.property_id,bank_balance:row.bank_balance,reserve_fund:row.reserved_funds,project_funds:row.project_funds},
+    {property_id:row.property_id,bank_balance:row.bank_balance}
+  ];
+  let lastError=null;
+  for(const variant of variants){
+    const r=await db().from('property_finance').upsert(variant,{onConflict:'property_id'});
+    if(!r.error)return {ok:true};
+    lastError=r.error;
+    if(!/column|schema|cache|reserve|reserved|project|updated_at/i.test(String(r.error.message||'')))break;
+  }
+  if(lastError&&/relation|does not exist/i.test(String(lastError.message||'')))return {ok:false,skipped:true,error:lastError};
+  throw lastError||new Error('Økonomi kunne ikke lagres.');
+}
+function onboardingAdminError(error,step='Onboarding'){
+  const msg=String(error?.message||error||'').trim();
+  if(!msg)return `${step} kunne ikke fullføres.`;
+  if(/row level|rls|policy|permission|not authorized|violates row-level/i.test(msg))return `${step}: brukeren mangler tilgang til å lagre dette. Sjekk property_access/RLS for innlogget bruker.`;
+  if(/relation .* does not exist|does not exist/i.test(msg))return `${step}: en nødvendig tabell mangler i Supabase. Kjør nyeste SQL-oppsett for modulen.`;
+  if(/column .* does not exist|Could not find .* column|schema cache|column/i.test(msg))return `${step}: Supabase-tabellen mangler et felt appen prøver å lagre. Kjør nyeste SQL-oppsett for onboarding/økonomi/personer.`;
+  if(/duplicate|already registered|already exists|User already/i.test(msg))return `${step}: brukeren eller raden finnes allerede. Sjekk e-post/eksisterende bruker.`;
+  if(/foreign key|violates foreign/i.test(msg))return `${step}: koblingen til kunde/eiendom mangler. Prøv igjen etter at kunde og eiendom er opprettet.`;
+  if(/invalid input value|check constraint|violates check/i.test(msg))return `${step}: en verdi passer ikke med databaseoppsettet. Sjekk type, rolle eller status.`;
+  return `${step}: ${msg}`;
 }
 async function createOnboardingUser(row,propertyId){
   const token=DP.session?.access_token;if(!token)throw new Error('Mangler innlogging.');
@@ -707,6 +755,7 @@ async function createOnboardingUser(row,propertyId){
 }
 async function runNewCustomerOnboarding(){
   const out=document.getElementById('obOut');
+  let step='Starter onboarding';
   try{
     requireLive('opprette kunde');
     const client=db(),log=[];
@@ -717,10 +766,12 @@ async function runNewCustomerOnboarding(){
     renderOnboardingDraftLists();
     setOnboardingMissingState([]);
     const plan=selectedSubscriptionPlan();
+    step='Oppretter kunde';
     out.textContent='Oppretter kunde...';
     let customer=await insertWithFallback('customers',{name:customerName,org_no:obOrgNo.value.trim()||null,subscription_plan:plan.id,subscription_first_year_amount:plan.firstYear,subscription_year_two_amount:plan.yearTwo,subscription_billing_period:'yearly',subscription_status:'pending',subscription_started_at:new Date().toISOString().slice(0,10)},['name']);
     if(customer.error)throw customer.error;
     log.push(`Kunde opprettet med ${plan.name}`);
+    step='Oppretter eiendom';
     out.textContent='Oppretter eiendom...';
     const propertyRow={customer_id:customer.data.id,name:propertyName,address:obAddress.value.trim(),property_type:obType.value.trim(),gnr:obGnr.value.trim(),bnr:obBnr.value.trim(),units_count:+obUnits.value||0,technical_summary:obTech.value.trim()};
     let property=await insertWithFallback('properties',propertyRow,['customer_id','name','address']);
@@ -728,17 +779,27 @@ async function runNewCustomerOnboarding(){
     const propertyId=property.data.id;
     DP.propertyId=propertyId;
     log.push('Eiendom opprettet');
-    if(DP.user?.id)await client.from('property_access').upsert({property_id:propertyId,user_id:DP.user.id,access_role:'owner'},{onConflict:'property_id,user_id'});
+    step='Gir deg tilgang til eiendommen';
+    if(DP.user?.id){
+      const access=await client.from('property_access').upsert({property_id:propertyId,user_id:DP.user.id,access_role:'owner'},{onConflict:'property_id,user_id'});
+      if(access.error)log.push('Tilgang ble ikke oppdatert automatisk');
+    }
     const draft=ensureOnboardingDraft();
+    step='Lagrer styre og beboere';
     const board=draft.board.map(r=>({property_id:propertyId,name:r.name||'',role:r.role||'Styremedlem',email:r.email||'',phone:r.phone||'',notes:'Onboarding'})).filter(r=>r.name);
     const residents=draft.residents.map(r=>({property_id:propertyId,name:r.name||'',role:r.unit||r.role||'Beboer',email:r.email||'',phone:r.phone||'',notes:'Onboarding'})).filter(r=>r.name);
-    await safeInsertMany('property_contacts',[...board,...residents]);log.push(`${board.length} styre / ${residents.length} beboere lagt inn`);
+    const contactResult=await safeInsertContacts([...board,...residents]);
+    log.push(contactResult.skipped?'Styre/beboere ble hoppet over: kontakt-tabell mangler':`${board.length} styre / ${residents.length} beboere lagt inn`);
+    step='Lagrer leverandører';
     const suppliers=draft.suppliers.map(r=>({name:r.name||'',email:r.email||'',trade:r.trade||'',status:'active'})).filter(r=>r.name&&r.email);
     await safeInsertMany('suppliers',suppliers);log.push(`${suppliers.length} leverandører lagt inn`);
+    step='Oppretter FDV-mapper';
     const folders=String(obFolders.value||'').split(/\n+/).map(name=>name.trim()).filter(Boolean).map(name=>({property_id:propertyId,name,parent_id:null}));
     const folderResult=await safeInsertMany('document_folders',folders);log.push(folderResult.skipped?'FDV-mapper hoppet over: tabell mangler':`${folders.length} FDV-mapper opprettet`);
-    let finance=await client.from('property_finance').upsert({property_id:propertyId,bank_balance:+obBank.value||0,reserved_funds:+obReserve.value||0,project_funds:+obProjectFunds.value||0,updated_at:new Date().toISOString()},{onConflict:'property_id'});
-    if(finance.error)throw finance.error;log.push('Økonomi grunnlag lagret');
+    step='Lagrer økonomi';
+    const finance=await safeUpsertFinance({property_id:propertyId,bank_balance:+obBank.value||0,reserved_funds:+obReserve.value||0,project_funds:+obProjectFunds.value||0,updated_at:new Date().toISOString()});
+    log.push(finance.skipped?'Økonomi hoppet over: økonomitabell mangler':'Økonomi grunnlag lagret');
+    step='Oppretter brukere og sender e-post';
     const boardUsers=draft.board.filter(r=>r.create_login&&r.email).map(r=>[r.name,r.email,/styreleder|leder/i.test(String(r.role||''))?'styreleder':'styremedlem',r.phone,r.password]);
     const residentUsers=draft.residents.filter(r=>r.create_login&&r.email).map(r=>[r.name,r.email,'beboer',r.phone,r.password]);
     const users=[...boardUsers,...residentUsers,...draft.users.map(r=>[r.name,r.email,r.role,r.phone,r.password])];let userCount=0;
@@ -748,7 +809,11 @@ async function runNewCustomerOnboarding(){
     await loadProperties();DP.propertyId=propertyId;
     DP.onboardingDraft={board:[],residents:[],suppliers:[],users:[]};
     await finishAction(`Kunden er opprettet. ${log.join(' · ')}`,'property');
-  }catch(e){setOutputError(out,e,'Onboarding kunne ikke fullføres. Sjekk feltene og prøv igjen.')}
+  }catch(e){
+    const message=onboardingAdminError(e,step);
+    if(out)out.innerHTML=`<div class="validation-box"><strong>Onboarding stoppet</strong><p>${esc(message)}</p><span>Kunde eller eiendom kan allerede være delvis opprettet. Sjekk Eiendom-listen før du prøver på nytt.</span></div>`;
+    console.error('Onboarding failed at',step,e);
+  }
 }
 
 
