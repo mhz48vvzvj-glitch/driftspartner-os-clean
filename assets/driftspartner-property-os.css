@@ -888,6 +888,20 @@ body:not(.public-mode) td,body:not(.public-mode) th{word-break:break-word}
 .validation-box ul{margin:8px 0 8px 18px;padding:0}
 .validation-box li{margin:4px 0}
 .validation-box span{color:#ffd0d5}
+.package-access-list{display:grid;gap:8px;margin-top:12px}
+.package-access-list section{border:1px solid #223149;border-radius:12px;padding:10px;background:#081220;display:grid;gap:3px}
+.package-access-list section b{color:#fff}
+.package-access-list section span{color:#9aa8bc;font-size:12px;line-height:1.35}
+.package-access-list section.locked{opacity:.55}
+.package-access-list section.locked:after{content:"Krever oppgradering";color:#f8b51d;font-size:11px;font-weight:900}
+.package-access-list section.unlocked{border-color:rgba(53,208,113,.35);background:linear-gradient(135deg,rgba(18,60,42,.42),#081220)}
+.maintenance-page .module-hero,.reports-page .module-hero{border-color:#2d72ff}
+.premium-table{overflow:auto}
+.premium-table table strong{color:#fff}
+.report-preview{background:#f8fafc;color:#172033;border-radius:14px;border:1px solid #d8e0eb;padding:18px;overflow:auto}
+.report-preview h2,.report-preview h3{color:#172033}
+.report-preview table{color:#172033}
+.report-preview td{border-bottom:1px solid #e6edf5;color:#172033}
 .onboarding-section{border:1px solid #1f2d44;border-radius:16px;background:linear-gradient(180deg,#0a1424,#07111f);padding:14px;margin:16px 0;display:grid;gap:12px}
 .onboarding-entry-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;align-items:end}
 .onboarding-entry-grid.two{grid-template-columns:repeat(2,minmax(0,1fr))}

@@ -92,7 +92,7 @@ function DashboardActivityFeed(){
 function activityIcon(a){return /e-?post|mail|send/i.test(String(a.action||''))?'E-post':/slett/i.test(String(a.action||''))?'Slett':'Logg'}
 function DashboardSubscriptionStatus(){
   const p=currentProperty()||{},plan=String(p.subscription_plan||'Ikke valgt'),status=String(p.subscription_status||'pending'),first=Number(p.subscription_first_year_amount||0),yearTwo=Number(p.subscription_year_two_amount||0);
-  return `<div class="dash-title"><div><h3>Abonnement</h3><p class="muted">Kundestatus og fakturagrunnlag.</p></div><button class="action" onclick="showSubscriptionPicker()">Velg pakke</button></div><div class="subscription-status-card"><small>Pakke</small><strong>${esc(planLabel(plan))}</strong><span class="${status==='active'?'ok':'warn'}">${esc(statusLabel(status))}</span><div><b>${money(first)}</b><small>Første år</small></div><div><b>${money(yearTwo)}</b><small>År 2 · 12 mnd</small></div></div>`;
+  return `<div class="dash-title"><div><h3>Abonnement</h3><p class="muted">Kundestatus og fakturagrunnlag.</p></div><button class="action" onclick="showSubscriptionPicker()">Velg pakke</button></div><div class="subscription-status-card"><small>Pakke</small><strong>${esc(planLabel(plan))}</strong><span class="${status==='active'?'ok':'warn'}">${esc(statusLabel(status))}</span><div><b>${money(first)}</b><small>Første år</small></div><div><b>${money(yearTwo)}</b><small>År 2 · 12 mnd</small></div></div>${PackageAccessSummary()}`;
 }
 function planLabel(plan){return ({start:'Start',pro:'Pro',premium:'Premium'}[String(plan).toLowerCase()]||plan||'Ikke valgt')}
 function statusLabel(status){return ({active:'Aktiv',pending:'Venter avtale',trial:'Pilot',paused:'Pause'}[String(status).toLowerCase()]||status||'Venter avtale')}
@@ -102,6 +102,15 @@ function dashboardSubscriptionPlans(){
     {id:'pro',name:'Pro',firstYear:19990,yearTwo:23880,items:['Alt i Start','Vedlikeholdsplan','Arbeidsordre','Leverandørregister','Budsjettoversikt','Avansert rapportering','Ubegrenset antall styremedlemmer']},
     {id:'premium',name:'Premium',firstYear:39990,yearTwo:47880,items:['Alt i Pro','Property Brain AI','Risikoanalyse','Tilbudsinnhenting (RFQ)','Flere eiendommer','Prioritert support','Avanserte analyser']}
   ];
+}
+function PackageAccessSummary(){
+  const plan=subscriptionPlanId()||'';
+  const modules=[
+    ['Start','FDV, dokumenter, avvik, styre og mobiltilgang',true],
+    ['Pro','Vedlikeholdsplan, arbeidsordre, økonomi, rapporter og leverandørregister',['pro','premium'].includes(plan)],
+    ['Premium','Property Brain AI, risikoanalyse, RFQ, flere eiendommer og avanserte analyser',plan==='premium']
+  ];
+  return `<div class="package-access-list">${modules.map(m=>`<section class="${m[2]?'unlocked':'locked'}"><b>${esc(m[0])}</b><span>${esc(m[1])}</span></section>`).join('')}</div>`;
 }
 function showSubscriptionPicker(){
   const p=currentProperty()||{},selected=String(p.subscription_plan||'pro').toLowerCase();
@@ -163,6 +172,62 @@ function DashboardFinanceChart(){
     return `<div class="finance-bar-row"><div class="finance-bar-label">${esc(r.label)}</div><div class="finance-bars"><span class="budget" style="width:${bw}%"></span><span class="actual ${over?'over':''}" style="width:${aw}%"></span></div><div class="finance-bar-value">${money(r.actual-r.budget)}</div></div>`;
   }).join(''):'<div class="empty-state"><strong>Ingen økonomilinjer registrert.</strong><span>Legg inn bank/konto, budsjettlinjer eller prosjektøkonomi for å vise live graf.</span><button class="action primary" onclick="openModule(\'finance\')">Åpne økonomi</button></div>';
   return `<div class="dash-title"><div><h3>Økonomi live</h3><p class="muted">Budsjett, faktisk kostnad og prosjektøkonomi fra valgt eiendom.</p></div><button class="action" onclick="openModule('finance')">Åpne økonomi</button></div><div class="finance-summary-strip">${summary.map(s=>`<div class="${esc(s[2])}"><small>${esc(s[0])}</small><b>${esc(s[1])}</b></div>`).join('')}</div><div class="premium-finance-legend"><span><i class="budget"></i>Budsjett</span><span><i class="actual"></i>Faktisk</span><span><i class="over"></i>Over budsjett</span></div><div class="premium-finance-bars">${bars}</div>`;
+}
+
+function maintenanceRows(){
+  const rows=[];
+  (DP.cache.documents||[]).forEach(d=>{
+    const text=[d.title,d.category,d.notes].filter(Boolean).join(' ');
+    const isControl=d.expires_at||/kontroll|service|årskontroll|arskontroll|brann|heis|ventilasjon|hms|garanti|forsikring|tak|vvs|elektro/i.test(text);
+    if(isControl)rows.push({title:d.title||'Dokumentkontroll',area:d.category||'FDV',date:d.expires_at||'',status:d.expires_at?'Planlagt':'Mangler dato',source:'Dokumentarkiv',module:'documents'});
+  });
+  (DP.cache.work_orders||[]).forEach(w=>{
+    if(w.due_date)rows.push({title:w.title||'Arbeidsordre',area:w.category||'Drift',date:w.due_date,status:w.status||'Ny',source:'Arbeidsordre',module:'cases'});
+  });
+  (DP.cache.projects||[]).forEach(p=>{
+    if(p.due_date)rows.push({title:p.name||p.title||'Prosjekt',area:'Prosjekt',date:p.due_date,status:p.status||'Planlagt',source:'Prosjekt',module:'finance'});
+  });
+  return rows.sort((a,b)=>(dashboardDate(a.date)||new Date(8640000000000000))-(dashboardDate(b.date)||new Date(8640000000000000)));
+}
+function MaintenancePage(){
+  const rows=maintenanceRows(),docs=DP.cache.documents||[],wos=DP.cache.work_orders||[];
+  const missing=missingDocumentList(docs),overdue=rows.filter(r=>dashboardDate(r.date)&&dashboardDate(r.date)<new Date()).length;
+  return `<div class="grid maintenance-page"><div class="card s12 module-hero"><div><small>Pro-modul</small><h2>Vedlikeholdsplan</h2><p>Samler kontroller, servicepunkter, dokumentutløp, arbeidsordre og planlagte tiltak for valgt eiendom.</p></div><div class="module-actions"><button class="action primary" onclick="openModule('documents')">Legg til kontroll</button><button class="action" onclick="openModule('cases')">Ny arbeidsordre</button><button class="action" onclick="openModule('reports')">Lag rapport</button></div></div><div class="card s3">${maintenanceKpi('Planlagte punkter',rows.length,'Totalt i planen','info')}</div><div class="card s3">${maintenanceKpi('Forfalt',overdue,'Dato passert','bad')}</div><div class="card s3">${maintenanceKpi('FDV-mangler',missing.length,'Nøkkeldokumenter','warn')}</div><div class="card s3">${maintenanceKpi('Arbeidsordre',wos.length,'Registrerte oppgaver','ok')}</div><div class="card s8"><div class="dash-title"><div><h3>Planlagte kontroller og tiltak</h3><p class="muted">Datoer hentes fra dokumentutløp, arbeidsordre og prosjekter.</p></div></div>${maintenanceTable(rows)}</div><div class="card s4"><h3>Manglende FDV-grunnlag</h3>${missing.length?`<div class="stack-list">${missing.map(m=>`<section class="mini-record"><div><strong>${esc(m)}</strong><small>Bør lastes opp for komplett vedlikeholdsplan</small></div><button class="action" onclick="openModule('documents')">Last opp</button></section>`).join('')}</div>`:'<div class="empty-state"><strong>FDV-grunnlaget ser komplett ut.</strong><span>Fortsett med utløpsdatoer og serviceintervaller.</span></div>'}</div></div>`;
+}
+function maintenanceKpi(title,value,caption,type){return `<small>${esc(title)}</small><div class="kpi">${esc(value)}</div><span class="badge ${esc(type)}">${esc(caption)}</span>`}
+function maintenanceTable(rows){
+  if(!rows.length)return `<div class="empty-state"><strong>Ingen planlagte vedlikeholdspunkter.</strong><span>Legg inn utløpsdato på dokumenter, frist på arbeidsordre eller frist på prosjekt.</span><button class="action primary" onclick="openModule('documents')">Legg til første punkt</button></div>`;
+  return `<div class="premium-table"><table><tr><th>Tiltak</th><th>Område</th><th>Dato</th><th>Status</th><th>Kilde</th></tr>${rows.map(r=>`<tr><td><strong>${esc(r.title)}</strong></td><td>${esc(r.area)}</td><td>${esc(r.date?dashboardDayLabel(r.date):'-')}</td><td><span class="badge ${dashboardDate(r.date)&&dashboardDate(r.date)<new Date()?'bad':'info'}">${esc(r.status)}</span></td><td><button class="action" onclick="openModule('${esc(r.module)}')">${esc(r.source)}</button></td></tr>`).join('')}</table></div>`;
+}
+function missingDocumentList(docs){
+  const required=['FDV','HMS','Tegning','Kontrakt','Garanti','Serviceavtale','Forsikring','Brann','Ventilasjon'];
+  const hay=docs.map(d=>[d.title,d.category,d.notes].filter(Boolean).join(' ').toLowerCase()).join(' ');
+  return required.filter(r=>!hay.includes(r.toLowerCase()));
+}
+
+function ReportsPage(){
+  const p=currentProperty()||{},devs=DP.cache.deviations||[],wos=DP.cache.work_orders||[],docs=DP.cache.documents||[],lines=DP.cache.budget_lines||[],projects=DP.cache.projects||[];
+  const openDevs=devs.filter(d=>!String(d.status||'').toLowerCase().match(/lukket|ferdig|utført|utfort/)).length;
+  const budget=lines.reduce((s,l)=>s+Number(l.budget_amount||l.budget||0),0),actual=lines.reduce((s,l)=>s+Number(l.actual_amount||l.actual||0),0);
+  return `<div class="grid reports-page"><div class="card s12 module-hero"><div><small>Pro-modul</small><h2>Rapporter</h2><p>Lag styrerapport, økonomirapport og eksportgrunnlag fra live data på valgt eiendom.</p></div><div class="module-actions"><button class="action primary" onclick="openPrintableReport()">Åpne PDF/utskrift</button><button class="action" onclick="downloadReportCsv()">Last ned CSV</button><button class="action" onclick="saveReportToArchive()">Lagre i FDV</button></div></div><div class="card s3">${maintenanceKpi('Åpne avvik',openDevs,'Drift','info')}</div><div class="card s3">${maintenanceKpi('Arbeidsordre',wos.length,'Oppgaver','warn')}</div><div class="card s3">${maintenanceKpi('Dokumenter',docs.length,'FDV','ok')}</div><div class="card s3">${maintenanceKpi('Avvik budsjett',money(actual-budget),'Økonomi','purple')}</div><div class="card s8"><h3>Styrerapport</h3><div class="report-preview">${reportHtmlBody({p,devs,wos,docs,lines,projects})}</div></div><div class="card s4"><h3>Eksport</h3><p class="muted">Rapporten kan åpnes i egen visning og skrives ut som PDF fra nettleseren.</p><button class="action primary" onclick="openPrintableReport()">Åpne utskriftsvennlig rapport</button><button class="action" onclick="downloadReportCsv()">Last ned nøkkeltall CSV</button><button class="action" onclick="saveReportToArchive()">Lagre rapport i dokumentarkivet</button></div></div>`;
+}
+function reportHtmlBody({p,devs,wos,docs,lines,projects}){
+  const budget=lines.reduce((s,l)=>s+Number(l.budget_amount||l.budget||0),0),actual=lines.reduce((s,l)=>s+Number(l.actual_amount||l.actual||0),0),missing=missingDocumentList(docs);
+  return `<section><h2>${esc(p.name||'Eiendom')}</h2><p>${new Date().toLocaleDateString('nb-NO')} · Driftspartner OS</p><table><tr><td>Åpne avvik</td><td>${devs.filter(d=>!String(d.status||'').toLowerCase().match(/lukket|ferdig|utført|utfort/)).length}</td></tr><tr><td>Arbeidsordre</td><td>${wos.length}</td></tr><tr><td>Dokumenter</td><td>${docs.length}</td></tr><tr><td>Budsjett</td><td>${money(budget)}</td></tr><tr><td>Faktisk</td><td>${money(actual)}</td></tr><tr><td>Prosjekter</td><td>${projects.length}</td></tr></table><h3>Anbefaling</h3><p>${missing.length?`Last opp manglende dokumentasjon: ${missing.join(', ')}.`:'Dokumentasjonen ser ryddig ut. Oppdater vedlikeholdsplanen med nye kontroller og frister.'}</p></section>`;
+}
+function printableReportHtml(){
+  const data={p:currentProperty()||{},devs:DP.cache.deviations||[],wos:DP.cache.work_orders||[],docs:DP.cache.documents||[],lines:DP.cache.budget_lines||[],projects:DP.cache.projects||[]};
+  return `<!doctype html><html lang="no"><head><meta charset="utf-8"><title>Styrerapport</title><style>body{font-family:Arial,sans-serif;background:#f5f7fb;color:#172033;padding:30px}.page{max-width:850px;margin:auto;background:#fff;border:1px solid #d8e0eb;border-radius:14px;padding:30px}h1{margin-top:0}table{width:100%;border-collapse:collapse}td{border-bottom:1px solid #e6edf5;padding:12px}.actions{margin:0 0 20px}@media print{.actions{display:none}body{background:#fff}.page{border:0}}</style></head><body><div class="actions"><button onclick="window.print()">Lagre som PDF / skriv ut</button></div><main class="page"><h1>Styrerapport</h1>${reportHtmlBody(data)}</main></body></html>`;
+}
+function openPrintableReport(){const w=window.open('','_blank');if(w){w.document.write(printableReportHtml());w.document.close()}}
+function downloadReportCsv(){
+  const p=currentProperty()||{},devs=DP.cache.deviations||[],wos=DP.cache.work_orders||[],docs=DP.cache.documents||[],lines=DP.cache.budget_lines||[];
+  const budget=lines.reduce((s,l)=>s+Number(l.budget_amount||l.budget||0),0),actual=lines.reduce((s,l)=>s+Number(l.actual_amount||l.actual||0),0);
+  const csv=['Felt;Verdi',`Eiendom;${p.name||''}`,`Åpne avvik;${devs.length}`,`Arbeidsordre;${wos.length}`,`Dokumenter;${docs.length}`,`Budsjett;${budget}`,`Faktisk;${actual}`].join('\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`styrerapport-${(p.name||'eiendom').replace(/[^a-z0-9]+/gi,'-').toLowerCase()}.csv`;a.click();URL.revokeObjectURL(url);
+}
+async function saveReportToArchive(){
+  try{requireLive('lagre rapport');if(typeof uploadGeneratedDocument!=='function')throw new Error('Dokumentarkivet er ikke klart.');const doc=await uploadGeneratedDocument('Styrerapport - '+(currentProperty()?.name||'eiendom'),'Styrepapir',printableReportHtml(),'Klar');await hydrateAll();showDrawer('Rapport lagret',`<p>Rapporten er lagret i dokumentarkivet.</p><button class="action primary" onclick="openDocument('${esc(doc.id)}')">Åpne rapport</button>`)}catch(e){showDrawer('Rapport ble ikke lagret',`<div class="output">${esc(customerError(e))}</div>`)}
 }
 function DashboardDeviationPie(devs){
   const counts={};
