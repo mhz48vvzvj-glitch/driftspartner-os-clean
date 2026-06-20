@@ -81,10 +81,40 @@ function DashboardActivityFeed(){
 function activityIcon(a){return /e-?post|mail|send/i.test(String(a.action||''))?'E-post':/slett/i.test(String(a.action||''))?'Slett':'Logg'}
 function DashboardSubscriptionStatus(){
   const p=currentProperty()||{},plan=String(p.subscription_plan||'Ikke valgt'),status=String(p.subscription_status||'pending'),first=Number(p.subscription_first_year_amount||0),yearTwo=Number(p.subscription_year_two_amount||0);
-  return `<div class="dash-title"><div><h3>Abonnement</h3><p class="muted">Kundestatus og fakturagrunnlag.</p></div><button class="action" onclick="openModule('admin')">Onboarding</button></div><div class="subscription-status-card"><small>Pakke</small><strong>${esc(planLabel(plan))}</strong><span class="${status==='active'?'ok':'warn'}">${esc(statusLabel(status))}</span><div><b>${money(first)}</b><small>Første år</small></div><div><b>${money(yearTwo)}</b><small>År 2 · 12 mnd</small></div></div>`;
+  return `<div class="dash-title"><div><h3>Abonnement</h3><p class="muted">Kundestatus og fakturagrunnlag.</p></div><button class="action" onclick="showSubscriptionPicker()">Velg pakke</button></div><div class="subscription-status-card"><small>Pakke</small><strong>${esc(planLabel(plan))}</strong><span class="${status==='active'?'ok':'warn'}">${esc(statusLabel(status))}</span><div><b>${money(first)}</b><small>Første år</small></div><div><b>${money(yearTwo)}</b><small>År 2 · 12 mnd</small></div></div>`;
 }
 function planLabel(plan){return ({start:'Start',pro:'Pro',premium:'Premium'}[String(plan).toLowerCase()]||plan||'Ikke valgt')}
 function statusLabel(status){return ({active:'Aktiv',pending:'Venter avtale',trial:'Pilot',paused:'Pause'}[String(status).toLowerCase()]||status||'Venter avtale')}
+function dashboardSubscriptionPlans(){
+  return [
+    {id:'start',name:'Start',firstYear:9990,yearTwo:11880,items:['FDV-arkiv','Dokumenthåndtering','Avvikshåndtering','AI Director Basis','Styreportal','Mobiltilgang']},
+    {id:'pro',name:'Pro',firstYear:19990,yearTwo:23880,items:['Alt i Start','Vedlikeholdsplan','Arbeidsordre','Leverandørregister','Budsjettoversikt','Avansert rapportering','Ubegrenset antall styremedlemmer']},
+    {id:'premium',name:'Premium',firstYear:39990,yearTwo:47880,items:['Alt i Pro','Property Brain AI','Risikoanalyse','Tilbudsinnhenting (RFQ)','Flere eiendommer','Prioritert support','Avanserte analyser']}
+  ];
+}
+function showSubscriptionPicker(){
+  const p=currentProperty()||{},selected=String(p.subscription_plan||'pro').toLowerCase();
+  showDrawer('Velg abonnement',`<p class="muted">Oppdaterer valgt pakke på kunden som eier denne eiendommen.</p><div class="subscription-grid">${dashboardSubscriptionPlans().map(plan=>`<button type="button" class="subscription-card ${plan.id===selected?'selected':''}" onclick="savePropertySubscription('${plan.id}')"><span>${esc(plan.name)}</span><strong>${money(plan.firstYear)}</strong><small>Første år · faktureres årlig</small><em>År 2: ${money(plan.yearTwo)} for 12 mnd</em><ul>${plan.items.map(i=>`<li>${esc(i)}</li>`).join('')}</ul></button>`).join('')}</div><div id="subscriptionOut" class="output">Velg pakken som skal vises på dashboard og kundekort.</div>`);
+}
+async function savePropertySubscription(planId){
+  const out=document.getElementById('subscriptionOut');
+  try{
+    requireLive('lagre abonnement');
+    const p=currentProperty(),plan=dashboardSubscriptionPlans().find(x=>x.id===planId);
+    if(!p?.customer_id)throw new Error('Eiendommen mangler kundekobling.');
+    if(!plan)throw new Error('Ugyldig pakke.');
+    if(out)out.textContent='Lagrer abonnement...';
+    const payload={subscription_plan:plan.id,subscription_first_year_amount:plan.firstYear,subscription_year_two_amount:plan.yearTwo,subscription_billing_period:'yearly',subscription_status:'active',subscription_started_at:new Date().toISOString().slice(0,10)};
+    let r=await db().from('customers').update(payload).eq('id',p.customer_id).select().single();
+    if(r.error&&/column|schema|cache/i.test(String(r.error.message||''))){
+      r=await db().from('customers').update({subscription_plan:plan.id}).eq('id',p.customer_id).select().single();
+    }
+    if(r.error)throw r.error;
+    Object.assign(p,{subscription_plan:plan.id,subscription_status:'active',subscription_first_year_amount:plan.firstYear,subscription_year_two_amount:plan.yearTwo,subscription_billing_period:'yearly'});
+    await insertActivity('Abonnement oppdatert','subscription',p.id);
+    await finishAction(`Abonnement er satt til ${plan.name}.`,'dashboard');
+  }catch(e){setOutputError(out,e,'Abonnement ble ikke lagret. Sjekk at Supabase har abonnementfeltene fra onboarding-SQL.')}
+}
 function DashboardTrend30(){
   const series=dashboardTrendSeries();
   const max=Math.max(1,...series.map(d=>d.total));
