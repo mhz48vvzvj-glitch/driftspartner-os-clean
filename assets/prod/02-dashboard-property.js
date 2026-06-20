@@ -512,6 +512,12 @@ function PropertyPage(){
   const p=currentProperty();
   const buildings=DP.cache.buildings||[],contacts=DP.cache.contacts||[],docs=DP.cache.documents||[],devs=DP.cache.deviations||[],wos=DP.cache.work_orders||[];
   const open=x=>!['lukket','ferdig','utført','utfort','fullført','fullfort'].includes(String(x.status||'').toLowerCase());
+  const shortcuts=[
+    canOpenModule('documents')?`<button onclick="openModule('documents')">Åpne FDV</button>`:'',
+    canOpenModule('people')?`<button onclick="openModule('people')">Styre/beboere</button>`:'',
+    canOpenModule('finance')?`<button onclick="openModule('finance')">Økonomi</button>`:'',
+    canOpenModule('brain')?`<button onclick="openModule('brain')">Property Brain</button>`:''
+  ].filter(Boolean).join('');
   return `<div class="grid property-page premium-property">
     <div class="card s12 module-hero property-hero"><div><small>Eiendom</small><h2>${esc(p?.name||'Valgt eiendom')}</h2><p>${esc([p?.address,p?.customer].filter(Boolean).join(' · ')||'Adresse og kunde ikke registrert')}</p></div><div class="module-actions"><button class="action primary" onclick="showPropertyForm()">Endre eiendom</button><button class="action" onclick="showBuildingForm()">Legg til bygg</button><button class="action" onclick="openModule('documents')">FDV/dokumenter</button><button class="action" onclick="showEmailFlow('general')">Send e-post</button></div></div>
     <div class="card s8 property-overview-card">
@@ -540,7 +546,7 @@ function PropertyPage(){
     <button class="card s3 property-action-card ok" onclick="openModule('documents')"><small>Dokumenter</small><strong>${docs.length}</strong><span>FDV og arkiv</span></button>
     <button class="card s3 property-action-card purple" onclick="openModule('people')"><small>Kontakter</small><strong>${contacts.length}</strong><span>Styre, beboere og andre</span></button>
     <div class="card s7 property-tech-card"><div class="dash-title"><h3>Teknisk informasjon</h3><button class="action" onclick="showPropertyForm()">Oppdater</button></div><p>${esc(p?.technical_summary||'Ingen teknisk informasjon registrert ennå. Legg inn hovedpunkter om bygg, tekniske anlegg, kjente forhold og vedlikeholdsbehov.')}</p></div>
-    <div class="card s5 property-quick-card"><h3>Snarveier</h3><div class="property-shortcuts"><button onclick="openModule('documents')">Åpne FDV</button><button onclick="openModule('people')">Styre/beboere</button><button onclick="openModule('finance')">Økonomi</button><button onclick="openModule('brain')">Property Brain</button></div></div>
+    <div class="card s5 property-quick-card"><h3>Snarveier</h3><div class="property-shortcuts">${shortcuts||'<span class="muted">Ingen snarveier tilgjengelig for denne rollen.</span>'}</div></div>
     <div class="card s12"><div class="dash-title"><div><h3>Bygg og anlegg</h3><p class="muted">Legg inn bygg, garasje, tekniske rom eller andre anlegg som FDV og avvik kan knyttes til.</p></div><button class="action primary" onclick="showBuildingForm()">Legg til bygg</button></div>${buildingCards(buildings)}</div>
     <div class="card s12"><div class="dash-title"><div><h3>Kontaktpersoner</h3><p class="muted">Kontaktgrunnlag for styre, beboere, forvalter og faste kontaktpersoner.</p></div><button class="action" onclick="openModule('people')">Åpne beboere/styre</button></div>${propertyContactCards(contacts)}</div>
   </div>`;

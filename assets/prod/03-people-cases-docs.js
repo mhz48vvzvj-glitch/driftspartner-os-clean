@@ -196,6 +196,8 @@ async function deleteRow(tableName,id){if(!confirm('Slette raden?'))return;try{r
 
 function CasesPage(){
   const devs=DP.cache.deviations||[],wos=DP.cache.work_orders||[];
+  const hasBrain=typeof subscriptionHas==='function'?subscriptionHas('brain'):true;
+  const brainAction=hasBrain?`<button class="action" onclick="openModule('brain')">Property Brain</button>`:'';
   const open=x=>!['lukket','ferdig','utført','utfort','fullført','fullfort'].includes(String(x.status||'').toLowerCase());
   const critical=devs.filter(d=>open(d)&&/kritisk|høy|hoy/i.test(String(d.priority||''))).length;
   const overdue=wos.filter(w=>open(w)&&w.due_date&&new Date(w.due_date)<new Date()).length;
@@ -206,7 +208,7 @@ function CasesPage(){
     ${caseSummaryCard('Kritisk/høy',critical,'Bør prioriteres først','openCaseFilter("critical")','bad')}
     ${caseSummaryCard('Arbeidsordre',wos.filter(open).length,'Pågående oppgaver','showWorkOrderForm()','warn')}
     ${caseSummaryCard('Forfalt',overdue,'Oppgaver over frist','openCaseFilter("overdue")','bad')}
-    <div class="card s8 case-priority-board"><div class="dash-title"><div><h3>Hva bør følges opp nå?</h3><p class="muted">Basert på prioritet, status og frister for valgt eiendom.</p></div><button class="action" onclick="openModule('brain')">Property Brain</button></div>${casePriorityList(devs,wos)}</div>
+    <div class="card s8 case-priority-board"><div class="dash-title"><div><h3>Hva bør følges opp nå?</h3><p class="muted">Basert på prioritet, status og frister for valgt eiendom.</p></div>${brainAction}</div>${casePriorityList(devs,wos)}</div>
     <div class="card s4 case-pipeline"><h3>Status</h3><div class="case-pipeline-list">${casePipelineRows(devs,wos,waiting)}</div></div>
     <div class="card s6 case-section"><div class="dash-title"><div><h3>Avvik</h3><p class="muted">Registrerte avvik med kategori, prioritet og status.</p></div><button class="action primary" onclick="showDeviationForm()">Nytt avvik</button></div>${caseCards(devs,'deviation')}</div>
     <div class="card s6 case-section"><div class="dash-title"><div><h3>Arbeidsordre</h3><p class="muted">Oppgaver som kan sendes til vaktmester, styre eller leverandør.</p></div><button class="action primary" onclick="showWorkOrderForm()">Ny arbeidsordre</button></div>${caseCards(wos,'work_order')}</div>
@@ -615,15 +617,19 @@ function DocumentsPage(){
   const byCat=c=>docs.filter(d=>String(d.category||'')===c).length;
   const required=['FDV','HMS','Tegning','Kontrakt','Styrepapir'];
   const missing=required.filter(c=>!docs.some(d=>String(d.category||'')===c));
+  const hasBrain=typeof subscriptionHas==='function'?subscriptionHas('brain'):true;
+  const brainAction=hasBrain?`<button class="action" onclick="openModule('brain')">Property Brain</button>`:'';
+  const analyzeAction=hasBrain?`<button class="action" onclick="openModule('brain')">Analyser</button>`:'';
+  const documentGradeAction=hasBrain?'openModule("brain")':'showDocForm()';
   const expiring=documentsExpiring(docs);
   const stats=cats.map(c=>`<button class="doc-filter ${active===c?'active':''}" onclick="DP.docCat='${esc(c)}';render()"><span>${esc(c)}</span><b>${c==='Alle'?docs.length:byCat(c)}</b></button>`).join('');
   return `<div class="grid documents-page premium-documents">
-    <div class="card s12 module-hero documents-hero"><div><small>FDV og dokumentarkiv</small><h2>Dokumentasjon for ${esc(currentProperty()?.name||'valgt eiendom')}</h2><p>FDV, HMS, tegninger, kontrakter, styrepapirer, bilder og tilbud lagres på valgt eiendom og kan knyttes til bygg eller sak.</p></div><div class="module-actions"><button class="action primary" onclick="showDocForm()">Last opp dokument</button><button class="action" onclick="showScanDocumentForm()">Skann dokument</button><button class="action" onclick="showStandaloneContractForm()">Lag kontrakt</button><button class="action" onclick="showEmailFlow('contract')">Send e-post</button><button class="action" onclick="openModule('brain')">Property Brain</button></div></div>
+    <div class="card s12 module-hero documents-hero"><div><small>FDV og dokumentarkiv</small><h2>Dokumentasjon for ${esc(currentProperty()?.name||'valgt eiendom')}</h2><p>FDV, HMS, tegninger, kontrakter, styrepapirer, bilder og tilbud lagres på valgt eiendom og kan knyttes til bygg eller sak.</p></div><div class="module-actions"><button class="action primary" onclick="showDocForm()">Last opp dokument</button><button class="action" onclick="showScanDocumentForm()">Skann dokument</button><button class="action" onclick="showStandaloneContractForm()">Lag kontrakt</button><button class="action" onclick="showEmailFlow('contract')">Send e-post</button>${brainAction}</div></div>
     ${docSummaryCard('Dokumenter',docs.length,'Lagret på eiendommen','showDocForm()','info')}
-    ${docSummaryCard('Dokumentasjonsgrad',`${required.length-missing.length}/${required.length}`,missing.length?'Mangler nøkkeldokumenter':'Nøkkeldokumenter finnes','openModule("brain")',missing.length?'warn':'ok')}
+    ${docSummaryCard('Dokumentasjonsgrad',`${required.length-missing.length}/${required.length}`,missing.length?'Mangler nøkkeldokumenter':'Nøkkeldokumenter finnes',documentGradeAction,missing.length?'warn':'ok')}
     ${docSummaryCard('Utløper snart',expiring.length,'Kontroller, avtaler og frister','showExpiringDocuments()','warn')}
     ${docSummaryCard('Versjoner',versions.length,'Registrerte dokumentversjoner','DP.docCat="Alle";render()','purple')}
-    <div class="card s8 document-health-card"><div class="dash-title"><div><h3>Arkivstatus</h3><p class="muted">Nøkkeldokumenter styret bør ha kontroll på.</p></div><button class="action" onclick="openModule('brain')">Analyser</button></div>${documentHealthGrid(required,docs)}</div>
+    <div class="card s8 document-health-card"><div class="dash-title"><div><h3>Arkivstatus</h3><p class="muted">Nøkkeldokumenter styret bør ha kontroll på.</p></div>${analyzeAction}</div>${documentHealthGrid(required,docs)}</div>
     <div class="card s4 document-deadline-card"><h3>Kommende kontroller</h3>${documentDeadlineList(expiring)}</div>
     <div class="card s12 document-filters">${stats}</div>
     <div class="card s12"><div class="dash-title"><div><h3>${esc(active==='Alle'?'Alle dokumenter':active)}</h3><p class="muted">Åpne, versjoner, detaljvis eller slett dokumenter fra valgt eiendom.</p></div><button class="action primary" onclick="showDocForm()">Last opp</button></div>${documentCards(filtered)}</div>
