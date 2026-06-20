@@ -93,6 +93,16 @@ async function upsertAppUserProfile({ supabaseUrl, serviceKey, authUserId, name,
   }
 }
 
+async function restrictSinglePropertyAccess({ supabaseUrl, serviceKey, appUserId, propertyId, role }) {
+  const portfolioRoles = new Set(["superadmin", "forvalter"]);
+  if (portfolioRoles.has(role)) return;
+  await supabaseFetch(`/rest/v1/property_access?user_id=eq.${appUserId}&property_id=neq.${propertyId}`, {
+    method: "DELETE",
+    serviceKey,
+    supabaseUrl
+  });
+}
+
 async function sendWelcomeEmail({ name, email, role, password }) {
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.RESEND_FROM || "Driftspartner Nord <post@driftspartnernord.no>";
@@ -223,6 +233,8 @@ exports.handler = async (event) => {
 
     const appUser = appProfiles?.[0];
     if (!appUser?.id) throw new Error("Auth-bruker ble laget, men app_users-profil mangler.");
+
+    await restrictSinglePropertyAccess({ supabaseUrl, serviceKey, appUserId: appUser.id, propertyId, role });
 
     await supabaseFetch("/rest/v1/property_access?on_conflict=property_id,user_id", {
       method: "POST",

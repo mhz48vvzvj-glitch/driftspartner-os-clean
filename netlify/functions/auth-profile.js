@@ -82,12 +82,17 @@ exports.handler = async (event) => {
 
     if (!profile) return json(404, { ok: false, message: "Innlogging OK, men brukeren mangler app-profil." });
 
+    const role = String(profile.role || "").toLowerCase();
     let properties = [];
-    if (String(profile.role || "").toLowerCase() === "superadmin") {
+    if (role === "superadmin") {
       properties = await supabaseFetch("/rest/v1/properties?select=*,customers(name)&order=name.asc&limit=200", { serviceKey, supabaseUrl });
     } else {
       const access = await supabaseFetch(`/rest/v1/property_access?user_id=eq.${profile.id}&select=access_role,properties(*,customers(name))`, { serviceKey, supabaseUrl });
       properties = (access || []).map((row) => row.properties ? { ...row.properties, access_role: row.access_role } : null).filter(Boolean);
+    }
+
+    if (!["superadmin", "forvalter"].includes(role) && properties.length > 1) {
+      properties = properties.slice(0, 1);
     }
 
     return json(200, { ok: true, profile, properties });
