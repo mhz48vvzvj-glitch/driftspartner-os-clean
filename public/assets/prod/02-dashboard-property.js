@@ -189,23 +189,49 @@ function DashboardFinanceChart(){
   const actual=lines.reduce((s,l)=>s+Number(l.actual_amount||l.actual||0),0);
   const projectBudget=projects.reduce((s,p)=>s+Number(p.budget||p.budget_amount||0),0);
   const projectActual=projects.reduce((s,p)=>s+Number(p.actual_cost||p.actual_amount||0),0);
-  const rows=[
+  const rawRows=[
     ...lines.map(l=>({label:l.category||l.label||'Budsjettlinje',budget:Number(l.budget_amount||l.budget||0),actual:Number(l.actual_amount||l.actual||0)})),
     ...projects.map(p=>({label:p.name||p.title||'Prosjekt',budget:Number(p.budget||p.budget_amount||0),actual:Number(p.actual_cost||p.actual_amount||0)}))
-  ].filter(r=>r.budget||r.actual).slice(0,6);
+  ].filter(r=>r.budget||r.actual);
+  const rows=(rawRows.length?rawRows:[{label:'Budsjett',budget,actual}]).slice(0,7);
   const max=Math.max(1,...rows.flatMap(r=>[r.budget,r.actual]),budget,actual,projectBudget,projectActual);
   const variance=actual-budget,projectVariance=projectActual-projectBudget;
   const summary=[
     ['Bank/konto',money(finance.bank_balance||0),'ok'],
     ['Budsjett',money(budget),'info'],
     ['Faktisk',money(actual),variance>0?'bad':'ok'],
+    ['Avvik',money(variance),variance>0?'bad':'ok'],
     ['Prosjekt',`${money(projectActual)} / ${money(projectBudget)}`,projectVariance>0?'warn':'purple']
   ];
-  const bars=rows.length?rows.map(r=>{
-    const bw=Math.max(2,Math.round((r.budget/max)*100)),aw=Math.max(2,Math.round((r.actual/max)*100)),over=r.actual>r.budget;
-    return `<div class="finance-bar-row"><div class="finance-bar-label">${esc(r.label)}</div><div class="finance-bars"><span class="budget" style="width:${bw}%"></span><span class="actual ${over?'over':''}" style="width:${aw}%"></span></div><div class="finance-bar-value">${money(r.actual-r.budget)}</div></div>`;
-  }).join(''):'<div class="empty-state"><strong>Ingen økonomilinjer registrert.</strong><span>Legg inn bank/konto, budsjettlinjer eller prosjektøkonomi for å vise live graf.</span><button class="action primary" onclick="openModule(\'finance\')">Åpne økonomi</button></div>';
-  return `<div class="dash-title"><div><h3>Økonomi live</h3><p class="muted">Budsjett, faktisk kostnad og prosjektøkonomi fra valgt eiendom.</p></div><button class="action" onclick="openModule('finance')">Åpne økonomi</button></div><div class="finance-summary-strip">${summary.map(s=>`<div class="${esc(s[2])}"><small>${esc(s[0])}</small><b>${esc(s[1])}</b></div>`).join('')}</div><div class="premium-finance-legend"><span><i class="budget"></i>Budsjett</span><span><i class="actual"></i>Faktisk</span><span><i class="over"></i>Over budsjett</span></div><div class="premium-finance-bars">${bars}</div>`;
+  const plot={left:48,right:18,top:16,bottom:40,width:520,height:240};
+  const xStep=rows.length>1?(plot.width-plot.left-plot.right)/(rows.length-1):0;
+  const y=v=>plot.top+(1-(Number(v)||0)/max)*(plot.height-plot.top-plot.bottom);
+  const x=i=>plot.left+(rows.length===1?(plot.width-plot.left-plot.right)/2:i*xStep);
+  const budgetPoints=rows.map((r,i)=>`${x(i)},${y(r.budget)}`).join(' ');
+  const actualPoints=rows.map((r,i)=>`${x(i)},${y(r.actual)}`).join(' ');
+  const area=`${actualPoints} ${x(rows.length-1)},${plot.height-plot.bottom} ${x(0)},${plot.height-plot.bottom}`;
+  const grid=[0,.25,.5,.75,1].map(t=>{
+    const gy=plot.top+t*(plot.height-plot.top-plot.bottom);
+    const val=max*(1-t);
+    return `<g><line x1="${plot.left}" y1="${gy}" x2="${plot.width-plot.right}" y2="${gy}" class="grid-line"></line><text x="8" y="${gy+4}" class="axis-label">${esc(compactMoney(val))}</text></g>`;
+  }).join('');
+  const bars=rows.map((r,i)=>{
+    const cx=x(i),barBudget=Math.max(2,plot.height-plot.bottom-y(r.budget)),barActual=Math.max(2,plot.height-plot.bottom-y(r.actual)),over=r.actual>r.budget;
+    return `<g class="finance-chart-col"><rect x="${cx-13}" y="${plot.height-plot.bottom-barBudget}" width="10" height="${barBudget}" rx="5" class="budget-bar"></rect><rect x="${cx+3}" y="${plot.height-plot.bottom-barActual}" width="10" height="${barActual}" rx="5" class="actual-bar ${over?'over':''}"></rect><text x="${cx}" y="${plot.height-16}" text-anchor="middle" class="x-label">${esc(shortLabel(r.label))}</text></g>`;
+  }).join('');
+  const dots=rows.map((r,i)=>`<circle cx="${x(i)}" cy="${y(r.actual)}" r="4" class="${r.actual>r.budget?'dot over':'dot'}"><title>${esc(r.label)}: faktisk ${money(r.actual)}, budsjett ${money(r.budget)}</title></circle>`).join('');
+  const emptyHint=rawRows.length?'':`<div class="empty-state finance-empty-hint"><strong>Ingen budsjettlinjer ennå.</strong><span>Grafen viser nullgrunnlag til økonomi er registrert.</span><button class="action primary" onclick="openModule('finance')">Legg inn økonomi</button></div>`;
+  return `<div class="dash-title"><div><h3>Økonomi live</h3><p class="muted">Budsjett, faktisk kostnad og prosjektøkonomi fra valgt eiendom.</p></div><button class="action" onclick="openModule('finance')">Åpne økonomi</button></div><div class="finance-summary-strip premium">${summary.map(s=>`<div class="${esc(s[2])}"><small>${esc(s[0])}</small><b>${esc(s[1])}</b></div>`).join('')}</div><div class="finance-chart-shell"><div class="premium-finance-legend"><span><i class="budget"></i>Budsjett</span><span><i class="actual"></i>Faktisk</span><span><i class="over"></i>Over budsjett</span></div><svg class="premium-finance-svg" viewBox="0 0 ${plot.width} ${plot.height}" role="img" aria-label="Økonomigraf for budsjett og faktisk kostnad">${grid}<polygon points="${area}" class="actual-area"></polygon>${bars}<polyline points="${budgetPoints}" class="budget-line"></polyline><polyline points="${actualPoints}" class="actual-line"></polyline>${dots}</svg></div>${emptyHint}`;
+}
+function compactMoney(v){
+  const n=Number(v)||0;
+  if(Math.abs(n)>=1000000)return (n/1000000).toLocaleString('nb-NO',{maximumFractionDigits:1})+'M';
+  if(Math.abs(n)>=1000)return Math.round(n/1000).toLocaleString('nb-NO')+'k';
+  return Math.round(n).toLocaleString('nb-NO');
+}
+function shortLabel(v){
+  const s=String(v||'').trim();
+  return s.length>12?s.slice(0,11)+'…':s;
 }
 
 function maintenanceRows(){
