@@ -451,7 +451,7 @@ function SuperadminOpsPage(){
     {ok:aiCalls<100,warn:true,text:'AI-kall siste 30 dager må overvåkes'},
     {ok:emails<200,warn:true,text:'E-postteller per kunde må følges'},
     {ok:!highUse,warn:true,text:'Varsel ved høy bruk eller manglende abonnement'}
-  ])}</div></div><div class="ops-two-col"><div>${opsChecklist('Teknisk robusthet',[
+  ])}<div class="module-actions ops-actions"><button class="action primary" onclick="runCostControlCheck()">Kjør kostnadssjekk</button><button class="action" onclick="logCostControlCheck()">Logg kostnadskontroll</button></div><div id="costOpsOut" class="output">Klar for kostnadssjekk.</div></div></div><div class="ops-two-col"><div>${opsChecklist('Teknisk robusthet',[
     {ok:document.querySelectorAll('script[src*="assets/prod/"]').length>0,text:'Produksjonsscript er lastet'},
     {ok:!document.querySelectorAll('script[src*="assets/modules/"]').length,warn:true,text:'Gamle modul-filer skal ikke lastes i appen'},
     {ok:true,text:'Kundefeil vises som enkle meldinger'},
@@ -513,6 +513,37 @@ async function saveCustomerExport(){
     await finishAction('Kundeeksporten er logget.','admin');
   }catch(e){setOutputError(out,e,'Kundeeksporten kunne ikke lagres.')}
 }
+function runCostControlCheck(){
+  const out=document.getElementById('costOpsOut');
+  const activity=DP.cache.activity||[],docs=DP.cache.documents||[];
+  const last30=activity.filter(a=>opsWithinDays(a,30));
+  const emails=last30.filter(a=>/e-?post|mail/i.test(`${a.action||''} ${a.entity_type||''}`)).length;
+  const aiCalls=last30.filter(a=>/ai|brain|director/i.test(`${a.action||''} ${a.entity_type||''}`)).length;
+  const warnings=[];
+  if(aiCalls>100)warnings.push('Høy AI-bruk');
+  if(emails>200)warnings.push('Høy e-postbruk');
+  if(docs.length>75)warnings.push('Mye dokumentlagring');
+  if(!currentProperty()?.subscription_plan)warnings.push('Kunde mangler abonnement');
+  const lines=[
+    `AI-kall siste 30 dager: ${aiCalls}`,
+    `E-post siste 30 dager: ${emails}`,
+    `Dokumenter på valgt eiendom: ${docs.length}`,
+    `Abonnement: ${currentProperty()?.subscription_plan||'Ikke valgt'}`,
+    warnings.length?`Følg opp: ${warnings.join(', ')}`:'OK: ingen tydelige kostnadsvarsler'
+  ];
+  if(out)out.textContent=lines.join('\n');
+  return {aiCalls,emails,documents:docs.length,warnings};
+}
+async function logCostControlCheck(){
+  const out=document.getElementById('costOpsOut');
+  try{
+    requireLive('logge kostnadskontroll');
+    const result=runCostControlCheck();
+    const r=await db().from('activity_log').insert({property_id:currentProperty().id,action:result.warnings.length?`Kostnadskontroll: ${result.warnings.length} varsel`:'Kostnadskontroll: OK',entity_type:'cost_control',metadata:{...result,checked_at:new Date().toISOString()}});
+    if(r.error)throw r.error;
+    await finishAction('Kostnadskontrollen er logget.','admin');
+  }catch(e){setOutputError(out,e,'Kostnadskontroll kunne ikke logges.')}
+}
 function runTechnicalRobustnessCheck(){
   const out=document.getElementById('technicalOpsOut');
   const prodScripts=[...document.querySelectorAll('script[src*="assets/prod/"]')].map(s=>s.getAttribute('src')||'');
@@ -545,6 +576,20 @@ async function logTechnicalTest(){
     await finishAction('Teknisk sjekk er logget.','admin');
   }catch(e){setOutputError(out,e,'Teknisk sjekk kunne ikke logges.')}
 }
+Object.assign(window,{
+  showSupportCaseForm,
+  saveSupportCase,
+  showRestoreTestForm,
+  saveRestoreTest,
+  showCustomerExportForm,
+  saveCustomerExport,
+  runCostControlCheck,
+  logCostControlCheck,
+  runTechnicalRobustnessCheck,
+  showLegacyModuleInfo,
+  logTechnicalTest,
+  markEmailTestedOk
+});
 function activityCards(){const rows=(DP.cache.activity||[]).slice(0,12);if(!rows.length)return '<div class="empty-state"><strong>Ingen aktivitet registrert.</strong><span>Når brukere oppretter, endrer, sender eller laster opp noe, vises historikken her.</span></div>';return `<div class="activity-feed control-activity">${rows.map(a=>`<section><span>${esc(String(a.entity_type||'Logg').slice(0,12))}</span><div><strong>${esc(a.action||'Hendelse')}</strong><small>${esc([currentProperty()?.name,a.created_at?new Date(a.created_at).toLocaleString('nb-NO'):''].filter(Boolean).join(' · '))}</small></div></section>`).join('')}</div>`}
 function roleAccessPanel(){
   const role=appRole(),menus=visibleMenus(),props=DP.properties||[];
