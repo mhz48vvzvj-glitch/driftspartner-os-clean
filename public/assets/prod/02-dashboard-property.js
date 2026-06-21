@@ -230,9 +230,9 @@ function DashboardFinanceChart(){
   const insightText=rawRows.length?`Basert på ${rawRows.length} økonomilinje${rawRows.length===1?'':'r'} og prosjektposter for valgt eiendom.`:'Legg inn budsjettlinjer og faktiske kostnader for å bygge live graf.';
   const emptyHint=rawRows.length?'':`<div class="empty-state finance-empty-hint"><strong>Ingen budsjettlinjer ennå.</strong><span>Grafen viser nullgrunnlag til økonomi er registrert.</span><button class="action primary" onclick="openModule('finance')">Legg inn økonomi</button></div>`;
   return `<div class="finance-report-card">
-    <div class="finance-report-head"><div><small>Økonomi live</small><h3>Bank/konto</h3></div><button class="action" onclick="openModule('finance')">Åpne økonomi</button></div>
+    <div class="finance-report-head"><div><small>Økonomi live</small><h3>Bank/konto</h3><strong>${esc(money(finance.bank_balance||0))}</strong></div><button class="action" onclick="openModule('finance')">Åpne økonomi</button></div>
     <div class="finance-report-metrics">
-      ${summary.map((s,i)=>`<section class="${esc(s[2])}"><span>${['🏦','📋','💰','↗','💼'][i]}</span><div><small>${esc(s[0])}</small><b>${esc(s[1])}</b>${s[0]==='Avvik'?`<em>${variance>0?'over budsjett':'innenfor budsjett'}</em>`:''}</div></section>`).join('')}
+      ${summary.slice(1).map((s,i)=>`<section class="${esc(s[2])}"><span>${['📋','💰','↗','💼'][i]}</span><div><small>${esc(s[0])}</small><b>${esc(s[1])}</b>${s[0]==='Avvik'?`<em>${variance>0?'over budsjett':'innenfor budsjett'}</em>`:''}</div></section>`).join('')}
     </div>
     <div class="finance-chart-shell finance-bar-shell">
       <div class="finance-chart-title"><h3>Budsjett vs faktisk</h3><div class="premium-finance-legend"><span><i class="budget"></i>Budsjett</span><span><i class="actual"></i>Faktisk</span><span><i class="over"></i>Budsjettmål</span></div></div>

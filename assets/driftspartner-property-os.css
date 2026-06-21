@@ -1315,9 +1315,17 @@ body:not(.public-mode) .context{
   font-size:28px;
   line-height:1.1;
 }
+.finance-report-head strong{
+  display:block;
+  color:#dce8ff;
+  font-size:34px;
+  line-height:1.08;
+  margin-top:8px;
+  letter-spacing:0;
+}
 .finance-report-metrics{
   display:grid;
-  grid-template-columns:repeat(5,minmax(0,1fr));
+  grid-template-columns:repeat(4,minmax(0,1fr));
   gap:0;
   border:1px solid rgba(126,148,184,.16);
   border-radius:18px;
@@ -1326,17 +1334,17 @@ body:not(.public-mode) .context{
 }
 .finance-report-metrics section{
   display:grid;
-  grid-template-columns:46px minmax(0,1fr);
-  gap:12px;
+  grid-template-columns:52px minmax(0,1fr);
+  gap:14px;
   align-items:center;
-  padding:18px 16px;
+  padding:22px 20px;
   min-width:0;
   border-right:1px solid rgba(126,148,184,.14);
 }
 .finance-report-metrics section:last-child{border-right:0}
 .finance-report-metrics section>span{
-  width:42px;
-  height:42px;
+  width:48px;
+  height:48px;
   border-radius:50%;
   display:grid;
   place-items:center;
@@ -1353,7 +1361,7 @@ body:not(.public-mode) .context{
 .finance-report-metrics b{
   display:block;
   color:#fff;
-  font-size:22px;
+  font-size:26px;
   line-height:1.12;
   margin-top:5px;
   overflow-wrap:anywhere;
