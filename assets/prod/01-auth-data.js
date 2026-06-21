@@ -23,7 +23,7 @@ async function login(){
     DP.session=auth.data.session;
     let profileData=null,propertyData=null;
     if(location.protocol!=='file:'){
-      const serverProfile=await fetch('/.netlify/functions/auth-profile',{method:'POST',headers:{authorization:`Bearer ${auth.data.session.access_token}`,'content-type':'application/json'},body:'{}'}).then(r=>readJsonResponse(r,'Profil-tjenesten svarte ikke riktig. Publiser siste pakke og prøv igjen.')).catch(e=>({ok:false,message:e.message}));
+      const serverProfile=await fetch('/.netlify/functions/auth-profile',{method:'POST',headers:{authorization:`Bearer ${auth.data.session.access_token}`,'content-type':'application/json'},body:'{}'}).then(r=>readJsonResponse(r,'Profil-tjenesten svarte ikke riktig. Prøv igjen, eller kontakt Driftspartner Nord hvis feilen fortsetter.')).catch(e=>({ok:false,message:e.message}));
       if(serverProfile.ok){profileData=serverProfile.profile;propertyData=serverProfile.properties||[]}
       else if(out)out.textContent='Henter brukerprofil...';
     }

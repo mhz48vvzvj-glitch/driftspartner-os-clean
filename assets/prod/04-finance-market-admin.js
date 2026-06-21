@@ -89,7 +89,7 @@ function FinancePage(){
   const reserveShare=Number(f.bank_balance||0)>0?Math.round(Number(f.reserved_funds||0)/Number(f.bank_balance||0)*100):0;
   return `<div class="grid finance-page premium-finance-module">
     <div class="card s12 module-hero finance-hero">
-      <div><small>Økonomi</small><h2>Styreklart økonomibilde</h2><p>Bank, reservefond, budsjett, faktiske kostnader og prosjektøkonomi for valgt eiendom. Tallene hentes live fra Supabase.</p></div>
+      <div><small>Økonomi</small><h2>Styreklart økonomibilde</h2><p>Bank, reservefond, budsjett, faktiske kostnader og prosjektøkonomi for valgt eiendom. Tallene hentes live fra valgt eiendom.</p></div>
       <div class="module-actions"><button class="action primary" onclick="showFinanceForm()">Konto og fond</button><button class="action" onclick="showBudgetForm()">Ny budsjettlinje</button><button class="action" onclick="showActualCostForm()">Registrer kostnad</button><button class="action" onclick="showProjectForm()">Nytt prosjekt</button><button class="action" onclick="saveBoardFinanceReport()">Lag styrerapport</button><button class="action" onclick="showEmailFlow('board')">Send e-post</button></div>
     </div>
     ${financeMetric('Bank/konto',money(f.bank_balance),'Registrert banksaldo','ok')}
@@ -334,7 +334,7 @@ function launchChecks(){
   const hasRfq=typeof subscriptionHas==='function'?subscriptionHas('rfq'):true;
   const checks=[
     {label:'Innlogging',ok:!!DP.session&&!!DP.user,group:'Sikkerhet',action:'Test live innlogging med ekte bruker.'},
-    {label:'Live eiendom',ok:liveProperty,group:'Kunde',action:'Velg eller opprett en Supabase-eiendom.'},
+    {label:'Live eiendom',ok:liveProperty,group:'Kunde',action:'Velg eller opprett en live-eiendom.'},
     {label:'Rolle/tilgang',ok:!!DP.user?.role&&DP.properties.length>0,group:'Sikkerhet',action:'Test superadmin, styreleder, beboer, vaktmester og leverandør.'},
     {label:'Avvik',ok:devs.length>0,group:'Drift',action:'Opprett minst ett live avvik.'},
     {label:'Dokumentarkiv',ok:docs.length>0,group:'Dokument',action:'Last opp eller generer et dokument på eiendommen.'},
@@ -380,7 +380,7 @@ async function runLaunchControl(){
 function AdminPage(){
   if(typeof canManageCustomers==='function'&&!canManageCustomers())return `<div class="grid admin-page"><div class="card s12"><div class="empty-state"><strong>Ingen tilgang til kundeoppsett.</strong><span>Ny kunde og onboarding kan bare utføres av superadmin.</span></div></div></div>`;
   const s=launchSummary();
-  return `<div class="grid admin-page premium-admin-page"><div class="card s12 module-hero control-hero"><div><small>Kontrollsenter</small><h2>Produksjonskontroll og onboarding</h2><p>Her ser du om valgt eiendom er klar for pilot, om roller/tilgang stemmer, og hva som bør fullføres før kunde tas i bruk.</p></div><div class="module-actions"><button class="action primary" onclick="runLaunchControl()">Kjør kontroll</button><button class="action" onclick="showNewCustomerWizard()">Ny kunde</button><button class="action" onclick="hydrateAll().then(render)">Oppdater</button></div></div><div class="card s12">${LaunchControlPage()}</div><div class="card s6 control-panel"><div class="dash-title"><div><h3>Onboarding</h3><p class="muted">Kunde ? eiendom ? styre/beboere ? leverandører ? FDV ? økonomi ? brukere.</p></div><button class="action primary" onclick="showNewCustomerWizard()">Start</button></div><div class="control-mini-grid"><div><small>Eiendommer</small><b>${DP.properties.length}</b></div><div><small>Klar status</small><b>${s.total-s.bad-s.warn}/${s.total}</b></div><div><small>Rolle</small><b>${esc(appRole()||'-')}</b></div></div></div><div class="card s6 control-panel"><div class="dash-title"><div><h3>Rolle og tilgang</h3><p class="muted">Bekreft at brukeren bare ser riktige menyer og eiendommer.</p></div></div>${roleAccessPanel()}</div><div class="card s12 control-panel"><div class="dash-title"><div><h3>Siste aktivitet</h3><p class="muted">Sporing av endringer og hendelser på valgt eiendom.</p></div><button class="action" onclick="hydrateAll().then(render)">Oppdater</button></div>${activityCards()}</div></div>`;
+  return `<div class="grid admin-page premium-admin-page"><div class="card s12 module-hero control-hero"><div><small>Kontrollsenter</small><h2>Produksjonskontroll og onboarding</h2><p>Her ser du om valgt eiendom er klar for pilot, om roller/tilgang stemmer, og hva som bør fullføres før kunde tas i bruk.</p></div><div class="module-actions"><button class="action primary" onclick="runLaunchControl()">Kjør kontroll</button><button class="action" onclick="showNewCustomerWizard()">Ny kunde</button><button class="action" onclick="hydrateAll().then(render)">Oppdater</button></div></div><div class="card s12">${LaunchControlPage()}</div><div class="card s6 control-panel"><div class="dash-title"><div><h3>Onboarding</h3><p class="muted">Kunde  eiendom  styre/beboere  leverandører  FDV  økonomi  brukere.</p></div><button class="action primary" onclick="showNewCustomerWizard()">Start</button></div><div class="control-mini-grid"><div><small>Eiendommer</small><b>${DP.properties.length}</b></div><div><small>Klar status</small><b>${s.total-s.bad-s.warn}/${s.total}</b></div><div><small>Rolle</small><b>${esc(appRole()||'-')}</b></div></div></div><div class="card s6 control-panel"><div class="dash-title"><div><h3>Rolle og tilgang</h3><p class="muted">Bekreft at brukeren bare ser riktige menyer og eiendommer.</p></div></div>${roleAccessPanel()}</div><div class="card s12 control-panel"><div class="dash-title"><div><h3>Siste aktivitet</h3><p class="muted">Sporing av endringer og hendelser på valgt eiendom.</p></div><button class="action" onclick="hydrateAll().then(render)">Oppdater</button></div>${activityCards()}</div></div>`;
 }
 function activityCards(){const rows=(DP.cache.activity||[]).slice(0,12);if(!rows.length)return '<div class="empty-state"><strong>Ingen aktivitet registrert.</strong><span>Når brukere oppretter, endrer, sender eller laster opp noe, vises historikken her.</span></div>';return `<div class="activity-feed control-activity">${rows.map(a=>`<section><span>${esc(String(a.entity_type||'Logg').slice(0,12))}</span><div><strong>${esc(a.action||'Hendelse')}</strong><small>${esc([currentProperty()?.name,a.created_at?new Date(a.created_at).toLocaleString('nb-NO'):''].filter(Boolean).join(' · '))}</small></div></section>`).join('')}</div>`}
 function roleAccessPanel(){
@@ -399,7 +399,7 @@ function runCleanCheck(){const out=document.getElementById('adminOut');const s=l
 function integrationItems(){
   const canCustomerSetup=typeof canManageCustomers==='function'&&canManageCustomers();
   return [
-    {name:'Supabase',status:'Aktiv',type:'ok',area:'Database, innlogging og dokumentarkiv',detail:'Live kundedata, tilgang per eiendom og Storage for dokumenter.',button:'Test live data',action:'hydrateAll().then(render)'},
+    {name:'Supabase',status:'Aktiv',type:'ok',area:'Database, innlogging og dokumentarkiv',detail:'Live kundedata, tilgang per eiendom og dokumentarkiv.',button:'Test live data',action:'hydrateAll().then(render)'},
     {name:'Resend',status:'Aktiv',type:'ok',area:'E-post',detail:'Brukes til demoforespørsler, bestilling, varsler og systemmeldinger.',button:'Åpne e-posttest',action:"location.href='mail-test.html'"},
     {name:'OpenAI',status:'Aktiv når kvote er tilgjengelig',type:'warn',area:'AI Director og Property Brain',detail:'Gir anbefalinger fra live data. Krever aktiv API-kvote for å svare.',button:'Test AI',action:'testAiIntegration()'},
     {name:'Brønnøysundregistrene',status:'Klar for onboarding',type:'ok',area:'Kunde og leverandører',detail:'Org.nr-oppslag kan fylle inn firmanavn og adresse ved opprettelse.',button:canCustomerSetup?'Ny kunde':'Klar',action:canCustomerSetup?'showNewCustomerWizard()':"showIntegrationInfo('Brønnøysundregistrene')"},
@@ -433,7 +433,7 @@ function integrationRoadmap(){
 async function testAiIntegration(){
   try{
     const res=await fetch('/.netlify/functions/ai-ping',{method:'GET'});
-    const data=await readJsonResponse(res,'AI-testen svarte ikke riktig. Publiser siste pakke og sjekk miljøvariablene.');
+    const data=await readJsonResponse(res,'AI-testen svarte ikke riktig. Prøv igjen, eller kontakt Driftspartner Nord hvis feilen fortsetter.');
     const ok=data?.has_openai_key&&data?.has_supabase_url&&data?.has_service_role;
     showDrawer('AI-integrasjon',`<div class="info-grid"><section><small>OpenAI</small><strong>${ok?'Klar':'Mangler oppsett'}</strong><span>${data?.has_openai_key?'API-nøkkel er lagt inn':'OPENAI_API_KEY mangler'}</span></section><section><small>Supabase</small><strong>${data?.has_supabase_url&&data?.has_service_role?'Klar':'Mangler oppsett'}</strong><span>${data?.has_supabase_url?'URL er lagt inn':'SUPABASE_URL mangler'} · ${data?.has_service_role?'Service key er lagt inn':'SUPABASE_SERVICE_ROLE_KEY mangler'}</span></section></div><div class="output">${esc(ok?'AI-funksjonen har riktig miljøoppsett. Hvis AI likevel feiler, skyldes det ofte kvote eller betalingsoppsett hos OpenAI.':'Legg inn manglende miljøvariabler i Netlify og publiser på nytt.')}</div>`);
   }catch(e){showDrawer('AI-integrasjon',`<div class="output error">${esc(customerError(e,'AI-testen kunne ikke kjøres akkurat nå.'))}</div>`)}
@@ -455,7 +455,7 @@ async function connectMicrosoft365(){
     if(!DP.session?.access_token)throw new Error('Logg inn før du kobler Microsoft 365.');
     const p=currentProperty();
     const res=await fetch('/.netlify/functions/microsoft-auth-start',{method:'POST',headers:{'content-type':'application/json',authorization:`Bearer ${DP.session.access_token}`},body:JSON.stringify({property_id:p?.id||''})});
-    const data=await readJsonResponse(res,'Microsoft-koblingen svarte ikke riktig. Publiser siste pakke og sjekk miljøvariablene.');
+    const data=await readJsonResponse(res,'Microsoft-koblingen svarte ikke riktig. Prøv igjen, eller kontakt Driftspartner Nord hvis feilen fortsetter.');
     if(!data.ok)throw new Error(data.message||'Kunne ikke starte Microsoft-kobling.');
     window.location.href=data.url;
   }catch(e){showDrawer('Microsoft 365',`<div class="output">${esc(customerError(e,'Microsoft 365 kunne ikke kobles akkurat nå.'))}</div><div class="integration-note"><strong>Mangler oppsett?</strong><span>Legg inn MICROSOFT_TENANT_ID, MICROSOFT_CLIENT_ID, MICROSOFT_CLIENT_SECRET og kjør supabase-microsoft-outlook-v1.sql.</span></div>`)}
@@ -540,7 +540,7 @@ async function sendEmailLog(kind='general',caseId=''){
     if(out)out.textContent='Sender e-post...';
     if(location.protocol==='file:'||location.hostname==='localhost'||location.hostname==='127.0.0.1')throw new Error('Direkte e-post må testes fra publisert Netlify-side.');
     const res=await fetch('/.netlify/functions/send-email',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});
-    const data=await readJsonResponse(res,'E-postfunksjonen svarte ikke riktig. Publiser siste pakke og prøv igjen.');
+    const data=await readJsonResponse(res,'E-postfunksjonen svarte ikke riktig. Prøv igjen, eller kontakt Driftspartner Nord hvis feilen fortsetter.');
     if(!res.ok||!data.ok)throw new Error(data.message||'E-post ble ikke sendt.');
     await insertActivity(`E-post sendt: ${mailKindLabel(kind)}`,'email',caseId||currentProperty()?.id||'-');
     await finishAction(`E-post sendt til ${payload.to.length} mottaker${payload.to.length===1?'':'e'}.`,DP.module||'dashboard');
@@ -554,7 +554,7 @@ async function sendEmailMicrosoft(kind='general',caseId=''){
     if(out)out.textContent='Sender via tilkoblet Outlook-konto...';
     if(location.protocol==='file:'||location.hostname==='localhost'||location.hostname==='127.0.0.1')throw new Error('Outlook-sending må testes fra publisert Netlify-side.');
     const res=await fetch('/.netlify/functions/microsoft-send-mail',{method:'POST',headers:{'content-type':'application/json',authorization:`Bearer ${DP.session.access_token}`},body:JSON.stringify(payload)});
-    const data=await readJsonResponse(res,'Outlook-funksjonen svarte ikke riktig. Publiser siste pakke og sjekk Microsoft-oppsettet.');
+    const data=await readJsonResponse(res,'Outlook-funksjonen svarte ikke riktig. Pr?v igjen, eller kontakt Driftspartner Nord hvis feilen fortsetter.');
     if(!res.ok||!data.ok)throw new Error(data.message||'E-post ble ikke sendt via Outlook.');
     await insertActivity(`E-post sendt fra Outlook: ${mailKindLabel(kind)}`,'email',caseId||currentProperty()?.id||'-');
     await finishAction(`E-post sendt fra ${data.from||'tilkoblet Outlook-konto'} til ${payload.to.length} mottaker${payload.to.length===1?'':'e'}.`,DP.module||'dashboard');
@@ -754,13 +754,12 @@ async function safeUpsertFinance(row){
 function onboardingAdminError(error,step='Onboarding'){
   const msg=String(error?.message||error||'').trim();
   if(!msg)return `${step} kunne ikke fullføres.`;
-  if(/row level|rls|policy|permission|not authorized|violates row-level/i.test(msg))return `${step}: brukeren mangler tilgang til å lagre dette. Sjekk property_access/RLS for innlogget bruker.`;
-  if(/relation .* does not exist|does not exist/i.test(msg))return `${step}: en nødvendig tabell mangler i Supabase. Kjør nyeste SQL-oppsett for modulen.`;
-  if(/column .* does not exist|Could not find .* column|schema cache|column/i.test(msg))return `${step}: Supabase-tabellen mangler et felt appen prøver å lagre. Kjør nyeste SQL-oppsett for onboarding/økonomi/personer.`;
+  if(/row level|rls|policy|permission|not authorized|violates row-level/i.test(msg))return `${step}: brukeren har ikke tilgang til å lagre dette. Logg inn som superadmin, eller kontakt Driftspartner Nord.`;
+  if(/relation .* does not exist|does not exist|column .* does not exist|Could not find .* column|schema cache|column/i.test(msg))return `${step}: systemoppsettet mangler noe for denne handlingen. Kontakt Driftspartner Nord.`;
   if(/duplicate|already registered|already exists|User already/i.test(msg))return `${step}: brukeren eller raden finnes allerede. Sjekk e-post/eksisterende bruker.`;
-  if(/foreign key|violates foreign/i.test(msg))return `${step}: koblingen til kunde/eiendom mangler. Prøv igjen etter at kunde og eiendom er opprettet.`;
+  if(/foreign key|violates foreign/i.test(msg))return `${step}: koblingen til kunde eller eiendom mangler. Prøv igjen etter at kunde og eiendom er opprettet.`;
   if(/invalid input value|check constraint|violates check/i.test(msg))return `${step}: en verdi passer ikke med databaseoppsettet. Sjekk type, rolle eller status.`;
-  return `${step}: ${msg}`;
+  return `${step}: ${customerError(msg)}`;
 }
 async function createOnboardingUser(row,propertyId){
   const token=DP.session?.access_token;if(!token)throw new Error('Mangler innlogging.');
@@ -768,7 +767,7 @@ async function createOnboardingUser(row,propertyId){
   if(!name||!email||!roleRaw)return null;
   const role=normalizeRole(roleRaw),access={beboer:'resident',styreleder:'owner',styremedlem:'member',vaktmester:'caretaker',leverandor:'vendor'}[role]||'member';
   const res=await fetch('/.netlify/functions/create-user',{method:'POST',headers:{'content-type':'application/json',authorization:`Bearer ${token}`},body:JSON.stringify({name,email,phone,role,property_id:propertyId,access_role:access,password})});
-  const data=await readJsonResponse(res,'Bruker-tjenesten svarte ikke riktig. Publiser siste pakke og prøv igjen.');
+  const data=await readJsonResponse(res,'Bruker-tjenesten svarte ikke riktig. Prøv igjen, eller kontakt Driftspartner Nord hvis feilen fortsetter.');
   if(!data.ok)throw new Error(data.message||'Bruker kunne ikke opprettes.');
   return data.user;
 }

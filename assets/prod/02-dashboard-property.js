@@ -142,7 +142,7 @@ async function savePropertySubscription(planId){
     Object.assign(p,{subscription_plan:plan.id,subscription_status:'active',subscription_first_year_amount:plan.firstYear,subscription_year_two_amount:plan.yearTwo,subscription_billing_period:'yearly'});
     await insertActivity('Abonnement oppdatert','subscription',p.id);
     await finishAction(`Abonnement er satt til ${plan.name}.`,'dashboard');
-  }catch(e){setOutputError(out,e,'Abonnement ble ikke lagret. Sjekk at Supabase har abonnementfeltene fra onboarding-SQL.')}
+  }catch(e){setOutputError(out,e,'Abonnement ble ikke lagret. Pr?v igjen, eller kontakt Driftspartner Nord.')}
 }
 async function requestPropertySubscription(plan){
   const out=document.getElementById('subscriptionOut');
@@ -164,7 +164,7 @@ async function requestPropertySubscription(plan){
     `Lenke: ${location.href}`
   ].join('\n');
   const res=await fetch('/.netlify/functions/send-email',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({to:'post@driftspartnernord.no',subject:`Abonnementendring ønskes - ${p.name||'eiendom'} - ${plan.name}`,message,kind:'subscription-request',property:p.name||'',property_id:p.id||''})});
-  const data=await readJsonResponse(res,'E-postfunksjonen svarte ikke riktig. Publiser siste pakke og prøv igjen.');
+  const data=await readJsonResponse(res,'E-postfunksjonen svarte ikke riktig. Prøv igjen, eller kontakt Driftspartner Nord hvis feilen fortsetter.');
   if(!data?.ok)throw new Error(data?.message||'Forespørselen kunne ikke sendes.');
   await insertActivity(`Abonnementendring ønsket: ${plan.name}`,'subscription_request',p.id);
   showDrawer('Forespørsel sendt',`<div class="empty-state"><strong>Forespørsel sendt til Driftspartner Nord.</strong><span>Pakken er ikke endret ennå. Superadmin må godkjenne og aktivere endringen.</span></div><button class="action primary" onclick="hideDrawer();render()">Tilbake til dashboard</button>`);
@@ -613,7 +613,7 @@ function showBuildingForm(id=''){
 }
 async function saveBuilding(id=''){
   try{requireLive('lagre bygg');const row={property_id:currentProperty().id,name:buildingName.value.trim(),building_type:buildingType.value.trim()||null,address:buildingAddress.value.trim()||null,built_year:+buildingYear.value||null,gross_area:+buildingArea.value||0,technical_summary:buildingTech.value.trim()||null};if(!row.name)throw new Error('Fyll inn navn på bygg.');const q=id?db().from('buildings').update(row).eq('id',id).select().single():db().from('buildings').insert(row).select().single();const r=await q;if(r.error)throw r.error;await insertActivity(id?'Bygg oppdatert':'Bygg opprettet','building',r.data.id);await finishAction(id?'Bygget er lagret.':'Bygget er opprettet.','property')}catch(e){showDrawer('Bygg ble ikke lagret',`<div class=\"output\">${esc(customerError(e))}</div>`)}}
-async function deleteBuilding(id){if(!confirm('Slette bygg? Dokumenter og saker beholder eiendommen, men mister byggkoblingen.'))return;try{requireLive('slette bygg');const r=await db().from('buildings').delete().eq('id',id);if(r.error)throw r.error;await insertActivity('Bygg slettet','building',id);await finishAction('Bygget er slettet.','property')}catch(e){showDrawer('Bygg ble ikke slettet',`<div class=\"output\">${esc(customerError(e))}</div>`)}}
+async function deleteBuilding(id){if(!confirm('Slette bygg Dokumenter og saker beholder eiendommen, men mister byggkoblingen.'))return;try{requireLive('slette bygg');const r=await db().from('buildings').delete().eq('id',id);if(r.error)throw r.error;await insertActivity('Bygg slettet','building',id);await finishAction('Bygget er slettet.','property')}catch(e){showDrawer('Bygg ble ikke slettet',`<div class=\"output\">${esc(customerError(e))}</div>`)}}
 
 
 
