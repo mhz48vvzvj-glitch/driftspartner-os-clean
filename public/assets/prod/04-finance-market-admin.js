@@ -432,7 +432,7 @@ function SuperadminOpsPage(){
   const noSub=customers.filter(c=>!c.plan).length;
   const highUse=(docs.length>75||emails>100||aiCalls>100||activity.length>250);
   const storageHint=docs.length?`${docs.length} filer på valgt eiendom`:'Ingen filer på valgt eiendom';
-  return `<div class="ops-dashboard"><div class="ops-head"><div><small>Superadmin driftsstatus</small><h3>Helse, bruk og kostnadskontroll</h3><p>Intern oversikt for Driftspartner Nord før dere passerer 50+ kunder. Kundene ser ikke denne siden.</p></div><div class="module-actions"><button class="action primary" onclick="hydrateAll().then(render)">Oppdater live</button><button class="action" data-ops-action="showSupportCaseForm">Ny supportsak</button></div></div><div class="ops-metric-grid">
+  return `<div class="ops-dashboard"><div class="ops-head"><div><small>Superadmin driftsstatus</small><h3>Helse, bruk og kostnadskontroll</h3><p>Intern oversikt for Driftspartner Nord før dere passerer 50+ kunder. Kundene ser ikke denne siden.</p></div><div class="module-actions"><button type="button" class="action primary" onclick="hydrateAll().then(render)">Oppdater live</button><button type="button" class="action" onclick="return dpOpsAction('showSupportCaseForm')">Ny supportsak</button></div></div><div class="ops-metric-grid">
     ${opsMetric('Kunder',customers.length,'Basert på eiendommer du har tilgang til','ok')}
     ${opsMetric('Eiendommer',DP.properties.length,'Alle lastede eiendommer','info')}
     ${opsMetric('Brukere/kontakter',contacts.length,'Valgt eiendom nå','info')}
@@ -446,17 +446,17 @@ function SuperadminOpsPage(){
     {ok:docs.length>0,warn:true,text:'Kontroller dokumentarkiv per kunde'},
     {ok:false,warn:true,text:'Månedlig test av gjenoppretting må inn i rutinen'},
     {ok:false,warn:true,text:'Eksport per kunde ved avslutning må standardiseres'}
-  ])}<div class="module-actions ops-actions"><button class="action primary" data-ops-action="showRestoreTestForm">Logg gjenopprettingstest</button><button class="action" data-ops-action="showCustomerExportForm">Start kundeeksport</button></div>${backupExportActivityList()}</div><div>${opsChecklist('Kostnadskontroll',[
+  ])}<div class="module-actions ops-actions"><button type="button" class="action primary" onclick="return dpOpsAction('showRestoreTestForm')">Logg gjenopprettingstest</button><button type="button" class="action" onclick="return dpOpsAction('showCustomerExportForm')">Start kundeeksport</button></div>${backupExportActivityList()}</div><div>${opsChecklist('Kostnadskontroll',[
     {ok:true,text:'Maks AI-bruk skal styres per pakke'},
     {ok:aiCalls<100,warn:true,text:'AI-kall siste 30 dager må overvåkes'},
     {ok:emails<200,warn:true,text:'E-postteller per kunde må følges'},
     {ok:!highUse,warn:true,text:'Varsel ved høy bruk eller manglende abonnement'}
-  ])}<div class="module-actions ops-actions"><button class="action primary" data-ops-action="runCostControlCheck">Kjør kostnadssjekk</button><button class="action" data-ops-action="logCostControlCheck">Logg kostnadskontroll</button></div><div id="costOpsOut" class="output">Klar for kostnadssjekk.</div></div></div><div class="ops-two-col"><div>${opsChecklist('Teknisk robusthet',[
+  ])}<div class="module-actions ops-actions"><button type="button" class="action primary" onclick="return dpOpsAction('runCostControlCheck')">Kjør kostnadssjekk</button><button type="button" class="action" onclick="return dpOpsAction('logCostControlCheck')">Logg kostnadskontroll</button></div><div id="costOpsOut" class="output">Klar for kostnadssjekk.</div></div></div><div class="ops-two-col"><div>${opsChecklist('Teknisk robusthet',[
     {ok:document.querySelectorAll('script[src*="assets/prod/"]').length>0,text:'Produksjonsscript er lastet'},
     {ok:!document.querySelectorAll('script[src*="assets/modules/"]').length,warn:true,text:'Gamle modul-filer skal ikke lastes i appen'},
     {ok:true,text:'Kundefeil vises som enkle meldinger'},
     {ok:activity.some(a=>String(a.entity_type||'')==='technical_check'),warn:true,text:'Flere automatiske tester bør legges i GitHub/Netlify'}
-  ])}<div class="module-actions ops-actions"><button class="action primary" data-ops-action="runTechnicalRobustnessCheck">Kjør teknisk sjekk</button><button class="action" data-ops-action="showLegacyModuleInfo">Vis modulfiler</button><button class="action" data-ops-action="logTechnicalTest">Logg test utført</button></div><div id="technicalOpsOut" class="output">Klar for teknisk sjekk.</div></div><div class="ops-support"><div class="dash-title"><div><h4>Supportflyt</h4><p class="muted">Logg kunde, sakstype, alvorlighet, status, ansvarlig og intern kommentar.</p></div><button class="action" data-ops-action="showSupportCaseForm">Opprett</button></div>${supportActivityList()}</div></div></div>`;
+  ])}<div class="module-actions ops-actions"><button type="button" class="action primary" onclick="return dpOpsAction('runTechnicalRobustnessCheck')">Kjør teknisk sjekk</button><button type="button" class="action" onclick="return dpOpsAction('showLegacyModuleInfo')">Vis modulfiler</button><button type="button" class="action" onclick="return dpOpsAction('logTechnicalTest')">Logg test utført</button></div><div id="technicalOpsOut" class="output">Klar for teknisk sjekk.</div></div><div class="ops-support"><div class="dash-title"><div><h4>Supportflyt</h4><p class="muted">Logg kunde, sakstype, alvorlighet, status, ansvarlig og intern kommentar.</p></div><button type="button" class="action" onclick="return dpOpsAction('showSupportCaseForm')">Opprett</button></div>${supportActivityList()}</div></div></div>`;
 }
 function supportActivityList(){
   const rows=(DP.cache.activity||[]).filter(a=>String(a.entity_type||'')==='support').slice(0,5);
@@ -464,7 +464,7 @@ function supportActivityList(){
   return `<div class="stack-list">${rows.map(r=>`<section class="mini-record"><div><strong>${esc(r.action||'Support')}</strong><small>${esc(r.created_at?new Date(r.created_at).toLocaleString('nb-NO'):'')}</small></div></section>`).join('')}</div>`;
 }
 function showSupportCaseForm(){
-  showDrawer('Ny supportsak',`<div class="form-grid"><label>Kunde/eiendom<input id="supportCustomer" value="${esc(currentProperty()?.name||'')}"></label><label>Sakstype<select id="supportType"><option>Innlogging</option><option>Dokumenter</option><option>E-post</option><option>AI</option><option>Økonomi</option><option>Annet</option></select></label><label>Alvorlighet<select id="supportSeverity"><option>Normal</option><option>Kritisk</option><option>Lav</option></select></label><label>Status<select id="supportStatus"><option>Ny</option><option>Pågår</option><option>Venter kunde</option><option>Løst</option></select></label><label>Ansvarlig<input id="supportOwner" value="${esc(DP.user?.name||DP.user?.email||'')}"></label><label class="span-2">Intern kommentar<textarea id="supportNote" rows="4" placeholder="Hva må følges opp?"></textarea></label></div><button class="action primary" data-ops-action="saveSupportCase">Lagre supportsak</button><div id="supportOut" class="output"></div>`);
+  showDrawer('Ny supportsak',`<div class="form-grid"><label>Kunde/eiendom<input id="supportCustomer" value="${esc(currentProperty()?.name||'')}"></label><label>Sakstype<select id="supportType"><option>Innlogging</option><option>Dokumenter</option><option>E-post</option><option>AI</option><option>Økonomi</option><option>Annet</option></select></label><label>Alvorlighet<select id="supportSeverity"><option>Normal</option><option>Kritisk</option><option>Lav</option></select></label><label>Status<select id="supportStatus"><option>Ny</option><option>Pågår</option><option>Venter kunde</option><option>Løst</option></select></label><label>Ansvarlig<input id="supportOwner" value="${esc(DP.user?.name||DP.user?.email||'')}"></label><label class="span-2">Intern kommentar<textarea id="supportNote" rows="4" placeholder="Hva må følges opp?"></textarea></label></div><button type="button" class="action primary" onclick="return dpOpsAction('saveSupportCase')">Lagre supportsak</button><div id="supportOut" class="output"></div>`);
 }
 async function saveSupportCase(){
   const out=document.getElementById('supportOut');
@@ -486,7 +486,7 @@ function backupExportActivityList(){
   return `<div class="stack-list ops-log-list">${rows.map(r=>`<section class="mini-record"><div><strong>${esc(r.action||'Rutine')}</strong><small>${esc(r.created_at?new Date(r.created_at).toLocaleString('nb-NO'):'')}</small></div></section>`).join('')}</div>`;
 }
 function showRestoreTestForm(){
-  showDrawer('Logg gjenopprettingstest',`<div class="form-grid"><label>Kunde/eiendom<input id="restoreCustomer" value="${esc(currentProperty()?.name||'')}"></label><label>Dato<input id="restoreDate" type="date" value="${new Date().toISOString().slice(0,10)}"></label><label>Ansvarlig<input id="restoreOwner" value="${esc(DP.user?.name||DP.user?.email||'')}"></label><label>Resultat<select id="restoreResult"><option>Bestått</option><option>Feilet</option><option>Må følges opp</option></select></label><label>Neste testdato<input id="restoreNextDate" type="date"></label><label class="span-2">Kommentar<textarea id="restoreNote" rows="4" placeholder="Hva ble testet? Database, dokumenter, innlogging, avvik, økonomi osv."></textarea></label></div><button class="action primary" data-ops-action="saveRestoreTest">Lagre test</button><div id="restoreOut" class="output"></div>`);
+  showDrawer('Logg gjenopprettingstest',`<div class="form-grid"><label>Kunde/eiendom<input id="restoreCustomer" value="${esc(currentProperty()?.name||'')}"></label><label>Dato<input id="restoreDate" type="date" value="${new Date().toISOString().slice(0,10)}"></label><label>Ansvarlig<input id="restoreOwner" value="${esc(DP.user?.name||DP.user?.email||'')}"></label><label>Resultat<select id="restoreResult"><option>Bestått</option><option>Feilet</option><option>Må følges opp</option></select></label><label>Neste testdato<input id="restoreNextDate" type="date"></label><label class="span-2">Kommentar<textarea id="restoreNote" rows="4" placeholder="Hva ble testet? Database, dokumenter, innlogging, avvik, økonomi osv."></textarea></label></div><button type="button" class="action primary" onclick="return dpOpsAction('saveRestoreTest')">Lagre test</button><div id="restoreOut" class="output"></div>`);
 }
 async function saveRestoreTest(){
   const out=document.getElementById('restoreOut');
@@ -500,7 +500,7 @@ async function saveRestoreTest(){
   }catch(e){setOutputError(out,e,'Gjenopprettingstesten kunne ikke lagres.')}
 }
 function showCustomerExportForm(){
-  showDrawer('Start kundeeksport',`<div class="form-grid"><label>Kunde/eiendom<input id="exportCustomer" value="${esc(currentProperty()?.name||'')}"></label><label>Status<select id="exportStatus"><option>Klargjøres</option><option>Sendt</option><option>Bekreftet mottatt</option><option>Slettet/anonymisert</option></select></label><label>Ansvarlig<input id="exportOwner" value="${esc(DP.user?.name||DP.user?.email||'')}"></label><label>Slettedato etter avtale<input id="exportDeleteDate" type="date"></label><label class="span-2">Hva eksporteres<div class="choice-list"><label class="check-row"><input class="exportPart" type="checkbox" value="Dokumenter" checked> Dokumenter</label><label class="check-row"><input class="exportPart" type="checkbox" value="Avvik" checked> Avvik</label><label class="check-row"><input class="exportPart" type="checkbox" value="Arbeidsordre" checked> Arbeidsordre</label><label class="check-row"><input class="exportPart" type="checkbox" value="Økonomi" checked> Økonomi</label><label class="check-row"><input class="exportPart" type="checkbox" value="Aktivitetslogg" checked> Aktivitetslogg</label></div></label><label class="span-2">Kommentar<textarea id="exportNote" rows="4" placeholder="Hvordan leveres eksporten, hvem mottar den, og hva er avtalt?"></textarea></label></div><button class="action primary" data-ops-action="saveCustomerExport">Lagre eksportstatus</button><div id="exportOut" class="output"></div>`);
+  showDrawer('Start kundeeksport',`<div class="form-grid"><label>Kunde/eiendom<input id="exportCustomer" value="${esc(currentProperty()?.name||'')}"></label><label>Status<select id="exportStatus"><option>Klargjøres</option><option>Sendt</option><option>Bekreftet mottatt</option><option>Slettet/anonymisert</option></select></label><label>Ansvarlig<input id="exportOwner" value="${esc(DP.user?.name||DP.user?.email||'')}"></label><label>Slettedato etter avtale<input id="exportDeleteDate" type="date"></label><label class="span-2">Hva eksporteres<div class="choice-list"><label class="check-row"><input class="exportPart" type="checkbox" value="Dokumenter" checked> Dokumenter</label><label class="check-row"><input class="exportPart" type="checkbox" value="Avvik" checked> Avvik</label><label class="check-row"><input class="exportPart" type="checkbox" value="Arbeidsordre" checked> Arbeidsordre</label><label class="check-row"><input class="exportPart" type="checkbox" value="Økonomi" checked> Økonomi</label><label class="check-row"><input class="exportPart" type="checkbox" value="Aktivitetslogg" checked> Aktivitetslogg</label></div></label><label class="span-2">Kommentar<textarea id="exportNote" rows="4" placeholder="Hvordan leveres eksporten, hvem mottar den, og hva er avtalt?"></textarea></label></div><button type="button" class="action primary" onclick="return dpOpsAction('saveCustomerExport')">Lagre eksportstatus</button><div id="exportOut" class="output"></div>`);
 }
 async function saveCustomerExport(){
   const out=document.getElementById('exportOut');
@@ -532,6 +532,7 @@ function runCostControlCheck(){
     warnings.length?`Følg opp: ${warnings.join(', ')}`:'OK: ingen tydelige kostnadsvarsler'
   ];
   if(out)out.textContent=lines.join('\n');
+  showNotice('Kostnadssjekk kjørt.','ok');
   return {aiCalls,emails,documents:docs.length,warnings};
 }
 async function logCostControlCheck(){
@@ -558,11 +559,13 @@ function runTechnicalRobustnessCheck(){
   ];
   const text=checks.map(c=>`${c[1]?'OK':'FØLG OPP'}: ${c[0]} - ${c[2]}`).join('\n');
   if(out)out.textContent=text;
+  showNotice('Teknisk sjekk kjørt.','ok');
   return checks;
 }
 function showLegacyModuleInfo(){
   const prodScripts=[...document.querySelectorAll('script[src*="assets/prod/"]')].map(s=>s.getAttribute('src')||'');
   const moduleScripts=[...document.querySelectorAll('script[src*="assets/modules/"]')].map(s=>s.getAttribute('src')||'');
+  showNotice('Viser tekniske appfiler.','ok');
   showDrawer('Tekniske appfiler',`<div class="info-grid"><section><small>Produksjonsfiler</small><strong>${prodScripts.length}</strong><span>Disse styrer appen nå.</span></section><section><small>Gamle moduler lastet</small><strong>${moduleScripts.length}</strong><span>${moduleScripts.length?'Må ryddes':'Ingen gamle moduler lastes i siden.'}</span></section></div><h3>Produksjonsfiler</h3><div class="output">${esc(prodScripts.join('\n')||'Ingen funnet')}</div><h3>Gamle moduler som lastes</h3><div class="output">${esc(moduleScripts.join('\n')||'Ingen gamle moduler lastes.')}</div>`);
 }
 async function logTechnicalTest(){
@@ -590,6 +593,20 @@ Object.assign(window,{
   logTechnicalTest,
   markEmailTestedOk
 });
+window.dpOpsAction=function(name){
+  const fn=window[name];
+  if(typeof fn!=='function'){
+    showNotice('Handlingen finnes ikke i denne versjonen. Last opp siste pakke og prøv igjen.','bad');
+    return false;
+  }
+  try{
+    const result=fn();
+    if(result&&typeof result.then==='function')result.catch(error=>showNotice(customerError(error,'Handlingen kunne ikke utføres akkurat nå.'),'bad'));
+  }catch(error){
+    showNotice(customerError(error,'Handlingen kunne ikke utføres akkurat nå.'),'bad');
+  }
+  return false;
+};
 if(!window.__dpOpsActionsBound){
   window.__dpOpsActionsBound=true;
   document.addEventListener('click',async(event)=>{
