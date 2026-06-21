@@ -347,6 +347,11 @@ function launchChecks(){
   if(hasWorkOrders)checks.splice(4,0,{label:'Arbeidsordre',ok:wos.length>0,group:'Drift',action:'Lag arbeidsordre fra et avvik.'});
   if(hasFinance)checks.splice(checks.findIndex(c=>c.label==='Styre/beboere'),0,{label:'Økonomi',ok:finance.length>0&&budget.length>0,warn:finance.length>0,group:'Økonomi',action:finance.length>0?'Legg inn minst én budsjettlinje.':'Legg inn konto/reservefond og budsjett.'});
   if(hasRfq)checks.splice(checks.findIndex(c=>c.label==='Økonomi'||c.label==='Styre/beboere'),0,{label:'Tilbud/RFQ',ok:rfqs.length>0&&offers.length>0,warn:rfqs.length>0,group:'Innkjøp',action:rfqs.length>0?'Registrer minst ett tilbud/PDF.':'Lag tilbudsforespørsel og registrer tilbud.'});
+    const completeFlow=devs.length>0&&wos.length>0&&docs.length>0;
+  checks.push({label:'Salgsdemo-flyt',ok:completeFlow,warn:devs.length>0&&wos.length>0,group:'Salg',action:'Vis én komplett flyt: avvik → arbeidsordre → dokumentasjon → rapport.'});
+  if(hasFinance||hasWorkOrders)checks.push({label:'Pro-demo',ok:wos.length>0&&finance.length>0&&budget.length>0,group:'Salg',action:'Pro-demo bør vise arbeidsordre, økonomi, vedlikeholdsplan og rapport.'});
+  if(hasRfq)checks.push({label:'Premium-demo',ok:rfqs.length>0&&offers.length>0,group:'Salg',action:'Premium-demo bør vise Property Brain, RFQ/tilbud og AI-vurdering.'});
+
   return checks;
 }
 function checkType(c){return c.ok?'ok':c.warn?'warn':'bad'}
