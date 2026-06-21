@@ -43,7 +43,11 @@ function subscriptionHas(feature){
 function visibleMenus(){
   const allowed=ROLE_MENUS[appRole()]||['dashboard'];
   const packageAllowed=subscriptionAllowedMenus();
-  return DP.menus.filter(m=>allowed.includes(m[0])&&(packageAllowed.includes(m[0])||(m[0]==='admin'&&canManageCustomers())));
+  return DP.menus.filter(m=>{
+    if(!allowed.includes(m[0]))return false;
+    if(['admin','integrations'].includes(m[0]))return canManageCustomers();
+    return packageAllowed.includes(m[0]);
+  });
 }
 function canOpenModule(id){return visibleMenus().some(m=>m[0]===id)}
 function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
