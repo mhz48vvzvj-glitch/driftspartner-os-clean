@@ -420,6 +420,11 @@ function opsCustomerList(){
 function opsMetric(label,value,detail,type='info'){
   return `<section class="ops-metric ${type}"><small>${esc(label)}</small><b>${esc(String(value))}</b><span>${esc(detail||'')}</span></section>`;
 }
+function setOpsButtonFeedback(id,text){
+  const el=document.getElementById(id);
+  if(el)el.textContent=text;
+  return false;
+}
 function opsChecklist(title,items){
   return `<section class="ops-checklist"><h4>${esc(title)}</h4>${items.map(i=>`<div class="${i.ok?'ok':i.warn?'warn':'bad'}"><span>${i.ok?'Klar':i.warn?'Følg opp':'Mangler'}</span><b>${esc(i.text)}</b></div>`).join('')}</section>`;
 }
@@ -446,17 +451,17 @@ function SuperadminOpsPage(){
     {ok:docs.length>0,warn:true,text:'Kontroller dokumentarkiv per kunde'},
     {ok:false,warn:true,text:'Månedlig test av gjenoppretting må inn i rutinen'},
     {ok:false,warn:true,text:'Eksport per kunde ved avslutning må standardiseres'}
-  ])}<div class="module-actions ops-actions"><button type="button" class="action primary" onclick="return dpOpsAction('showRestoreTestForm')">Logg gjenopprettingstest</button><button type="button" class="action" onclick="return dpOpsAction('showCustomerExportForm')">Start kundeeksport</button></div>${backupExportActivityList()}</div><div>${opsChecklist('Kostnadskontroll',[
+  ])}<div class="module-actions ops-actions"><button type="button" class="action primary" onclick="setOpsButtonFeedback('backupOpsOut','Åpner skjema for gjenopprettingstest...');return dpOpsAction('showRestoreTestForm')">Logg gjenopprettingstest</button><button type="button" class="action" onclick="setOpsButtonFeedback('backupOpsOut','Åpner skjema for kundeeksport...');return dpOpsAction('showCustomerExportForm')">Start kundeeksport</button></div><div id="backupOpsOut" class="output">Klar for backup- og eksportrutine.</div>${backupExportActivityList()}</div><div>${opsChecklist('Kostnadskontroll',[
     {ok:true,text:'Maks AI-bruk skal styres per pakke'},
     {ok:aiCalls<100,warn:true,text:'AI-kall siste 30 dager må overvåkes'},
     {ok:emails<200,warn:true,text:'E-postteller per kunde må følges'},
     {ok:!highUse,warn:true,text:'Varsel ved høy bruk eller manglende abonnement'}
-  ])}<div class="module-actions ops-actions"><button type="button" class="action primary" onclick="return dpOpsAction('runCostControlCheck')">Kjør kostnadssjekk</button><button type="button" class="action" onclick="return dpOpsAction('logCostControlCheck')">Logg kostnadskontroll</button></div><div id="costOpsOut" class="output">Klar for kostnadssjekk.</div></div></div><div class="ops-two-col"><div>${opsChecklist('Teknisk robusthet',[
+  ])}<div class="module-actions ops-actions"><button type="button" class="action primary" onclick="setOpsButtonFeedback('costOpsOut','Kjører kostnadssjekk...');return dpOpsAction('runCostControlCheck')">Kjør kostnadssjekk</button><button type="button" class="action" onclick="setOpsButtonFeedback('costOpsOut','Logger kostnadskontroll...');return dpOpsAction('logCostControlCheck')">Logg kostnadskontroll</button></div><div id="costOpsOut" class="output">Klar for kostnadssjekk.</div></div></div><div class="ops-two-col"><div>${opsChecklist('Teknisk robusthet',[
     {ok:document.querySelectorAll('script[src*="assets/prod/"]').length>0,text:'Produksjonsscript er lastet'},
     {ok:!document.querySelectorAll('script[src*="assets/modules/"]').length,warn:true,text:'Gamle modul-filer skal ikke lastes i appen'},
     {ok:true,text:'Kundefeil vises som enkle meldinger'},
     {ok:activity.some(a=>String(a.entity_type||'')==='technical_check'),warn:true,text:'Flere automatiske tester bør legges i GitHub/Netlify'}
-  ])}<div class="module-actions ops-actions"><button type="button" class="action primary" onclick="return dpOpsAction('runTechnicalRobustnessCheck')">Kjør teknisk sjekk</button><button type="button" class="action" onclick="return dpOpsAction('showLegacyModuleInfo')">Vis modulfiler</button><button type="button" class="action" onclick="return dpOpsAction('logTechnicalTest')">Logg test utført</button></div><div id="technicalOpsOut" class="output">Klar for teknisk sjekk.</div></div><div class="ops-support"><div class="dash-title"><div><h4>Supportflyt</h4><p class="muted">Logg kunde, sakstype, alvorlighet, status, ansvarlig og intern kommentar.</p></div><button type="button" class="action" onclick="return dpOpsAction('showSupportCaseForm')">Opprett</button></div>${supportActivityList()}</div></div></div>`;
+  ])}<div class="module-actions ops-actions"><button type="button" class="action primary" onclick="setOpsButtonFeedback('technicalOpsOut','Kjører teknisk sjekk...');return dpOpsAction('runTechnicalRobustnessCheck')">Kjør teknisk sjekk</button><button type="button" class="action" onclick="setOpsButtonFeedback('technicalOpsOut','Åpner oversikt over modulfiler...');return dpOpsAction('showLegacyModuleInfo')">Vis modulfiler</button><button type="button" class="action" onclick="setOpsButtonFeedback('technicalOpsOut','Logger teknisk test...');return dpOpsAction('logTechnicalTest')">Logg test utført</button></div><div id="technicalOpsOut" class="output">Klar for teknisk sjekk.</div></div><div class="ops-support"><div class="dash-title"><div><h4>Supportflyt</h4><p class="muted">Logg kunde, sakstype, alvorlighet, status, ansvarlig og intern kommentar.</p></div><button type="button" class="action" onclick="return dpOpsAction('showSupportCaseForm')">Opprett</button></div>${supportActivityList()}</div></div></div>`;
 }
 function supportActivityList(){
   const rows=(DP.cache.activity||[]).filter(a=>String(a.entity_type||'')==='support').slice(0,5);
@@ -580,6 +585,7 @@ async function logTechnicalTest(){
   }catch(e){setOutputError(out,e,'Teknisk sjekk kunne ikke logges.')}
 }
 Object.assign(window,{
+  setOpsButtonFeedback,
   showSupportCaseForm,
   saveSupportCase,
   showRestoreTestForm,
