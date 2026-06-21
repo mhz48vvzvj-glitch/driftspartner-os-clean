@@ -1229,6 +1229,31 @@ body:not(.public-mode) .context{
 .finance-trend-shell .trend-chart svg{
   filter:drop-shadow(0 12px 22px rgba(67,212,255,.10));
 }
+.finance-trend-chart svg{
+  overflow:visible;
+}
+.finance-trend-chart .finance-grid{
+  stroke:rgba(148,163,184,.18);
+  stroke-width:.7;
+  vector-effect:non-scaling-stroke;
+}
+.finance-trend-chart .finance-axis{
+  fill:#91a2bb;
+  font-size:4px;
+  font-weight:850;
+}
+.finance-trend-chart .finance-dot{
+  fill:#43d4ff;
+  stroke:#07111f;
+  stroke-width:.8;
+  vector-effect:non-scaling-stroke;
+}
+.finance-trend-chart .budget-dot{
+  fill:#94a3b8;
+}
+.finance-trend-chart .finance-dot.over{
+  fill:#ffb020;
+}
 .finance-trend-labels{
   display:grid;
   grid-template-columns:repeat(auto-fit,minmax(72px,1fr));

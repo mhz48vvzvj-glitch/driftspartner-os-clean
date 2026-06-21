@@ -193,7 +193,13 @@ function DashboardFinanceChart(){
     ...lines.map(l=>({label:l.category||l.label||'Budsjettlinje',budget:Number(l.budget_amount||l.budget||0),actual:Number(l.actual_amount||l.actual||0)})),
     ...projects.map(p=>({label:p.name||p.title||'Prosjekt',budget:Number(p.budget||p.budget_amount||0),actual:Number(p.actual_cost||p.actual_amount||0)}))
   ].filter(r=>r.budget||r.actual);
-  const rows=(rawRows.length?rawRows:[{label:'Budsjett',budget,actual}]).slice(0,7);
+  const labelCounts={};
+  const rows=(rawRows.length?rawRows:[{label:'Budsjett',budget,actual}]).slice(0,7).map((row)=>{
+    const base=String(row.label||'Økonomi').trim()||'Økonomi';
+    labelCounts[base]=(labelCounts[base]||0)+1;
+    const total=rawRows.filter(r=>String(r.label||'').trim()===base).length;
+    return {...row,label:total>1?`${base} ${labelCounts[base]}`:base};
+  });
   const max=Math.max(1,...rows.flatMap(r=>[r.budget,r.actual]),budget,actual,projectBudget,projectActual);
   const variance=actual-budget,projectVariance=projectActual-projectBudget;
   const summary=[
@@ -203,15 +209,22 @@ function DashboardFinanceChart(){
     ['Avvik',money(variance),variance>0?'bad':'ok'],
     ['Prosjekt',`${money(projectActual)} / ${money(projectBudget)}`,projectVariance>0?'warn':'purple']
   ];
-  const point=(value,i)=>`${rows.length===1?50:Math.round((i/(rows.length-1))*100)},${Math.round(94-(Number(value||0)/max)*78)}`;
+  const pointX=i=>rows.length===1?50:Math.round((i/(rows.length-1))*88)+6;
+  const pointY=value=>Math.round(92-(Number(value||0)/max)*74);
+  const point=(value,i)=>`${pointX(i)},${pointY(value)}`;
   const budgetPoints=rows.map((r,i)=>point(r.budget,i)).join(' ');
   const actualPoints=rows.map((r,i)=>point(r.actual,i)).join(' ');
-  const area=`${actualPoints} 100,100 0,100`;
+  const area=`${actualPoints} 94,100 6,100`;
+  const grid=[0,.25,.5,.75,1].map(t=>{
+    const y=92-(t*74),val=max*t;
+    return `<g><line x1="6" y1="${y}" x2="94" y2="${y}" class="finance-grid"></line><text x="2" y="${y+3}" class="finance-axis">${esc(compactMoney(val))}</text></g>`;
+  }).join('');
+  const dots=rows.map((r,i)=>`<g><circle cx="${pointX(i)}" cy="${pointY(r.budget)}" r="1.9" class="finance-dot budget-dot"></circle><circle cx="${pointX(i)}" cy="${pointY(r.actual)}" r="2.4" class="finance-dot ${r.actual>r.budget?'over':''}"></circle><title>${esc(r.label)}: faktisk ${money(r.actual)}, budsjett ${money(r.budget)}</title></g>`).join('');
   const labels=rows.map((r,i)=>`<span>${esc(shortLabel(r.label))}</span>`).join('');
   const insight=variance>0?`${money(variance)} over budsjett`:(budget||actual)?'Innenfor registrert budsjett':'Mangler budsjettgrunnlag';
   const insightText=rawRows.length?`Basert på ${rawRows.length} økonomilinje${rawRows.length===1?'':'r'} og prosjektposter for valgt eiendom.`:'Legg inn budsjettlinjer og faktiske kostnader for å bygge live graf.';
   const emptyHint=rawRows.length?'':`<div class="empty-state finance-empty-hint"><strong>Ingen budsjettlinjer ennå.</strong><span>Grafen viser nullgrunnlag til økonomi er registrert.</span><button class="action primary" onclick="openModule('finance')">Legg inn økonomi</button></div>`;
-  return `<div class="dash-title"><div><h3>Økonomi live</h3><p class="muted">Budsjett, faktisk kostnad og prosjektøkonomi fra valgt eiendom.</p></div><button class="action" onclick="openModule('finance')">Åpne økonomi</button></div><div class="finance-summary-strip premium">${summary.map(s=>`<div class="${esc(s[2])}"><small>${esc(s[0])}</small><b>${esc(s[1])}</b></div>`).join('')}</div><div class="finance-chart-shell finance-trend-shell"><div class="premium-finance-legend"><span><i class="budget"></i>Budsjett</span><span><i class="actual"></i>Faktisk</span><span><i class="over"></i>Over budsjett</span></div><div class="trend-chart finance-trend-chart"><svg viewBox="0 0 100 100" preserveAspectRatio="none" role="img" aria-label="Økonomigraf for budsjett og faktisk kostnad"><polyline points="${area}" fill="rgba(67,212,255,.11)" stroke="none"></polyline><polyline points="${budgetPoints}" fill="none" stroke="#94a3b8" stroke-width="2.4" stroke-dasharray="5 5" vector-effect="non-scaling-stroke"></polyline><polyline points="${actualPoints}" fill="none" stroke="${variance>0?'#ff8a3d':'#43d4ff'}" stroke-width="3.2" vector-effect="non-scaling-stroke"></polyline></svg></div><div class="finance-trend-labels">${labels}</div><div class="finance-chart-footer"><strong>${esc(insight)}</strong><span>${esc(insightText)}</span></div></div>${emptyHint}`;
+  return `<div class="dash-title"><div><h3>Økonomi live</h3><p class="muted">Budsjett, faktisk kostnad og prosjektøkonomi fra valgt eiendom.</p></div><button class="action" onclick="openModule('finance')">Åpne økonomi</button></div><div class="finance-summary-strip premium">${summary.map(s=>`<div class="${esc(s[2])}"><small>${esc(s[0])}</small><b>${esc(s[1])}</b></div>`).join('')}</div><div class="finance-chart-shell finance-trend-shell"><div class="premium-finance-legend"><span><i class="budget"></i>Budsjett</span><span><i class="actual"></i>Faktisk</span><span><i class="over"></i>Over budsjett</span></div><div class="trend-chart finance-trend-chart"><svg viewBox="0 0 100 100" preserveAspectRatio="none" role="img" aria-label="Økonomigraf for budsjett og faktisk kostnad">${grid}<polyline points="${area}" fill="rgba(67,212,255,.11)" stroke="none"></polyline><polyline points="${budgetPoints}" fill="none" stroke="#94a3b8" stroke-width="2.4" stroke-dasharray="5 5" vector-effect="non-scaling-stroke"></polyline><polyline points="${actualPoints}" fill="none" stroke="${variance>0?'#ff8a3d':'#43d4ff'}" stroke-width="3.2" vector-effect="non-scaling-stroke"></polyline>${dots}</svg></div><div class="finance-trend-labels">${labels}</div><div class="finance-chart-footer"><strong>${esc(insight)}</strong><span>${esc(insightText)}</span></div></div>${emptyHint}`;
 }
 function compactMoney(v){
   const n=Number(v)||0;
