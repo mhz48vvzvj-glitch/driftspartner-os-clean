@@ -559,7 +559,7 @@ async function sendEmailMicrosoft(kind='general',caseId=''){
     if(out)out.textContent='Sender via tilkoblet Outlook-konto...';
     if(location.protocol==='file:'||location.hostname==='localhost'||location.hostname==='127.0.0.1')throw new Error('Outlook-sending må testes fra publisert Netlify-side.');
     const res=await fetch('/.netlify/functions/microsoft-send-mail',{method:'POST',headers:{'content-type':'application/json',authorization:`Bearer ${DP.session.access_token}`},body:JSON.stringify(payload)});
-    const data=await readJsonResponse(res,'Outlook-funksjonen svarte ikke riktig. Pr?v igjen, eller kontakt Driftspartner Nord hvis feilen fortsetter.');
+    const data=await readJsonResponse(res,'Outlook-funksjonen svarte ikke riktig. Prøv igjen, eller kontakt Driftspartner Nord hvis feilen fortsetter.');
     if(!res.ok||!data.ok)throw new Error(data.message||'E-post ble ikke sendt via Outlook.');
     await insertActivity(`E-post sendt fra Outlook: ${mailKindLabel(kind)}`,'email',caseId||currentProperty()?.id||'-');
     await finishAction(`E-post sendt fra ${data.from||'tilkoblet Outlook-konto'} til ${payload.to.length} mottaker${payload.to.length===1?'':'e'}.`,DP.module||'dashboard');
