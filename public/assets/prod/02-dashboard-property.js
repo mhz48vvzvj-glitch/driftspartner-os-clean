@@ -99,19 +99,20 @@ function planLabel(plan){return ({start:'Start',pro:'Pro',premium:'Premium'}[Str
 function statusLabel(status){return ({active:'Aktiv',pending:'Venter avtale',trial:'Pilot',paused:'Pause'}[String(status).toLowerCase()]||status||'Venter avtale')}
 function dashboardSubscriptionPlans(){
   return [
-    {id:'start',name:'Start',firstYear:9990,yearTwo:11880,items:['FDV-arkiv','Dokumenthåndtering','Avvikshåndtering','Basisanbefalinger','Styreportal','Mobiltilgang']},
-    {id:'pro',name:'Pro',firstYear:19990,yearTwo:23880,items:['Alt i Start','AI Director','Vedlikeholdsplan','Arbeidsordre','Leverandørregister','Budsjettoversikt','Avansert rapportering','Ubegrenset antall styremedlemmer']},
-    {id:'premium',name:'Premium',firstYear:39990,yearTwo:47880,items:['Alt i Pro','Property Brain AI','Risikoanalyse','Tilbudsinnhenting (RFQ)','Flere eiendommer','Prioritert support','Avanserte analyser']}
+    {id:'start',name:'Start',firstYear:9990,yearTwo:11880,items:['FDV-arkiv','Dokumenthåndtering','Avvikshåndtering','Basisanbefalinger','50 AI-klikk per måned','Styreportal','Mobiltilgang']},
+    {id:'pro',name:'Pro',firstYear:19990,yearTwo:23880,items:['Alt i Start','AI Director','150 AI-klikk per måned','Vedlikeholdsplan','Arbeidsordre','Leverandørregister','Budsjettoversikt','Avansert rapportering','Ubegrenset antall styremedlemmer']},
+    {id:'premium',name:'Premium',firstYear:39990,yearTwo:47880,items:['Alt i Pro','Property Brain AI','500 AI-klikk per måned','Risikoanalyse','Tilbudsinnhenting (RFQ)','Flere eiendommer','Prioritert support','Avanserte analyser']}
   ];
 }
 function PackageAccessSummary(){
   const plan=subscriptionPlanId()||'';
+  const quota=typeof aiQuotaStatus==='function'?aiQuotaStatus():{used:0,limit:0,remaining:0,blocked:false};
   const modules=[
     ['Start','FDV, dokumenter, avvik, styre og mobiltilgang',true],
     ['Pro','Vedlikeholdsplan, arbeidsordre, økonomi, rapporter og leverandørregister',['pro','premium'].includes(plan)],
     ['Premium','Property Brain AI, risikoanalyse, RFQ, flere eiendommer og avanserte analyser',plan==='premium']
   ];
-  return `<div class="package-access-list">${modules.map(m=>`<section class="${m[2]?'unlocked':'locked'}"><b>${esc(m[0])}</b><span>${esc(m[1])}</span></section>`).join('')}</div>`;
+  return `<div class="package-access-list">${modules.map(m=>`<section class="${m[2]?'unlocked':'locked'}"><b>${esc(m[0])}</b><span>${esc(m[1])}</span></section>`).join('')}<section class="${quota.blocked?'locked':'unlocked'}"><b>AI-klikk</b><span>${quota.used}/${quota.limit||0} brukt denne måneden · ${quota.remaining} igjen</span></section></div>`;
 }
 function showSubscriptionPicker(){
   const p=currentProperty()||{},selected=String(p.subscription_plan||'pro').toLowerCase();
@@ -430,6 +431,8 @@ async function runAiDirector(mode='prioritering'){
     if(!DP.session?.access_token)throw new Error('Du må være innlogget for å bruke AI Director.');
     const p=currentProperty();
     if(!p?.id)throw new Error('Velg en eiendom for du starter AI Director.');
+    const quota=typeof aiQuotaStatus==='function'?aiQuotaStatus():{blocked:false,used:0,limit:0};
+    if(quota.blocked)throw new Error(`AI-kvoten er brukt opp for denne måneden (${quota.used}/${quota.limit}). Kontakt Driftspartner Nord eller be om oppgradering.`);
     if(out)out.textContent='AI Director analyserer live data...';
     const question=document.getElementById('aiQuestion')?.value.trim()||'Hva bør styret prioritere nå?';
     const res=await fetch('/.netlify/functions/ai-director',{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer '+DP.session.access_token},body:JSON.stringify({property_id:p.id,mode,question})});
@@ -437,6 +440,7 @@ async function runAiDirector(mode='prioritering'){
     if(!res.ok||!data.ok)throw new Error(data.message||'AI Director kunne ikke fullføre analysen.');
     DP.cache.ai_director_answer=data.answer||'Ingen anbefaling mottatt.';
     if(out)out.innerHTML=formatAiReport(DP.cache.ai_director_answer);
+    DP.cache.aiRuns=[{created_at:new Date().toISOString(),agent:'AI Director'},...(DP.cache.aiRuns||[])];
     await insertActivity('AI Director analyse kjørt','ai_director',p.id);
   }catch(e){
     const msg=String(e?.message||e||'AI Director kunne ikke fullføre analysen.');
@@ -585,6 +589,8 @@ async function runPropertyBrainAi(){
     requireLive('Property Brain');
     if(!DP.session?.access_token)throw new Error('Du må være innlogget for å bruke Property Brain.');
     const p=currentProperty();
+    const quota=typeof aiQuotaStatus==='function'?aiQuotaStatus():{blocked:false,used:0,limit:0};
+    if(quota.blocked)throw new Error(`AI-kvoten er brukt opp for denne måneden (${quota.used}/${quota.limit}). Kontakt Driftspartner Nord eller be om oppgradering.`);
     if(out)out.textContent='Property Brain analyserer live data...';
     const question=document.getElementById('brainQuestion')?.value.trim()||'Hva er største tekniske risiko nå?';
     const res=await fetch('/.netlify/functions/ai-director',{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer '+DP.session.access_token},body:JSON.stringify({property_id:p.id,mode:'property_brain',question})});
@@ -592,6 +598,7 @@ async function runPropertyBrainAi(){
     if(!res.ok||!data.ok)throw new Error(data.message||'Property Brain kunne ikke fullføre analysen.');
     DP.cache.property_brain_answer=data.answer||'Ingen analyse mottatt.';
     if(out)out.innerHTML=formatAiReport(DP.cache.property_brain_answer);
+    DP.cache.aiRuns=[{created_at:new Date().toISOString(),agent:'Property Brain'},...(DP.cache.aiRuns||[])];
     await insertActivity('Property Brain analyse kjørt','property_brain',p.id);
   }catch(e){
     const msg=String(e?.message||e||'Property Brain kunne ikke fullføre analysen.');

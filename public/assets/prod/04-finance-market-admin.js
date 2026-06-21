@@ -432,7 +432,8 @@ function SuperadminOpsPage(){
   const customers=opsCustomerList(),activity=DP.cache.activity||[],docs=DP.cache.documents||[],contacts=DP.cache.contacts||[];
   const last30=activity.filter(a=>opsWithinDays(a,30));
   const emails=last30.filter(a=>/e-?post|mail/i.test(`${a.action||''} ${a.entity_type||''}`)).length;
-  const aiCalls=last30.filter(a=>/ai|brain|director/i.test(`${a.action||''} ${a.entity_type||''}`)).length;
+  const quota=typeof aiQuotaStatus==='function'?aiQuotaStatus():{used:0,limit:0,remaining:0};
+  const aiCalls=quota.used||last30.filter(a=>/ai|brain|director/i.test(`${a.action||''} ${a.entity_type||''}`)).length;
   const failures=last30.filter(a=>/feil|failed|error|kunne ikke/i.test(`${a.action||''} ${a.entity_type||''}`)).length;
   const noSub=customers.filter(c=>!c.plan).length;
   const highUse=(docs.length>75||emails>100||aiCalls>100||activity.length>250);
@@ -443,7 +444,7 @@ function SuperadminOpsPage(){
     ${opsMetric('Brukere/kontakter',contacts.length,'Valgt eiendom nå','info')}
     ${opsMetric('Dokumentlagring',storageHint,'Størrelse krever Storage-statistikk','purple')}
     ${opsMetric('E-post 30 dager',emails,'Logget på valgt eiendom','ok')}
-    ${opsMetric('AI-kall 30 dager',aiCalls,'AI Director og Property Brain','warn')}
+    ${opsMetric('AI-kall 30 dager',`${aiCalls}/${quota.limit||0}`,`${quota.remaining||0} igjen i pakken`,'warn')}
     ${opsMetric('Feilede handlinger',failures,failures?'Må følges opp':'Ingen loggede feil','bad')}
     ${opsMetric('Uten abonnement',noSub,'Kunder som mangler pakke','warn')}
   </div><div class="ops-two-col"><div>${opsChecklist('Backup og eksport',[
@@ -453,7 +454,7 @@ function SuperadminOpsPage(){
     {ok:false,warn:true,text:'Eksport per kunde ved avslutning må standardiseres'}
   ])}<div class="module-actions ops-actions"><button type="button" class="action primary" onclick="document.getElementById('backupOpsOut').textContent='Apner skjema for gjenopprettingstest...'; window.dpOpsAction('showRestoreTestForm'); return false">Logg gjenopprettingstest</button><button type="button" class="action" onclick="document.getElementById('backupOpsOut').textContent='Apner skjema for kundeeksport...'; window.dpOpsAction('showCustomerExportForm'); return false">Start kundeeksport</button></div><div id="backupOpsOut" class="output">Klar for backup- og eksportrutine.</div>${backupExportActivityList()}</div><div>${opsChecklist('Kostnadskontroll',[
     {ok:true,text:'Maks AI-bruk skal styres per pakke'},
-    {ok:aiCalls<100,warn:true,text:'AI-kall siste 30 dager må overvåkes'},
+    {ok:!quota.limit||aiCalls<quota.limit,warn:true,text:`AI-kall siste 30 dager må overvåkes (${aiCalls}/${quota.limit||0})`},
     {ok:emails<200,warn:true,text:'E-postteller per kunde må følges'},
     {ok:!highUse,warn:true,text:'Varsel ved høy bruk eller manglende abonnement'}
   ])}<div class="module-actions ops-actions"><button type="button" class="action primary" onclick="document.getElementById('costOpsOut').textContent='Kjorer kostnadssjekk...'; window.dpOpsAction('runCostControlCheck'); return false">Kjør kostnadssjekk</button><button type="button" class="action" onclick="document.getElementById('costOpsOut').textContent='Logger kostnadskontroll...'; window.dpOpsAction('logCostControlCheck'); return false">Logg kostnadskontroll</button></div><div id="costOpsOut" class="output">Klar for kostnadssjekk.</div></div></div><div class="ops-two-col"><div>${opsChecklist('Teknisk robusthet',[
@@ -523,23 +524,26 @@ function runCostControlCheck(){
   const activity=DP.cache.activity||[],docs=DP.cache.documents||[];
   const last30=activity.filter(a=>opsWithinDays(a,30));
   const emails=last30.filter(a=>/e-?post|mail/i.test(`${a.action||''} ${a.entity_type||''}`)).length;
-  const aiCalls=last30.filter(a=>/ai|brain|director/i.test(`${a.action||''} ${a.entity_type||''}`)).length;
+  const quota=typeof aiQuotaStatus==='function'?aiQuotaStatus():{used:0,limit:0,remaining:0,blocked:false};
+  const aiCalls=quota.used||last30.filter(a=>/ai|brain|director/i.test(`${a.action||''} ${a.entity_type||''}`)).length;
   const warnings=[];
-  if(aiCalls>100)warnings.push('Høy AI-bruk');
+  if(quota.limit&&aiCalls>=quota.limit)warnings.push('AI-kvote brukt opp');
+  else if(quota.limit&&aiCalls>=Math.round(quota.limit*0.8))warnings.push('AI-bruk nærmer seg grensen');
   if(emails>200)warnings.push('Høy e-postbruk');
   if(docs.length>75)warnings.push('Mye dokumentlagring');
   if(!currentProperty()?.subscription_plan)warnings.push('Kunde mangler abonnement');
   const lines=[
-    `AI-kall siste 30 dager: ${aiCalls}`,
+    `AI-kall denne måneden: ${aiCalls}/${quota.limit||0}`,
+    `AI-klikk igjen: ${quota.remaining||0}`,
     `E-post siste 30 dager: ${emails}`,
     `Dokumenter på valgt eiendom: ${docs.length}`,
     `Abonnement: ${currentProperty()?.subscription_plan||'Ikke valgt'}`,
     warnings.length?`Følg opp: ${warnings.join(', ')}`:'OK: ingen tydelige kostnadsvarsler'
   ];
   if(out)out.textContent=lines.join('\n');
-  showDrawer('Kostnadssjekk',`<div class="info-grid"><section><small>AI-kall siste 30 dager</small><strong>${aiCalls}</strong><span>AI Director og Property Brain</span></section><section><small>E-post siste 30 dager</small><strong>${emails}</strong><span>Logget på valgt eiendom</span></section><section><small>Dokumenter</small><strong>${docs.length}</strong><span>Filer på valgt eiendom</span></section><section><small>Abonnement</small><strong>${esc(currentProperty()?.subscription_plan||'Ikke valgt')}</strong><span>Kundens aktive pakke</span></section></div><div class="output">${esc(lines.join('\n'))}</div>`);
+  showDrawer('Kostnadssjekk',`<div class="info-grid"><section><small>AI-kall denne måneden</small><strong>${aiCalls}/${quota.limit||0}</strong><span>${quota.remaining||0} igjen i pakken</span></section><section><small>E-post siste 30 dager</small><strong>${emails}</strong><span>Logget på valgt eiendom</span></section><section><small>Dokumenter</small><strong>${docs.length}</strong><span>Filer på valgt eiendom</span></section><section><small>Abonnement</small><strong>${esc(currentProperty()?.subscription_plan||'Ikke valgt')}</strong><span>Start 50 · Pro 150 · Premium 500</span></section></div><div class="output">${esc(lines.join('\n'))}</div>`);
   showNotice('Kostnadssjekk kjørt.','ok');
-  return {aiCalls,emails,documents:docs.length,warnings};
+  return {aiCalls,aiLimit:quota.limit,aiRemaining:quota.remaining,emails,documents:docs.length,warnings};
 }
 async function logCostControlCheck(){
   const out=document.getElementById('costOpsOut');
@@ -818,9 +822,9 @@ window.sendEmailMicrosoft=sendEmailMicrosoft;
 
 function subscriptionPlans(){
   return [
-    {id:'start',name:'Start',firstYear:9990,yearTwo:11880,unit:'For mindre sameier og borettslag',fit:'Opptil 20 enheter',items:['FDV-arkiv','Dokumenthåndtering','Avvikshåndtering','Basisanbefalinger','Styreportal','Mobiltilgang']},
-    {id:'pro',name:'Pro',firstYear:19990,yearTwo:23880,unit:'For de fleste sameier og borettslag',fit:'20-100 enheter',items:['Alt i Start','AI Director','Vedlikeholdsplan','Arbeidsordre','Leverandørregister','Budsjettoversikt','Avansert rapportering','Ubegrenset antall styremedlemmer']},
-    {id:'premium',name:'Premium',firstYear:39990,yearTwo:47880,unit:'For større borettslag og eiendomsaktører',fit:'100+ enheter',items:['Alt i Pro','Property Brain AI','Risikoanalyse','Tilbudsinnhenting (RFQ)','Flere eiendommer','Prioritert support','Avanserte analyser']}
+    {id:'start',name:'Start',firstYear:9990,yearTwo:11880,unit:'For mindre sameier og borettslag',fit:'Opptil 20 enheter',items:['FDV-arkiv','Dokumenthåndtering','Avvikshåndtering','Basisanbefalinger','50 AI-klikk per måned','Styreportal','Mobiltilgang']},
+    {id:'pro',name:'Pro',firstYear:19990,yearTwo:23880,unit:'For de fleste sameier og borettslag',fit:'20-100 enheter',items:['Alt i Start','AI Director','150 AI-klikk per måned','Vedlikeholdsplan','Arbeidsordre','Leverandørregister','Budsjettoversikt','Avansert rapportering','Ubegrenset antall styremedlemmer']},
+    {id:'premium',name:'Premium',firstYear:39990,yearTwo:47880,unit:'For større borettslag og eiendomsaktører',fit:'100+ enheter',items:['Alt i Pro','Property Brain AI','500 AI-klikk per måned','Risikoanalyse','Tilbudsinnhenting (RFQ)','Flere eiendommer','Prioritert support','Avanserte analyser']}
   ];
 }
 function selectedSubscriptionPlan(){return subscriptionPlans().find(p=>p.id===(DP.onboardingSubscription||'pro'))||subscriptionPlans()[1]}

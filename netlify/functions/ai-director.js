@@ -71,8 +71,8 @@ function limitForPlan(plan, property) {
   if (Number.isFinite(explicit) && explicit >= 0) return explicit;
   const limits = {
     start: envInt("AI_MONTHLY_LIMIT_START", 50),
-    pro: envInt("AI_MONTHLY_LIMIT_PRO", 250),
-    premium: envInt("AI_MONTHLY_LIMIT_PREMIUM", 1000)
+    pro: envInt("AI_MONTHLY_LIMIT_PRO", 150),
+    premium: envInt("AI_MONTHLY_LIMIT_PREMIUM", 500)
   };
   return limits[plan] ?? limits.pro;
 }

@@ -13,8 +13,8 @@ exports.handler = async () => ({
     model: process.env.OPENAI_MODEL || "gpt-5.4-nano",
     monthly_limits: {
       start: Number(process.env.AI_MONTHLY_LIMIT_START || 50),
-      pro: Number(process.env.AI_MONTHLY_LIMIT_PRO || 250),
-      premium: Number(process.env.AI_MONTHLY_LIMIT_PREMIUM || 1000)
+      pro: Number(process.env.AI_MONTHLY_LIMIT_PRO || 150),
+      premium: Number(process.env.AI_MONTHLY_LIMIT_PREMIUM || 500)
     },
     time: new Date().toISOString()
   })
