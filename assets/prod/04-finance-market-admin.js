@@ -385,7 +385,85 @@ async function runLaunchControl(){
 function AdminPage(){
   if(typeof canManageCustomers==='function'&&!canManageCustomers())return `<div class="grid admin-page"><div class="card s12"><div class="empty-state"><strong>Ingen tilgang til kundeoppsett.</strong><span>Ny kunde og onboarding kan bare utføres av superadmin.</span></div></div></div>`;
   const s=launchSummary();
-  return `<div class="grid admin-page premium-admin-page"><div class="card s12 module-hero control-hero"><div><small>Kontrollsenter</small><h2>Produksjonskontroll og onboarding</h2><p>Her ser du om valgt eiendom er klar for pilot, om roller/tilgang stemmer, og hva som bør fullføres før kunde tas i bruk.</p></div><div class="module-actions"><button class="action primary" onclick="runLaunchControl()">Kjør kontroll</button><button class="action" onclick="showNewCustomerWizard()">Ny kunde</button><button class="action" onclick="hydrateAll().then(render)">Oppdater</button></div></div><div class="card s12">${LaunchControlPage()}</div><div class="card s6 control-panel"><div class="dash-title"><div><h3>Onboarding</h3><p class="muted">Kunde  eiendom  styre/beboere  leverandører  FDV  økonomi  brukere.</p></div><button class="action primary" onclick="showNewCustomerWizard()">Start</button></div><div class="control-mini-grid"><div><small>Eiendommer</small><b>${DP.properties.length}</b></div><div><small>Klar status</small><b>${s.total-s.bad-s.warn}/${s.total}</b></div><div><small>Rolle</small><b>${esc(appRole()||'-')}</b></div></div></div><div class="card s6 control-panel"><div class="dash-title"><div><h3>Rolle og tilgang</h3><p class="muted">Bekreft at brukeren bare ser riktige menyer og eiendommer.</p></div></div>${roleAccessPanel()}</div><div class="card s12 control-panel"><div class="dash-title"><div><h3>Siste aktivitet</h3><p class="muted">Sporing av endringer og hendelser på valgt eiendom.</p></div><button class="action" onclick="hydrateAll().then(render)">Oppdater</button></div>${activityCards()}</div></div>`;
+  return `<div class="grid admin-page premium-admin-page"><div class="card s12 module-hero control-hero"><div><small>Kontrollsenter</small><h2>Produksjonskontroll og onboarding</h2><p>Her ser du om valgt eiendom er klar for pilot, om roller/tilgang stemmer, og hva som bør fullføres før kunde tas i bruk.</p></div><div class="module-actions"><button class="action primary" onclick="runLaunchControl()">Kjør kontroll</button><button class="action" onclick="showNewCustomerWizard()">Ny kunde</button><button class="action" onclick="hydrateAll().then(render)">Oppdater</button></div></div><div class="card s12">${SuperadminOpsPage()}</div><div class="card s12">${LaunchControlPage()}</div><div class="card s6 control-panel"><div class="dash-title"><div><h3>Onboarding</h3><p class="muted">Kunde, eiendom, styre/beboere, leverandører, FDV, økonomi og brukere.</p></div><button class="action primary" onclick="showNewCustomerWizard()">Start</button></div><div class="control-mini-grid"><div><small>Eiendommer</small><b>${DP.properties.length}</b></div><div><small>Klar status</small><b>${s.total-s.bad-s.warn}/${s.total}</b></div><div><small>Rolle</small><b>${esc(appRole()||'-')}</b></div></div></div><div class="card s6 control-panel"><div class="dash-title"><div><h3>Rolle og tilgang</h3><p class="muted">Bekreft at brukeren bare ser riktige menyer og eiendommer.</p></div></div>${roleAccessPanel()}</div><div class="card s12 control-panel"><div class="dash-title"><div><h3>Siste aktivitet</h3><p class="muted">Sporing av endringer og hendelser på valgt eiendom.</p></div><button class="action" onclick="hydrateAll().then(render)">Oppdater</button></div>${activityCards()}</div></div>`;
+}
+function opsWithinDays(row,days=30){
+  const t=Date.parse(row?.created_at||row?.updated_at||'');
+  return Number.isFinite(t)&&t>=Date.now()-days*86400000;
+}
+function opsCustomerList(){
+  const map=new Map();
+  (DP.properties||[]).forEach(p=>{
+    const key=p.customer_id||p.customer||p.customer_org_number||p.id;
+    if(!map.has(key))map.set(key,{id:key,name:p.customer||p.name||'Kunde',plan:p.subscription_plan||'',properties:0});
+    const row=map.get(key);
+    row.properties+=1;
+    if(p.subscription_plan)row.plan=p.subscription_plan;
+  });
+  return [...map.values()];
+}
+function opsMetric(label,value,detail,type='info'){
+  return `<section class="ops-metric ${type}"><small>${esc(label)}</small><b>${esc(String(value))}</b><span>${esc(detail||'')}</span></section>`;
+}
+function opsChecklist(title,items){
+  return `<section class="ops-checklist"><h4>${esc(title)}</h4>${items.map(i=>`<div class="${i.ok?'ok':i.warn?'warn':'bad'}"><span>${i.ok?'Klar':i.warn?'Følg opp':'Mangler'}</span><b>${esc(i.text)}</b></div>`).join('')}</section>`;
+}
+function SuperadminOpsPage(){
+  const customers=opsCustomerList(),activity=DP.cache.activity||[],docs=DP.cache.documents||[],contacts=DP.cache.contacts||[];
+  const last30=activity.filter(a=>opsWithinDays(a,30));
+  const emails=last30.filter(a=>/e-?post|mail/i.test(`${a.action||''} ${a.entity_type||''}`)).length;
+  const aiCalls=last30.filter(a=>/ai|brain|director/i.test(`${a.action||''} ${a.entity_type||''}`)).length;
+  const failures=last30.filter(a=>/feil|failed|error|kunne ikke/i.test(`${a.action||''} ${a.entity_type||''}`)).length;
+  const noSub=customers.filter(c=>!c.plan).length;
+  const highUse=(docs.length>75||emails>100||aiCalls>100||activity.length>250);
+  const storageHint=docs.length?`${docs.length} filer på valgt eiendom`:'Ingen filer på valgt eiendom';
+  return `<div class="ops-dashboard"><div class="ops-head"><div><small>Superadmin driftsstatus</small><h3>Helse, bruk og kostnadskontroll</h3><p>Intern oversikt for Driftspartner Nord før dere passerer 50+ kunder. Kundene ser ikke denne siden.</p></div><div class="module-actions"><button class="action primary" onclick="hydrateAll().then(render)">Oppdater live</button><button class="action" onclick="showSupportCaseForm()">Ny supportsak</button></div></div><div class="ops-metric-grid">
+    ${opsMetric('Kunder',customers.length,'Basert på eiendommer du har tilgang til','ok')}
+    ${opsMetric('Eiendommer',DP.properties.length,'Alle lastede eiendommer','info')}
+    ${opsMetric('Brukere/kontakter',contacts.length,'Valgt eiendom nå','info')}
+    ${opsMetric('Dokumentlagring',storageHint,'Størrelse krever Storage-statistikk','purple')}
+    ${opsMetric('E-post 30 dager',emails,'Logget på valgt eiendom','ok')}
+    ${opsMetric('AI-kall 30 dager',aiCalls,'AI Director og Property Brain','warn')}
+    ${opsMetric('Feilede handlinger',failures,failures?'Må følges opp':'Ingen loggede feil','bad')}
+    ${opsMetric('Uten abonnement',noSub,'Kunder som mangler pakke','warn')}
+  </div><div class="ops-two-col"><div>${opsChecklist('Backup og eksport',[
+    {ok:true,text:'Daglig backup skal være aktiv i Supabase'},
+    {ok:docs.length>0,warn:true,text:'Kontroller dokumentarkiv per kunde'},
+    {ok:false,warn:true,text:'Månedlig test av gjenoppretting må inn i rutinen'},
+    {ok:false,warn:true,text:'Eksport per kunde ved avslutning må standardiseres'}
+  ])}</div><div>${opsChecklist('Kostnadskontroll',[
+    {ok:true,text:'Maks AI-bruk skal styres per pakke'},
+    {ok:aiCalls<100,warn:true,text:'AI-kall siste 30 dager må overvåkes'},
+    {ok:emails<200,warn:true,text:'E-postteller per kunde må følges'},
+    {ok:!highUse,warn:true,text:'Varsel ved høy bruk eller manglende abonnement'}
+  ])}</div></div><div class="ops-two-col"><div>${opsChecklist('Teknisk robusthet',[
+    {ok:document.querySelectorAll('script[src*="assets/prod/"]').length>0,text:'Produksjonsscript er lastet'},
+    {ok:!document.querySelectorAll('script[src*="assets/modules/"]').length,warn:true,text:'Gamle modul-filer skal ikke lastes i appen'},
+    {ok:true,text:'Kundefeil vises som enkle meldinger'},
+    {ok:false,warn:true,text:'Flere automatiske tester bør legges i GitHub/Netlify'}
+  ])}</div><div class="ops-support"><div class="dash-title"><div><h4>Supportflyt</h4><p class="muted">Logg kunde, sakstype, alvorlighet, status, ansvarlig og intern kommentar.</p></div><button class="action" onclick="showSupportCaseForm()">Opprett</button></div>${supportActivityList()}</div></div></div>`;
+}
+function supportActivityList(){
+  const rows=(DP.cache.activity||[]).filter(a=>String(a.entity_type||'')==='support').slice(0,5);
+  if(!rows.length)return '<div class="empty-state"><strong>Ingen supportsaker logget.</strong><span>Opprett første supportsak når en kunde trenger hjelp.</span></div>';
+  return `<div class="stack-list">${rows.map(r=>`<section class="mini-record"><div><strong>${esc(r.action||'Support')}</strong><small>${esc(r.created_at?new Date(r.created_at).toLocaleString('nb-NO'):'')}</small></div></section>`).join('')}</div>`;
+}
+function showSupportCaseForm(){
+  showDrawer('Ny supportsak',`<div class="form-grid"><label>Kunde/eiendom<input id="supportCustomer" value="${esc(currentProperty()?.name||'')}"></label><label>Sakstype<select id="supportType"><option>Innlogging</option><option>Dokumenter</option><option>E-post</option><option>AI</option><option>Økonomi</option><option>Annet</option></select></label><label>Alvorlighet<select id="supportSeverity"><option>Normal</option><option>Kritisk</option><option>Lav</option></select></label><label>Status<select id="supportStatus"><option>Ny</option><option>Pågår</option><option>Venter kunde</option><option>Løst</option></select></label><label>Ansvarlig<input id="supportOwner" value="${esc(DP.user?.name||DP.user?.email||'')}"></label><label class="span-2">Intern kommentar<textarea id="supportNote" rows="4" placeholder="Hva må følges opp?"></textarea></label></div><button class="action primary" onclick="saveSupportCase()">Lagre supportsak</button><div id="supportOut" class="output"></div>`);
+}
+async function saveSupportCase(){
+  const out=document.getElementById('supportOut');
+  try{
+    requireLive('lagre supportsak');
+    const note=document.getElementById('supportNote')?.value||'';
+    const type=document.getElementById('supportType')?.value||'Support';
+    const severity=document.getElementById('supportSeverity')?.value||'Normal';
+    const status=document.getElementById('supportStatus')?.value||'Ny';
+    const owner=document.getElementById('supportOwner')?.value||'';
+    const r=await db().from('activity_log').insert({property_id:currentProperty().id,action:`Support: ${type} (${severity})`,entity_type:'support',metadata:{status,owner,note,customer:document.getElementById('supportCustomer')?.value||''}});
+    if(r.error)throw r.error;
+    await finishAction('Supportsaken er lagret.','admin');
+  }catch(e){setOutputError(out,e,'Supportsaken kunne ikke lagres.')}
 }
 function activityCards(){const rows=(DP.cache.activity||[]).slice(0,12);if(!rows.length)return '<div class="empty-state"><strong>Ingen aktivitet registrert.</strong><span>Når brukere oppretter, endrer, sender eller laster opp noe, vises historikken her.</span></div>';return `<div class="activity-feed control-activity">${rows.map(a=>`<section><span>${esc(String(a.entity_type||'Logg').slice(0,12))}</span><div><strong>${esc(a.action||'Hendelse')}</strong><small>${esc([currentProperty()?.name,a.created_at?new Date(a.created_at).toLocaleString('nb-NO'):''].filter(Boolean).join(' · '))}</small></div></section>`).join('')}</div>`}
 function roleAccessPanel(){
