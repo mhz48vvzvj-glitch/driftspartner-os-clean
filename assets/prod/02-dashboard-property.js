@@ -6,9 +6,9 @@
   const moneyRisk=dashboardMoneyRisk(),missingDocs=missingDocumentCount(docs);
   const boardDecisions=rfqs.filter(q=>String(q.status||'').toLowerCase().includes('utkast')).length+offers.length;
   const brain=typeof propertyBrainAnalysis==='function'?propertyBrainAnalysis():null;
-  const hasFinance=subscriptionHas('finance'),hasMarket=subscriptionHas('market'),hasBrain=subscriptionHas('brain'),hasWorkOrders=subscriptionHas('work_orders'),hasRfq=subscriptionHas('rfq');
+  const hasFinance=subscriptionHas('finance'),hasMarket=subscriptionHas('market'),hasBrain=subscriptionHas('brain'),hasWorkOrders=subscriptionHas('work_orders'),hasRfq=subscriptionHas('rfq'),hasAiDirector=subscriptionHas('ai_director');
   const heroActions=[
-    `<button class="action primary" onclick="runAiDirector('styrapport')">Lag styrerapport</button>`,
+    hasAiDirector?`<button class="action primary" onclick="runAiDirector('styrapport')">Lag styrerapport</button>`:'',
     `<button class="action primary" onclick="showEmailFlow('all')">Masseutsending</button>`,
     `<button class="action" onclick="showEmailFlow('board')">Send til styret</button>`,
     hasBrain?`<button class="action" onclick="openModule('brain')">Property Brain</button>`:'',
@@ -34,7 +34,7 @@
     ${hasRfq?dashboardMetric('Tilbud/RFQ',`${rfqs.length}/${offers.length}`,'Forespørsler og tilbud','info'):''}
     ${hasFinance?dashboardMetric('Konto',money(f.bank_balance),'Registrert banksaldo','purple'):''}
     <div class="card s12 dashboard-flow"><div class="dash-title"><div><h3>Saksløp</h3><p class="muted">Viser om eiendommen har en komplett driftssak fra avvik til rapport.</p></div><button class="action primary" onclick="openModule('cases')">Åpne saksløp</button></div>${ProductionFlowMini()}</div>
-    <div class="card s12 dashboard-ai">${AiDirectorCard()}</div>
+    ${hasAiDirector?`<div class="card s12 dashboard-ai">${AiDirectorCard()}</div>`:''}
     <div class="card s6 dashboard-list"><div class="dash-title"><h3>Siste avvik</h3><button class="action" onclick="openModule('cases')">Åpne avvik</button></div>${caseList(devs)}</div>
     <div class="card s6 dashboard-list"><div class="dash-title"><h3>Siste dokumenter</h3><button class="action" onclick="openModule('documents')">Åpne arkiv</button></div>${documentList(docs)}</div>
     <div class="card s12 dashboard-activity">${DashboardActivityFeed()}</div>
@@ -99,8 +99,8 @@ function planLabel(plan){return ({start:'Start',pro:'Pro',premium:'Premium'}[Str
 function statusLabel(status){return ({active:'Aktiv',pending:'Venter avtale',trial:'Pilot',paused:'Pause'}[String(status).toLowerCase()]||status||'Venter avtale')}
 function dashboardSubscriptionPlans(){
   return [
-    {id:'start',name:'Start',firstYear:9990,yearTwo:11880,items:['FDV-arkiv','Dokumenthåndtering','Avvikshåndtering','AI Director Basis','Styreportal','Mobiltilgang']},
-    {id:'pro',name:'Pro',firstYear:19990,yearTwo:23880,items:['Alt i Start','Vedlikeholdsplan','Arbeidsordre','Leverandørregister','Budsjettoversikt','Avansert rapportering','Ubegrenset antall styremedlemmer']},
+    {id:'start',name:'Start',firstYear:9990,yearTwo:11880,items:['FDV-arkiv','Dokumenthåndtering','Avvikshåndtering','Basisanbefalinger','Styreportal','Mobiltilgang']},
+    {id:'pro',name:'Pro',firstYear:19990,yearTwo:23880,items:['Alt i Start','AI Director','Vedlikeholdsplan','Arbeidsordre','Leverandørregister','Budsjettoversikt','Avansert rapportering','Ubegrenset antall styremedlemmer']},
     {id:'premium',name:'Premium',firstYear:39990,yearTwo:47880,items:['Alt i Pro','Property Brain AI','Risikoanalyse','Tilbudsinnhenting (RFQ)','Flere eiendommer','Prioritert support','Avanserte analyser']}
   ];
 }
@@ -366,6 +366,7 @@ function sectionTitleIcon(title){
 async function runAiDirector(mode='prioritering'){
   const out=document.getElementById('aiDirectorOut');
   try{
+    if(typeof subscriptionHas==='function'&&!subscriptionHas('ai_director'))throw new Error('AI Director fullanalyse krever Pro eller Premium.');
     requireLive('AI Director');
     if(!DP.session?.access_token)throw new Error('Du må være innlogget for å bruke AI Director.');
     const p=currentProperty();
