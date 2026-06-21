@@ -537,6 +537,7 @@ function runCostControlCheck(){
     warnings.length?`Følg opp: ${warnings.join(', ')}`:'OK: ingen tydelige kostnadsvarsler'
   ];
   if(out)out.textContent=lines.join('\n');
+  showDrawer('Kostnadssjekk',`<div class="info-grid"><section><small>AI-kall siste 30 dager</small><strong>${aiCalls}</strong><span>AI Director og Property Brain</span></section><section><small>E-post siste 30 dager</small><strong>${emails}</strong><span>Logget på valgt eiendom</span></section><section><small>Dokumenter</small><strong>${docs.length}</strong><span>Filer på valgt eiendom</span></section><section><small>Abonnement</small><strong>${esc(currentProperty()?.subscription_plan||'Ikke valgt')}</strong><span>Kundens aktive pakke</span></section></div><div class="output">${esc(lines.join('\n'))}</div>`);
   showNotice('Kostnadssjekk kjørt.','ok');
   return {aiCalls,emails,documents:docs.length,warnings};
 }
@@ -565,6 +566,7 @@ function runTechnicalRobustnessCheck(){
   ];
   const text=checks.map(c=>`${c[1]?'OK':'FØLG OPP'}: ${c[0]} - ${c[2]}`).join('\n');
   if(out)out.textContent=text;
+  showDrawer('Teknisk sjekk',`<div class="info-grid">${checks.map(c=>`<section><small>${esc(c[0])}</small><strong>${c[1]?'OK':'Følg opp'}</strong><span>${esc(c[2])}</span></section>`).join('')}</div><div class="output">${esc(text)}</div>`);
   showNotice('Teknisk sjekk kjørt.','ok');
   return checks;
 }
