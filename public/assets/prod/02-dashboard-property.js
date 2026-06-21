@@ -203,27 +203,15 @@ function DashboardFinanceChart(){
     ['Avvik',money(variance),variance>0?'bad':'ok'],
     ['Prosjekt',`${money(projectActual)} / ${money(projectBudget)}`,projectVariance>0?'warn':'purple']
   ];
-  const plot={left:48,right:18,top:16,bottom:40,width:520,height:240};
-  const xStep=rows.length>1?(plot.width-plot.left-plot.right)/(rows.length-1):0;
-  const y=v=>plot.top+(1-(Number(v)||0)/max)*(plot.height-plot.top-plot.bottom);
-  const x=i=>plot.left+(rows.length===1?(plot.width-plot.left-plot.right)/2:i*xStep);
-  const budgetPoints=rows.map((r,i)=>`${x(i)},${y(r.budget)}`).join(' ');
-  const actualPoints=rows.map((r,i)=>`${x(i)},${y(r.actual)}`).join(' ');
-  const area=`${actualPoints} ${x(rows.length-1)},${plot.height-plot.bottom} ${x(0)},${plot.height-plot.bottom}`;
-  const grid=[0,.25,.5,.75,1].map(t=>{
-    const gy=plot.top+t*(plot.height-plot.top-plot.bottom);
-    const val=max*(1-t);
-    return `<g><line x1="${plot.left}" y1="${gy}" x2="${plot.width-plot.right}" y2="${gy}" class="grid-line"></line><text x="8" y="${gy+4}" class="axis-label">${esc(compactMoney(val))}</text></g>`;
-  }).join('');
-  const bars=rows.map((r,i)=>{
-    const cx=x(i),barBudget=Math.max(2,plot.height-plot.bottom-y(r.budget)),barActual=Math.max(2,plot.height-plot.bottom-y(r.actual)),over=r.actual>r.budget;
-    return `<g class="finance-chart-col"><rect x="${cx-13}" y="${plot.height-plot.bottom-barBudget}" width="10" height="${barBudget}" rx="5" class="budget-bar"></rect><rect x="${cx+3}" y="${plot.height-plot.bottom-barActual}" width="10" height="${barActual}" rx="5" class="actual-bar ${over?'over':''}"></rect><text x="${cx}" y="${plot.height-16}" text-anchor="middle" class="x-label">${esc(shortLabel(r.label))}</text></g>`;
-  }).join('');
-  const dots=rows.map((r,i)=>`<circle cx="${x(i)}" cy="${y(r.actual)}" r="4" class="${r.actual>r.budget?'dot over':'dot'}"><title>${esc(r.label)}: faktisk ${money(r.actual)}, budsjett ${money(r.budget)}</title></circle>`).join('');
+  const point=(value,i)=>`${rows.length===1?50:Math.round((i/(rows.length-1))*100)},${Math.round(94-(Number(value||0)/max)*78)}`;
+  const budgetPoints=rows.map((r,i)=>point(r.budget,i)).join(' ');
+  const actualPoints=rows.map((r,i)=>point(r.actual,i)).join(' ');
+  const area=`${actualPoints} 100,100 0,100`;
+  const labels=rows.map((r,i)=>`<span>${esc(shortLabel(r.label))}</span>`).join('');
   const insight=variance>0?`${money(variance)} over budsjett`:(budget||actual)?'Innenfor registrert budsjett':'Mangler budsjettgrunnlag';
   const insightText=rawRows.length?`Basert på ${rawRows.length} økonomilinje${rawRows.length===1?'':'r'} og prosjektposter for valgt eiendom.`:'Legg inn budsjettlinjer og faktiske kostnader for å bygge live graf.';
   const emptyHint=rawRows.length?'':`<div class="empty-state finance-empty-hint"><strong>Ingen budsjettlinjer ennå.</strong><span>Grafen viser nullgrunnlag til økonomi er registrert.</span><button class="action primary" onclick="openModule('finance')">Legg inn økonomi</button></div>`;
-  return `<div class="dash-title"><div><h3>Økonomi live</h3><p class="muted">Budsjett, faktisk kostnad og prosjektøkonomi fra valgt eiendom.</p></div><button class="action" onclick="openModule('finance')">Åpne økonomi</button></div><div class="finance-summary-strip premium">${summary.map(s=>`<div class="${esc(s[2])}"><small>${esc(s[0])}</small><b>${esc(s[1])}</b></div>`).join('')}</div><div class="finance-chart-shell"><div class="premium-finance-legend"><span><i class="budget"></i>Budsjett</span><span><i class="actual"></i>Faktisk</span><span><i class="over"></i>Over budsjett</span></div><svg class="premium-finance-svg" viewBox="0 0 ${plot.width} ${plot.height}" role="img" aria-label="Økonomigraf for budsjett og faktisk kostnad">${grid}<polygon points="${area}" class="actual-area"></polygon>${bars}<polyline points="${budgetPoints}" class="budget-line"></polyline><polyline points="${actualPoints}" class="actual-line"></polyline>${dots}</svg><div class="finance-chart-footer"><strong>${esc(insight)}</strong><span>${esc(insightText)}</span></div></div>${emptyHint}`;
+  return `<div class="dash-title"><div><h3>Økonomi live</h3><p class="muted">Budsjett, faktisk kostnad og prosjektøkonomi fra valgt eiendom.</p></div><button class="action" onclick="openModule('finance')">Åpne økonomi</button></div><div class="finance-summary-strip premium">${summary.map(s=>`<div class="${esc(s[2])}"><small>${esc(s[0])}</small><b>${esc(s[1])}</b></div>`).join('')}</div><div class="finance-chart-shell finance-trend-shell"><div class="premium-finance-legend"><span><i class="budget"></i>Budsjett</span><span><i class="actual"></i>Faktisk</span><span><i class="over"></i>Over budsjett</span></div><div class="trend-chart finance-trend-chart"><svg viewBox="0 0 100 100" preserveAspectRatio="none" role="img" aria-label="Økonomigraf for budsjett og faktisk kostnad"><polyline points="${area}" fill="rgba(67,212,255,.11)" stroke="none"></polyline><polyline points="${budgetPoints}" fill="none" stroke="#94a3b8" stroke-width="2.4" stroke-dasharray="5 5" vector-effect="non-scaling-stroke"></polyline><polyline points="${actualPoints}" fill="none" stroke="${variance>0?'#ff8a3d':'#43d4ff'}" stroke-width="3.2" vector-effect="non-scaling-stroke"></polyline></svg></div><div class="finance-trend-labels">${labels}</div><div class="finance-chart-footer"><strong>${esc(insight)}</strong><span>${esc(insightText)}</span></div></div>${emptyHint}`;
 }
 function compactMoney(v){
   const n=Number(v)||0;
