@@ -20,15 +20,15 @@ function canManageCustomers(){return appRole()==='superadmin'}
 function subscriptionPlanId(){return String(currentProperty()?.subscription_plan||'').toLowerCase()}
 function subscriptionAllowedMenus(){
   const plan=subscriptionPlanId();
-  if(!plan)return DP.menus.map(m=>m[0]);
+  if(!plan)return ['dashboard','property','people','cases','documents'];
   if(plan==='start')return ['dashboard','property','people','cases','documents'];
   if(plan==='pro')return ['dashboard','property','people','cases','documents','maintenance','finance','reports','market','integrations'];
   if(plan==='premium')return DP.menus.map(m=>m[0]);
-  return DP.menus.map(m=>m[0]);
+  return ['dashboard','property','people','cases','documents'];
 }
 function subscriptionHas(feature){
   const plan=subscriptionPlanId();
-  if(!plan)return true;
+  if(!plan)return ['dashboard','property','people','cases','documents'].includes(feature);
   const allowed=subscriptionAllowedMenus();
   if(feature==='brain')return plan==='premium';
   if(feature==='rfq')return plan==='premium';
@@ -123,7 +123,7 @@ function renderShell(){
   document.getElementById('propertyContext').innerHTML=DP.properties.length?`<div>${propSelect()}</div><button class="action" onclick="hydrateAll().then(render)">Hent live data</button>`:'<div class="output">Ingen eiendommer funnet for brukeren.</div>';
 }
 function openModule(id){
-  if(!canOpenModule(id)){setStatus('Denne rollen har ikke tilgang til denne menyen.','bad');return}
+  if(!canOpenModule(id)){setStatus('Denne funksjonen er ikke tilgjengelig for valgt rolle eller pakke.','bad');return}
   DP.closePanelsOnRender=true;
   closeTransientPanels();
   DP.module=id;DP.tab='';render();closeTransientPanels();
