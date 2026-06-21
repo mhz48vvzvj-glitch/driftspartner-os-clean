@@ -332,6 +332,7 @@ function launchChecks(){
   const hasWorkOrders=typeof subscriptionHas==='function'?subscriptionHas('work_orders'):true;
   const hasFinance=typeof subscriptionHas==='function'?subscriptionHas('finance'):true;
   const hasRfq=typeof subscriptionHas==='function'?subscriptionHas('rfq'):true;
+  const emailTested=activity.some(a=>/e-?post|mail/i.test(`${a.action||''} ${a.entity_type||''}`))||DP.cache.email_tested_ok;
   const checks=[
     {label:'Innlogging',ok:!!DP.session&&!!DP.user,group:'Sikkerhet',action:'Test live innlogging med ekte bruker.'},
     {label:'Live eiendom',ok:liveProperty,group:'Kunde',action:'Velg eller opprett en live-eiendom.'},
@@ -342,7 +343,7 @@ function launchChecks(){
     {label:'Leverandører',ok:(DP.suppliers||[]).some(s=>String(s.email||'').includes('@')),group:'Innkjøp',action:'Legg inn leverandør med e-post.'},
     {label:'Aktivitetslogg',ok:activity.length>0,group:'Audit',action:'Utfør en lagring slik at hendelse logges.'},
     {label:'Kommersiell pakke',ok:true,group:'Salg',action:'Klar.'},
-    {label:'E-post',ok:false,warn:true,group:'Kommunikasjon',action:'Send en test fra live-siden før kundepilot.'}
+    {label:'E-post',ok:!!emailTested,warn:!emailTested,group:'Kommunikasjon',action:'Send en test fra live-siden før kundepilot.'}
   ];
   if(hasWorkOrders)checks.splice(4,0,{label:'Arbeidsordre',ok:wos.length>0,group:'Drift',action:'Lag arbeidsordre fra et avvik.'});
   if(hasFinance)checks.splice(checks.findIndex(c=>c.label==='Styre/beboere'),0,{label:'Økonomi',ok:finance.length>0&&budget.length>0,warn:finance.length>0,group:'Økonomi',action:finance.length>0?'Legg inn minst én budsjettlinje.':'Legg inn konto/reservefond og budsjett.'});
@@ -366,7 +367,21 @@ function LaunchControlPage(){
 }
 function launchCheckCard(c){
   const type=checkType(c),text=c.ok?'Klar':c.warn?'Må testes':'Må fikses';
-  return `<section class="launch-check ${type}"><div><small>${esc(c.group)}</small><strong>${esc(c.label)}</strong></div><span>${esc(text)}</span><p>${esc(c.ok?'Klar.':c.action)}</p></section>`;
+  const emailButton=c.label==='E-post'&&!c.ok?`<button class="action" onclick="markEmailTestedOk()">Merk testet</button>`:'';
+  return `<section class="launch-check ${type}"><div><small>${esc(c.group)}</small><strong>${esc(c.label)}</strong></div><span>${esc(text)}</span><p>${esc(c.ok?'Klar.':c.action)}</p>${emailButton}</section>`;
+}
+async function markEmailTestedOk(){
+  try{
+    DP.cache.email_tested_ok=true;
+    if(DP.session&&currentProperty())await insertActivity('E-post testet OK','email',currentProperty().id);
+    showNotice('E-post er markert som testet og klar.','ok');
+    await hydrateAll();
+    render();
+  }catch(e){
+    DP.cache.email_tested_ok=true;
+    showNotice('E-post er markert som testet.','ok');
+    render();
+  }
 }
 async function runLaunchControl(){
   const out=document.getElementById('launchOut');
