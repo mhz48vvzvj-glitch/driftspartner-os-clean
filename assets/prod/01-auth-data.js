@@ -76,7 +76,7 @@ window.testLoginConnection=testLoginConnection;
 window.showLogin=showLogin;
 document.addEventListener('DOMContentLoaded',()=>{
   const out=document.getElementById('loginOut');
-  if(out&&out.textContent.includes('Venter pa app-script'))out.textContent='Appen er lastet. Sjekker tilkobling...';
+  if(out&&(out.textContent.includes('Venter på app-script')||out.textContent.includes('Venter pa app-script')))out.textContent='Appen er lastet. Sjekker tilkobling...';
 });
 async function logout(){try{await db().auth.signOut()}catch(e){}DP.session=null;DP.user=null;DP.properties=[];DP.propertyId='';DP.cache={};renderPublic()}
 async function resumeSession(){

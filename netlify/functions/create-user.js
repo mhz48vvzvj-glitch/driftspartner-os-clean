@@ -87,7 +87,7 @@ async function upsertAppUserProfile({ supabaseUrl, serviceKey, authUserId, name,
       return request(fallbackBody);
     }
     if (message.includes("invalid input value for enum") || message.includes("app_role")) {
-      throw new Error("Rollen finnes ikke i rollelisten i databasen. Kjor supabase-app-roles-v1.sql i Supabase, og prov igjen.");
+      throw new Error("Rollen finnes ikke i rollelisten i databasen. Kjør supabase-app-roles-v1.sql i Supabase, og prøv igjen.");
     }
     throw error;
   }
