@@ -455,8 +455,8 @@ function SuperadminOpsPage(){
     {ok:document.querySelectorAll('script[src*="assets/prod/"]').length>0,text:'Produksjonsscript er lastet'},
     {ok:!document.querySelectorAll('script[src*="assets/modules/"]').length,warn:true,text:'Gamle modul-filer skal ikke lastes i appen'},
     {ok:true,text:'Kundefeil vises som enkle meldinger'},
-    {ok:false,warn:true,text:'Flere automatiske tester bør legges i GitHub/Netlify'}
-  ])}</div><div class="ops-support"><div class="dash-title"><div><h4>Supportflyt</h4><p class="muted">Logg kunde, sakstype, alvorlighet, status, ansvarlig og intern kommentar.</p></div><button class="action" onclick="showSupportCaseForm()">Opprett</button></div>${supportActivityList()}</div></div></div>`;
+    {ok:activity.some(a=>String(a.entity_type||'')==='technical_check'),warn:true,text:'Flere automatiske tester bør legges i GitHub/Netlify'}
+  ])}<div class="module-actions ops-actions"><button class="action primary" onclick="runTechnicalRobustnessCheck()">Kjør teknisk sjekk</button><button class="action" onclick="showLegacyModuleInfo()">Vis modulfiler</button><button class="action" onclick="logTechnicalTest()">Logg test utført</button></div><div id="technicalOpsOut" class="output">Klar for teknisk sjekk.</div></div><div class="ops-support"><div class="dash-title"><div><h4>Supportflyt</h4><p class="muted">Logg kunde, sakstype, alvorlighet, status, ansvarlig og intern kommentar.</p></div><button class="action" onclick="showSupportCaseForm()">Opprett</button></div>${supportActivityList()}</div></div></div>`;
 }
 function supportActivityList(){
   const rows=(DP.cache.activity||[]).filter(a=>String(a.entity_type||'')==='support').slice(0,5);
@@ -512,6 +512,38 @@ async function saveCustomerExport(){
     if(r.error)throw r.error;
     await finishAction('Kundeeksporten er logget.','admin');
   }catch(e){setOutputError(out,e,'Kundeeksporten kunne ikke lagres.')}
+}
+function runTechnicalRobustnessCheck(){
+  const out=document.getElementById('technicalOpsOut');
+  const prodScripts=[...document.querySelectorAll('script[src*="assets/prod/"]')].map(s=>s.getAttribute('src')||'');
+  const moduleScripts=[...document.querySelectorAll('script[src*="assets/modules/"]')].map(s=>s.getAttribute('src')||'');
+  const checks=[
+    ['Produksjonsscript',prodScripts.length>=5,`${prodScripts.length} prod-filer lastet`],
+    ['Gamle moduler',moduleScripts.length===0,moduleScripts.length?`${moduleScripts.length} gamle moduler lastes`:'Ingen gamle moduler lastes'],
+    ['Supabase-klient',!!DP.sb,'Supabase er initialisert'],
+    ['Innlogging',!!DP.session,'Bruker er innlogget'],
+    ['Live eiendom',isUuid(currentProperty()?.id),'Valgt eiendom har live-ID'],
+    ['Netlify-funksjoner',location.protocol!=='file:','Må testes fra live Netlify-side']
+  ];
+  const text=checks.map(c=>`${c[1]?'OK':'FØLG OPP'}: ${c[0]} - ${c[2]}`).join('\n');
+  if(out)out.textContent=text;
+  return checks;
+}
+function showLegacyModuleInfo(){
+  const prodScripts=[...document.querySelectorAll('script[src*="assets/prod/"]')].map(s=>s.getAttribute('src')||'');
+  const moduleScripts=[...document.querySelectorAll('script[src*="assets/modules/"]')].map(s=>s.getAttribute('src')||'');
+  showDrawer('Tekniske appfiler',`<div class="info-grid"><section><small>Produksjonsfiler</small><strong>${prodScripts.length}</strong><span>Disse styrer appen nå.</span></section><section><small>Gamle moduler lastet</small><strong>${moduleScripts.length}</strong><span>${moduleScripts.length?'Må ryddes':'Ingen gamle moduler lastes i siden.'}</span></section></div><h3>Produksjonsfiler</h3><div class="output">${esc(prodScripts.join('\n')||'Ingen funnet')}</div><h3>Gamle moduler som lastes</h3><div class="output">${esc(moduleScripts.join('\n')||'Ingen gamle moduler lastes.')}</div>`);
+}
+async function logTechnicalTest(){
+  const out=document.getElementById('technicalOpsOut');
+  try{
+    requireLive('logge teknisk test');
+    const checks=runTechnicalRobustnessCheck();
+    const failed=checks.filter(c=>!c[1]).map(c=>c[0]);
+    const r=await db().from('activity_log').insert({property_id:currentProperty().id,action:failed.length?`Teknisk sjekk: ${failed.length} punkt må følges opp`:'Teknisk sjekk: OK',entity_type:'technical_check',metadata:{failed,checked_at:new Date().toISOString()}});
+    if(r.error)throw r.error;
+    await finishAction('Teknisk sjekk er logget.','admin');
+  }catch(e){setOutputError(out,e,'Teknisk sjekk kunne ikke logges.')}
 }
 function activityCards(){const rows=(DP.cache.activity||[]).slice(0,12);if(!rows.length)return '<div class="empty-state"><strong>Ingen aktivitet registrert.</strong><span>Når brukere oppretter, endrer, sender eller laster opp noe, vises historikken her.</span></div>';return `<div class="activity-feed control-activity">${rows.map(a=>`<section><span>${esc(String(a.entity_type||'Logg').slice(0,12))}</span><div><strong>${esc(a.action||'Hendelse')}</strong><small>${esc([currentProperty()?.name,a.created_at?new Date(a.created_at).toLocaleString('nb-NO'):''].filter(Boolean).join(' · '))}</small></div></section>`).join('')}</div>`}
 function roleAccessPanel(){
