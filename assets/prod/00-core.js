@@ -277,6 +277,45 @@ document.addEventListener('keydown',e=>{
 
 
 
+if(!window.__dpOpsClickFallback){
+  window.__dpOpsClickFallback=true;
+  document.addEventListener('click',event=>{
+    const button=event.target?.closest?.('button');
+    if(!button||!button.closest?.('.ops-dashboard,.drawer'))return;
+    const text=(button.textContent||'').trim();
+    const actions={
+      'Ny supportsak':'showSupportCaseForm',
+      'Opprett':'showSupportCaseForm',
+      'Lagre supportsak':'saveSupportCase',
+      'Logg gjenopprettingstest':'showRestoreTestForm',
+      'Lagre test':'saveRestoreTest',
+      'Start kundeeksport':'showCustomerExportForm',
+      'Lagre eksportstatus':'saveCustomerExport',
+      'Kjor kostnadssjekk':'runCostControlCheck',
+      'Kjør kostnadssjekk':'runCostControlCheck',
+      'Logg kostnadskontroll':'logCostControlCheck',
+      'Kjor teknisk sjekk':'runTechnicalRobustnessCheck',
+      'Kjør teknisk sjekk':'runTechnicalRobustnessCheck',
+      'Vis modulfiler':'showLegacyModuleInfo',
+      'Logg test utfort':'logTechnicalTest',
+      'Logg test utført':'logTechnicalTest'
+    };
+    const action=actions[text];
+    if(!action)return;
+    event.preventDefault();
+    event.stopPropagation();
+    if(typeof window.dpOpsAction==='function'){
+      window.dpOpsAction(action);
+      return;
+    }
+    const target=/teknisk|modulfiler|test/i.test(text)?'technicalOpsOut':/kostnad/i.test(text)?'costOpsOut':/gjenoppretting|kundeeksport|eksport/i.test(text)?'backupOpsOut':'status';
+    const message='Kontrollfunksjonene er ikke ferdig lastet. Last siden pa nytt.';
+    const out=document.getElementById(target);
+    if(out)out.textContent=message;
+    if(typeof showNotice==='function')showNotice(message,'bad');
+  },true);
+}
+
 window.DP=DP;
 window.renderPublic=renderPublic;
 window.render=render;

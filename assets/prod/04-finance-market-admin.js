@@ -437,7 +437,7 @@ function SuperadminOpsPage(){
   const noSub=customers.filter(c=>!c.plan).length;
   const highUse=(docs.length>75||emails>100||aiCalls>100||activity.length>250);
   const storageHint=docs.length?`${docs.length} filer på valgt eiendom`:'Ingen filer på valgt eiendom';
-  return `<div class="ops-dashboard"><div class="ops-head"><div><small>Superadmin driftsstatus</small><h3>Helse, bruk og kostnadskontroll</h3><p>Intern oversikt for Driftspartner Nord før dere passerer 50+ kunder. Kundene ser ikke denne siden.</p></div><div class="module-actions"><button type="button" class="action primary" onclick="hydrateAll().then(render)">Oppdater live</button><button type="button" class="action" onclick="window.dpOpsAction('showSupportCaseForm'); return false">Ny supportsak</button></div></div><div class="ops-metric-grid">
+  return `<div class="ops-dashboard"><div class="ops-head"><div><small>Superadmin driftsstatus</small><h3>Helse, bruk og kostnadskontroll</h3><p>Intern oversikt for Driftspartner Nord før dere passerer 50+ kunder. Kundene ser ikke denne siden.</p><p class="ops-runtime">Driftsknapper: direkte klikk aktiv.</p></div><div class="module-actions"><button type="button" class="action primary" onclick="hydrateAll().then(render)">Oppdater live</button><button type="button" class="action" onclick="window.dpOpsAction('showSupportCaseForm'); return false">Ny supportsak</button></div></div><div class="ops-metric-grid">
     ${opsMetric('Kunder',customers.length,'Basert på eiendommer du har tilgang til','ok')}
     ${opsMetric('Eiendommer',DP.properties.length,'Alle lastede eiendommer','info')}
     ${opsMetric('Brukere/kontakter',contacts.length,'Valgt eiendom nå','info')}
@@ -451,17 +451,17 @@ function SuperadminOpsPage(){
     {ok:docs.length>0,warn:true,text:'Kontroller dokumentarkiv per kunde'},
     {ok:false,warn:true,text:'Månedlig test av gjenoppretting må inn i rutinen'},
     {ok:false,warn:true,text:'Eksport per kunde ved avslutning må standardiseres'}
-  ])}<div class="module-actions ops-actions"><button type="button" class="action primary" onclick="document.getElementById('backupOpsOut').textContent='?pner skjema for gjenopprettingstest...'; window.dpOpsAction('showRestoreTestForm'); return false">Logg gjenopprettingstest</button><button type="button" class="action" onclick="document.getElementById('backupOpsOut').textContent='?pner skjema for kundeeksport...'; window.dpOpsAction('showCustomerExportForm'); return false">Start kundeeksport</button></div><div id="backupOpsOut" class="output">Klar for backup- og eksportrutine.</div>${backupExportActivityList()}</div><div>${opsChecklist('Kostnadskontroll',[
+  ])}<div class="module-actions ops-actions"><button type="button" class="action primary" onclick="document.getElementById('backupOpsOut').textContent='Apner skjema for gjenopprettingstest...'; window.dpOpsAction('showRestoreTestForm'); return false">Logg gjenopprettingstest</button><button type="button" class="action" onclick="document.getElementById('backupOpsOut').textContent='Apner skjema for kundeeksport...'; window.dpOpsAction('showCustomerExportForm'); return false">Start kundeeksport</button></div><div id="backupOpsOut" class="output">Klar for backup- og eksportrutine.</div>${backupExportActivityList()}</div><div>${opsChecklist('Kostnadskontroll',[
     {ok:true,text:'Maks AI-bruk skal styres per pakke'},
     {ok:aiCalls<100,warn:true,text:'AI-kall siste 30 dager må overvåkes'},
     {ok:emails<200,warn:true,text:'E-postteller per kunde må følges'},
     {ok:!highUse,warn:true,text:'Varsel ved høy bruk eller manglende abonnement'}
-  ])}<div class="module-actions ops-actions"><button type="button" class="action primary" onclick="document.getElementById('costOpsOut').textContent='Kj?rer kostnadssjekk...'; window.dpOpsAction('runCostControlCheck'); return false">Kjør kostnadssjekk</button><button type="button" class="action" onclick="document.getElementById('costOpsOut').textContent='Logger kostnadskontroll...'; window.dpOpsAction('logCostControlCheck'); return false">Logg kostnadskontroll</button></div><div id="costOpsOut" class="output">Klar for kostnadssjekk.</div></div></div><div class="ops-two-col"><div>${opsChecklist('Teknisk robusthet',[
+  ])}<div class="module-actions ops-actions"><button type="button" class="action primary" onclick="document.getElementById('costOpsOut').textContent='Kjorer kostnadssjekk...'; window.dpOpsAction('runCostControlCheck'); return false">Kjør kostnadssjekk</button><button type="button" class="action" onclick="document.getElementById('costOpsOut').textContent='Logger kostnadskontroll...'; window.dpOpsAction('logCostControlCheck'); return false">Logg kostnadskontroll</button></div><div id="costOpsOut" class="output">Klar for kostnadssjekk.</div></div></div><div class="ops-two-col"><div>${opsChecklist('Teknisk robusthet',[
     {ok:document.querySelectorAll('script[src*="assets/prod/"]').length>0,text:'Produksjonsscript er lastet'},
     {ok:!document.querySelectorAll('script[src*="assets/modules/"]').length,warn:true,text:'Gamle modul-filer skal ikke lastes i appen'},
     {ok:true,text:'Kundefeil vises som enkle meldinger'},
     {ok:activity.some(a=>String(a.entity_type||'')==='technical_check'),warn:true,text:'Flere automatiske tester bør legges i GitHub/Netlify'}
-  ])}<div class="module-actions ops-actions"><button type="button" class="action primary" onclick="document.getElementById('technicalOpsOut').textContent='Kj?rer teknisk sjekk...'; window.dpOpsAction('runTechnicalRobustnessCheck'); return false">Kjør teknisk sjekk</button><button type="button" class="action" onclick="document.getElementById('technicalOpsOut').textContent='?pner oversikt over modulfiler...'; window.dpOpsAction('showLegacyModuleInfo'); return false">Vis modulfiler</button><button type="button" class="action" onclick="document.getElementById('technicalOpsOut').textContent='Logger teknisk test...'; window.dpOpsAction('logTechnicalTest'); return false">Logg test utført</button></div><div id="technicalOpsOut" class="output">Klar for teknisk sjekk.</div></div><div class="ops-support"><div class="dash-title"><div><h4>Supportflyt</h4><p class="muted">Logg kunde, sakstype, alvorlighet, status, ansvarlig og intern kommentar.</p></div><button type="button" class="action" onclick="window.dpOpsAction('showSupportCaseForm'); return false">Opprett</button></div>${supportActivityList()}</div></div></div>`;
+  ])}<div class="module-actions ops-actions"><button type="button" class="action primary" onclick="document.getElementById('technicalOpsOut').textContent='Kjorer teknisk sjekk...'; window.dpOpsAction('runTechnicalRobustnessCheck'); return false">Kjør teknisk sjekk</button><button type="button" class="action" onclick="document.getElementById('technicalOpsOut').textContent='Apner oversikt over modulfiler...'; window.dpOpsAction('showLegacyModuleInfo'); return false">Vis modulfiler</button><button type="button" class="action" onclick="document.getElementById('technicalOpsOut').textContent='Logger teknisk test...'; window.dpOpsAction('logTechnicalTest'); return false">Logg test utført</button></div><div id="technicalOpsOut" class="output">Klar for teknisk sjekk.</div></div><div class="ops-support"><div class="dash-title"><div><h4>Supportflyt</h4><p class="muted">Logg kunde, sakstype, alvorlighet, status, ansvarlig og intern kommentar.</p></div><button type="button" class="action" onclick="window.dpOpsAction('showSupportCaseForm'); return false">Opprett</button></div>${supportActivityList()}</div></div></div>`;
 }
 function supportActivityList(){
   const rows=(DP.cache.activity||[]).filter(a=>String(a.entity_type||'')==='support').slice(0,5);
@@ -552,8 +552,9 @@ async function logCostControlCheck(){
 }
 function runTechnicalRobustnessCheck(){
   const out=document.getElementById('technicalOpsOut');
-  const prodScripts=[...document.querySelectorAll('script[src*="assets/prod/"]')].map(s=>s.getAttribute('src')||'');
-  const moduleScripts=[...document.querySelectorAll('script[src*="assets/modules/"]')].map(s=>s.getAttribute('src')||'');
+  const scriptSrc=node=>node?.getAttribute?.('src')||node?.src||'';
+  const prodScripts=[...document.querySelectorAll('script[src*="assets/prod/"]')].map(scriptSrc).filter(Boolean);
+  const moduleScripts=[...document.querySelectorAll('script[src*="assets/modules/"]')].map(scriptSrc).filter(Boolean);
   const checks=[
     ['Produksjonsscript',prodScripts.length>=5,`${prodScripts.length} prod-filer lastet`],
     ['Gamle moduler',moduleScripts.length===0,moduleScripts.length?`${moduleScripts.length} gamle moduler lastes`:'Ingen gamle moduler lastes'],
@@ -568,8 +569,9 @@ function runTechnicalRobustnessCheck(){
   return checks;
 }
 function showLegacyModuleInfo(){
-  const prodScripts=[...document.querySelectorAll('script[src*="assets/prod/"]')].map(s=>s.getAttribute('src')||'');
-  const moduleScripts=[...document.querySelectorAll('script[src*="assets/modules/"]')].map(s=>s.getAttribute('src')||'');
+  const scriptSrc=node=>node?.getAttribute?.('src')||node?.src||'';
+  const prodScripts=[...document.querySelectorAll('script[src*="assets/prod/"]')].map(scriptSrc).filter(Boolean);
+  const moduleScripts=[...document.querySelectorAll('script[src*="assets/modules/"]')].map(scriptSrc).filter(Boolean);
   showNotice('Viser tekniske appfiler.','ok');
   showDrawer('Tekniske appfiler',`<div class="info-grid"><section><small>Produksjonsfiler</small><strong>${prodScripts.length}</strong><span>Disse styrer appen nå.</span></section><section><small>Gamle moduler lastet</small><strong>${moduleScripts.length}</strong><span>${moduleScripts.length?'Må ryddes':'Ingen gamle moduler lastes i siden.'}</span></section></div><h3>Produksjonsfiler</h3><div class="output">${esc(prodScripts.join('\n')||'Ingen funnet')}</div><h3>Gamle moduler som lastes</h3><div class="output">${esc(moduleScripts.join('\n')||'Ingen gamle moduler lastes.')}</div>`);
 }
