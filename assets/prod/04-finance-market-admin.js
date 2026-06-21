@@ -446,7 +446,7 @@ function SuperadminOpsPage(){
     {ok:docs.length>0,warn:true,text:'Kontroller dokumentarkiv per kunde'},
     {ok:false,warn:true,text:'Månedlig test av gjenoppretting må inn i rutinen'},
     {ok:false,warn:true,text:'Eksport per kunde ved avslutning må standardiseres'}
-  ])}</div><div>${opsChecklist('Kostnadskontroll',[
+  ])}<div class="module-actions ops-actions"><button class="action primary" onclick="showRestoreTestForm()">Logg gjenopprettingstest</button><button class="action" onclick="showCustomerExportForm()">Start kundeeksport</button></div>${backupExportActivityList()}</div><div>${opsChecklist('Kostnadskontroll',[
     {ok:true,text:'Maks AI-bruk skal styres per pakke'},
     {ok:aiCalls<100,warn:true,text:'AI-kall siste 30 dager må overvåkes'},
     {ok:emails<200,warn:true,text:'E-postteller per kunde må følges'},
@@ -479,6 +479,39 @@ async function saveSupportCase(){
     if(r.error)throw r.error;
     await finishAction('Supportsaken er lagret.','admin');
   }catch(e){setOutputError(out,e,'Supportsaken kunne ikke lagres.')}
+}
+function backupExportActivityList(){
+  const rows=(DP.cache.activity||[]).filter(a=>/backup_test|customer_export/.test(String(a.entity_type||''))).slice(0,6);
+  if(!rows.length)return '<div class="empty-state"><strong>Ingen backup- eller eksportrutiner logget.</strong><span>Logg første gjenopprettingstest eller kundeeksport når rutinen er utført.</span></div>';
+  return `<div class="stack-list ops-log-list">${rows.map(r=>`<section class="mini-record"><div><strong>${esc(r.action||'Rutine')}</strong><small>${esc(r.created_at?new Date(r.created_at).toLocaleString('nb-NO'):'')}</small></div></section>`).join('')}</div>`;
+}
+function showRestoreTestForm(){
+  showDrawer('Logg gjenopprettingstest',`<div class="form-grid"><label>Kunde/eiendom<input id="restoreCustomer" value="${esc(currentProperty()?.name||'')}"></label><label>Dato<input id="restoreDate" type="date" value="${new Date().toISOString().slice(0,10)}"></label><label>Ansvarlig<input id="restoreOwner" value="${esc(DP.user?.name||DP.user?.email||'')}"></label><label>Resultat<select id="restoreResult"><option>Bestått</option><option>Feilet</option><option>Må følges opp</option></select></label><label>Neste testdato<input id="restoreNextDate" type="date"></label><label class="span-2">Kommentar<textarea id="restoreNote" rows="4" placeholder="Hva ble testet? Database, dokumenter, innlogging, avvik, økonomi osv."></textarea></label></div><button class="action primary" onclick="saveRestoreTest()">Lagre test</button><div id="restoreOut" class="output"></div>`);
+}
+async function saveRestoreTest(){
+  const out=document.getElementById('restoreOut');
+  try{
+    requireLive('lagre gjenopprettingstest');
+    const result=document.getElementById('restoreResult')?.value||'Bestått';
+    const date=document.getElementById('restoreDate')?.value||new Date().toISOString().slice(0,10);
+    const r=await db().from('activity_log').insert({property_id:currentProperty().id,action:`Gjenopprettingstest: ${result}`,entity_type:'backup_test',metadata:{customer:document.getElementById('restoreCustomer')?.value||'',date,owner:document.getElementById('restoreOwner')?.value||'',next_date:document.getElementById('restoreNextDate')?.value||'',note:document.getElementById('restoreNote')?.value||''}});
+    if(r.error)throw r.error;
+    await finishAction('Gjenopprettingstesten er logget.','admin');
+  }catch(e){setOutputError(out,e,'Gjenopprettingstesten kunne ikke lagres.')}
+}
+function showCustomerExportForm(){
+  showDrawer('Start kundeeksport',`<div class="form-grid"><label>Kunde/eiendom<input id="exportCustomer" value="${esc(currentProperty()?.name||'')}"></label><label>Status<select id="exportStatus"><option>Klargjøres</option><option>Sendt</option><option>Bekreftet mottatt</option><option>Slettet/anonymisert</option></select></label><label>Ansvarlig<input id="exportOwner" value="${esc(DP.user?.name||DP.user?.email||'')}"></label><label>Slettedato etter avtale<input id="exportDeleteDate" type="date"></label><label class="span-2">Hva eksporteres<div class="choice-list"><label class="check-row"><input class="exportPart" type="checkbox" value="Dokumenter" checked> Dokumenter</label><label class="check-row"><input class="exportPart" type="checkbox" value="Avvik" checked> Avvik</label><label class="check-row"><input class="exportPart" type="checkbox" value="Arbeidsordre" checked> Arbeidsordre</label><label class="check-row"><input class="exportPart" type="checkbox" value="Økonomi" checked> Økonomi</label><label class="check-row"><input class="exportPart" type="checkbox" value="Aktivitetslogg" checked> Aktivitetslogg</label></div></label><label class="span-2">Kommentar<textarea id="exportNote" rows="4" placeholder="Hvordan leveres eksporten, hvem mottar den, og hva er avtalt?"></textarea></label></div><button class="action primary" onclick="saveCustomerExport()">Lagre eksportstatus</button><div id="exportOut" class="output"></div>`);
+}
+async function saveCustomerExport(){
+  const out=document.getElementById('exportOut');
+  try{
+    requireLive('lagre kundeeksport');
+    const status=document.getElementById('exportStatus')?.value||'Klargjøres';
+    const parts=[...document.querySelectorAll('.exportPart:checked')].map(x=>x.value);
+    const r=await db().from('activity_log').insert({property_id:currentProperty().id,action:`Kundeeksport: ${status}`,entity_type:'customer_export',metadata:{customer:document.getElementById('exportCustomer')?.value||'',owner:document.getElementById('exportOwner')?.value||'',delete_date:document.getElementById('exportDeleteDate')?.value||'',parts,note:document.getElementById('exportNote')?.value||''}});
+    if(r.error)throw r.error;
+    await finishAction('Kundeeksporten er logget.','admin');
+  }catch(e){setOutputError(out,e,'Kundeeksporten kunne ikke lagres.')}
 }
 function activityCards(){const rows=(DP.cache.activity||[]).slice(0,12);if(!rows.length)return '<div class="empty-state"><strong>Ingen aktivitet registrert.</strong><span>Når brukere oppretter, endrer, sender eller laster opp noe, vises historikken her.</span></div>';return `<div class="activity-feed control-activity">${rows.map(a=>`<section><span>${esc(String(a.entity_type||'Logg').slice(0,12))}</span><div><strong>${esc(a.action||'Hendelse')}</strong><small>${esc([currentProperty()?.name,a.created_at?new Date(a.created_at).toLocaleString('nb-NO'):''].filter(Boolean).join(' · '))}</small></div></section>`).join('')}</div>`}
 function roleAccessPanel(){
