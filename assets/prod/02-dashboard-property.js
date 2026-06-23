@@ -99,20 +99,21 @@ function planLabel(plan){return ({start:'Start',pro:'Pro',premium:'Premium'}[Str
 function statusLabel(status){return ({active:'Aktiv',pending:'Venter avtale',trial:'Pilot',paused:'Pause'}[String(status).toLowerCase()]||status||'Venter avtale')}
 function dashboardSubscriptionPlans(){
   return [
-    {id:'start',name:'Start',firstYear:9990,yearTwo:11880,items:['FDV-arkiv','Dokumenthåndtering','Avvikshåndtering','Basisanbefalinger','50 AI-klikk per måned','Styreportal','Mobiltilgang']},
-    {id:'pro',name:'Pro',firstYear:19990,yearTwo:23880,items:['Alt i Start','AI Director','150 AI-klikk per måned','Vedlikeholdsplan','Arbeidsordre','Leverandørregister','Budsjettoversikt','Avansert rapportering','Ubegrenset antall styremedlemmer']},
-    {id:'premium',name:'Premium',firstYear:39990,yearTwo:47880,items:['Alt i Pro','Property Brain AI','500 AI-klikk per måned','Risikoanalyse','Tilbudsinnhenting (RFQ)','Flere eiendommer','Prioritert support','Avanserte analyser']}
+    {id:'start',name:'Start',firstYear:9990,yearTwo:11880,items:['1 bygg','FDV-arkiv','Dokumenthåndtering','Avvikshåndtering','Basisanbefalinger','50 AI-klikk per måned','Styreportal','Mobiltilgang']},
+    {id:'pro',name:'Pro',firstYear:19990,yearTwo:23880,items:['Alt i Start','Inntil 10 bygg','AI Director','150 AI-klikk per måned','Vedlikeholdsplan','Arbeidsordre','Leverandørregister','Budsjettoversikt','Avansert rapportering','Ubegrenset antall styremedlemmer']},
+    {id:'premium',name:'Premium',firstYear:39990,yearTwo:47880,items:['Alt i Pro','Inntil 50 bygg','Property Brain AI','500 AI-klikk per måned','Risikoanalyse','Tilbudsinnhenting (RFQ)','Flere eiendommer','Prioritert support','Avanserte analyser']}
   ];
 }
 function PackageAccessSummary(){
   const plan=subscriptionPlanId()||'';
   const quota=typeof aiQuotaStatus==='function'?aiQuotaStatus():{used:0,limit:0,remaining:0,blocked:false};
+  const buildingQuota=typeof buildingQuotaStatus==='function'?buildingQuotaStatus():{used:0,limit:0,remaining:0,blocked:false};
   const modules=[
     ['Start','FDV, dokumenter, avvik, styre og mobiltilgang',true],
     ['Pro','Vedlikeholdsplan, arbeidsordre, økonomi, rapporter og leverandørregister',['pro','premium'].includes(plan)],
     ['Premium','Property Brain AI, risikoanalyse, RFQ, flere eiendommer og avanserte analyser',plan==='premium']
   ];
-  return `<div class="package-access-list">${modules.map(m=>`<section class="${m[2]?'unlocked':'locked'}"><b>${esc(m[0])}</b><span>${esc(m[1])}</span></section>`).join('')}<section class="${quota.blocked?'locked':'unlocked'}"><b>AI-klikk</b><span>${quota.used}/${quota.limit||0} brukt denne måneden · ${quota.remaining} igjen</span></section></div>`;
+  return `<div class="package-access-list">${modules.map(m=>`<section class="${m[2]?'unlocked':'locked'}"><b>${esc(m[0])}</b><span>${esc(m[1])}</span></section>`).join('')}<section class="${quota.blocked?'locked':'unlocked'}"><b>AI-klikk</b><span>${quota.used}/${quota.limit||0} brukt denne måneden · ${quota.remaining} igjen</span></section><section class="${buildingQuota.blocked?'locked':'unlocked'}"><b>Bygg</b><span>${buildingQuota.used}/${buildingQuota.limit||0} opprettet · ${buildingQuota.remaining} igjen</span></section></div>`;
 }
 function showSubscriptionPicker(){
   const p=currentProperty()||{},selected=String(p.subscription_plan||'pro').toLowerCase();
@@ -617,6 +618,7 @@ function scrollToPropertyBrainAi(){
 function PropertyPage(){
   const p=currentProperty();
   const buildings=DP.cache.buildings||[],contacts=DP.cache.contacts||[],docs=DP.cache.documents||[],devs=DP.cache.deviations||[],wos=DP.cache.work_orders||[];
+  const buildingQuota=typeof buildingQuotaStatus==='function'?buildingQuotaStatus():{used:buildings.length,limit:1,remaining:0,blocked:false};
   const open=x=>!['lukket','ferdig','utført','utfort','fullført','fullfort'].includes(String(x.status||'').toLowerCase());
   const shortcuts=[
     canOpenModule('documents')?`<button onclick="openModule('documents')">Åpne FDV</button>`:'',
@@ -653,7 +655,7 @@ function PropertyPage(){
     <button class="card s3 property-action-card purple" onclick="openModule('people')"><small>Kontakter</small><strong>${contacts.length}</strong><span>Styre, beboere og andre</span></button>
     <div class="card s7 property-tech-card"><div class="dash-title"><h3>Teknisk informasjon</h3><button class="action" onclick="showPropertyForm()">Oppdater</button></div><p>${esc(p?.technical_summary||'Ingen teknisk informasjon registrert ennå. Legg inn hovedpunkter om bygg, tekniske anlegg, kjente forhold og vedlikeholdsbehov.')}</p></div>
     <div class="card s5 property-quick-card"><h3>Snarveier</h3><div class="property-shortcuts">${shortcuts||'<span class="muted">Ingen snarveier tilgjengelig for denne rollen.</span>'}</div></div>
-    <div class="card s12"><div class="dash-title"><div><h3>Bygg og anlegg</h3><p class="muted">Legg inn bygg, garasje, tekniske rom eller andre anlegg som FDV og avvik kan knyttes til.</p></div><button class="action primary" onclick="showBuildingForm()">Legg til bygg</button></div>${buildingCards(buildings)}</div>
+    <div class="card s12"><div class="dash-title"><div><h3>Bygg og anlegg</h3><p class="muted">Legg inn bygg, garasje, tekniske rom eller andre anlegg som FDV og avvik kan knyttes til.</p></div><div class="module-actions"><span class="soft-pill ${buildingQuota.blocked?'bad':'ok'}">${buildingQuota.used}/${buildingQuota.limit} bygg</span><button class="action primary" onclick="showBuildingForm()">Legg til bygg</button></div></div>${buildingCards(buildings)}</div>
     <div class="card s12"><div class="dash-title"><div><h3>Kontaktpersoner</h3><p class="muted">Kontaktgrunnlag for styre, beboere, forvalter og faste kontaktpersoner.</p></div><button class="action" onclick="openModule('people')">Åpne beboere/styre</button></div>${propertyContactCards(contacts)}</div>
   </div>`;
 }
@@ -675,10 +677,15 @@ async function saveProperty(){
 function showBuildingForm(id=''){
   const b=(DP.cache.buildings||[]).find(x=>x.id===id)||{};
   requireLive('endre bygg');
+  const quota=typeof buildingQuotaStatus==='function'?buildingQuotaStatus():{blocked:false,used:0,limit:1};
+  if(!id&&quota.blocked){
+    showDrawer('Bygggrense nådd',`<div class="empty-state"><strong>Denne pakken har nådd grensen for bygg.</strong><span>${esc(planLabel(subscriptionPlanId()))} inkluderer ${quota.limit} bygg. Oppgrader pakken eller slett et bygg før du oppretter et nytt.</span></div>`);
+    return;
+  }
   showDrawer(id?'Endre bygg':'Legg til bygg',`<div class="form-grid two"><label>Navn<input id="buildingName" value="${esc(b.name||'')}"></label><label>Type<input id="buildingType" value="${esc(b.building_type||'')}"></label><label>Adresse<input id="buildingAddress" value="${esc(b.address||'')}"></label><label>Oppført år<input id="buildingYear" type="number" value="${esc(b.built_year||'')}"></label><label>Areal m²<input id="buildingArea" type="number" value="${esc(b.gross_area||'')}"></label></div><label>Teknisk sammendrag</label><textarea id="buildingTech" rows="5">${esc(b.technical_summary||'')}</textarea><button class="action primary" onclick="saveBuilding('${esc(id)}')">${id?'Lagre bygg':'Opprett bygg'}</button>`);
 }
 async function saveBuilding(id=''){
-  try{requireLive('lagre bygg');const row={property_id:currentProperty().id,name:buildingName.value.trim(),building_type:buildingType.value.trim()||null,address:buildingAddress.value.trim()||null,built_year:+buildingYear.value||null,gross_area:+buildingArea.value||0,technical_summary:buildingTech.value.trim()||null};if(!row.name)throw new Error('Fyll inn navn på bygg.');const q=id?db().from('buildings').update(row).eq('id',id).select().single():db().from('buildings').insert(row).select().single();const r=await q;if(r.error)throw r.error;await insertActivity(id?'Bygg oppdatert':'Bygg opprettet','building',r.data.id);await finishAction(id?'Bygget er lagret.':'Bygget er opprettet.','property')}catch(e){showDrawer('Bygg ble ikke lagret',`<div class=\"output\">${esc(customerError(e))}</div>`)}}
+  try{requireLive('lagre bygg');const quota=typeof buildingQuotaStatus==='function'?buildingQuotaStatus():{blocked:false,used:0,limit:1};if(!id&&quota.blocked)throw new Error(`${planLabel(subscriptionPlanId())} inkluderer ${quota.limit} bygg. Oppgrader pakken eller slett et bygg før du oppretter et nytt.`);const row={property_id:currentProperty().id,name:buildingName.value.trim(),building_type:buildingType.value.trim()||null,address:buildingAddress.value.trim()||null,built_year:+buildingYear.value||null,gross_area:+buildingArea.value||0,technical_summary:buildingTech.value.trim()||null};if(!row.name)throw new Error('Fyll inn navn på bygg.');const q=id?db().from('buildings').update(row).eq('id',id).select().single():db().from('buildings').insert(row).select().single();const r=await q;if(r.error)throw r.error;await insertActivity(id?'Bygg oppdatert':'Bygg opprettet','building',r.data.id);await finishAction(id?'Bygget er lagret.':'Bygget er opprettet.','property')}catch(e){showDrawer('Bygg ble ikke lagret',`<div class=\"output\">${esc(customerError(e))}</div>`)}}
 async function deleteBuilding(id){if(!confirm('Slette bygg Dokumenter og saker beholder eiendommen, men mister byggkoblingen.'))return;try{requireLive('slette bygg');const r=await db().from('buildings').delete().eq('id',id);if(r.error)throw r.error;await insertActivity('Bygg slettet','building',id);await finishAction('Bygget er slettet.','property')}catch(e){showDrawer('Bygg ble ikke slettet',`<div class=\"output\">${esc(customerError(e))}</div>`)}}
 
 
