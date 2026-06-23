@@ -702,8 +702,11 @@ function signatureEmailPayload(row){
   const p=currentProperty(),to=signatureRecipientEmails(row),signer=signatureBoardSigner(),replyTo=signer.email;
   const due=row.due_date?`\nFrist: ${row.due_date}`:'';
   const notes=row.notes?`\n\nInstruks:\n${row.notes}`:'';
-  const message=`Hei,\n\nDu har mottatt en signeringsforespørsel for ${p?.name||'valgt eiendom'}.\n\nTittel: ${row.title||'Signering'}\nType: ${row.signature_type||'Signering'}${due}${notes}\n\nGå gjennom grunnlaget og svar på denne e-posten dersom noe må avklares.\n\nVennlig hilsen\n${signer.name}\n${signer.role}\n${p?.name||''}`;
-  return {to,subject:`Signering: ${row.title||'Dokument'}`,message,kind:'signature',caseId:row.id||'',property:p?.name||'',property_id:p?.id||'',reply_to:replyTo,from_name:`${signer.name} via Driftspartner OS`};
+  const type=row.signature_type||'Signering';
+  const title=row.title||'Dokument til signering';
+  const intro=type==='Kontrakt'?'Kontrakten er klar for gjennomgang og signering.':type==='Styrevedtak'?'Styrevedtaket er klart for gjennomgang og signering.':type==='Tilbudsgodkjenning'?'Tilbudet er klart for godkjenning.':'Dokumentet er klart for gjennomgang og signering.';
+  const message=`Hei,\n\n${intro}\n\nEiendom: ${p?.name||'valgt eiendom'}\nTittel: ${title}\nType: ${type}${due}${notes}\n\nGå gjennom grunnlaget og svar på denne e-posten dersom noe må avklares.\n\nVennlig hilsen\n${signer.name}\n${signer.role}\n${p?.name||''}`;
+  return {to,subject:`Signering: ${title}`,message,kind:'signature',caseId:'',property:p?.name||'',property_id:p?.id||'',reply_to:replyTo,from_name:`${signer.name} via Driftspartner OS`};
 }async function sendSignatureEmailRow(row,out){
   if(!row)throw new Error('Fant ikke signeringsforespørselen.');
   const payload=signatureEmailPayload(row);
