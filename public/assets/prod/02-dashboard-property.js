@@ -101,7 +101,7 @@ function dashboardSubscriptionPlans(){
   return [
     {id:'start',name:'Start',firstYear:9990,yearTwo:11880,items:['1 bygg','Opptil 20 enheter','5 styremedlemmer','20 beboere','5 leverandører','200 dokumenter / 2 GB','300 e-postmottakere per 30 dager','FDV-arkiv','Dokumenthåndtering','Avvikshåndtering','Basisanbefalinger','50 AI-klikk per måned','Styreportal','Mobiltilgang']},
     {id:'pro',name:'Pro',firstYear:19990,yearTwo:23880,items:['Alt i Start','Inntil 10 bygg','Opptil 100 enheter','100 beboere','Ubegrenset antall styremedlemmer','5 vaktmester/forvalter-brukere','50 leverandører','2000 dokumenter / 20 GB','3000 e-postmottakere per 30 dager','AI Director','150 AI-klikk per måned','Vedlikeholdsplan','Arbeidsordre','Leverandørregister','Budsjettoversikt','Avansert rapportering']},
-    {id:'premium',name:'Premium',firstYear:39990,yearTwo:47880,items:['Alt i Pro','Inntil 50 bygg','Property Brain AI','500 AI-klikk per måned','Risikoanalyse','Tilbudsinnhenting (RFQ)','Flere eiendommer','Prioritert support','Avanserte analyser']}
+    {id:'premium',name:'Premium',firstYear:39990,yearTwo:47880,items:['Alt i Pro','Inntil 50 bygg','Opptil 1000 enheter','1000 beboere','Ubegrenset antall styremedlemmer','25 vaktmester/forvalter-brukere','500 leverandører','10 000 dokumenter / 100 GB','10 000 e-postmottakere per 30 dager','500 AI-klikk per måned','10 eiendommer per kunde','500 RFQ per måned','100 aktive prosjekter','100 signeringer per måned','Property Brain AI','Risikoanalyse','Tilbudsinnhenting (RFQ)','Prioritert support','Avanserte analyser','Enterprise-tillegg ved høyere bruk']}
   ];
 }
 function PackageAccessSummary(){
@@ -111,7 +111,7 @@ function PackageAccessSummary(){
   const modules=[
     ['Start','1 bygg, 20 enheter, 5 styremedlemmer, 20 beboere, 5 leverandører, FDV, avvik og styre',true],
     ['Pro','Vedlikeholdsplan, arbeidsordre, økonomi, rapporter og leverandørregister',['pro','premium'].includes(plan)],
-    ['Premium','Property Brain AI, risikoanalyse, RFQ, flere eiendommer og avanserte analyser',plan==='premium']
+    ['Premium','Property Brain AI, risikoanalyse, RFQ, 10 eiendommer, 100 GB lagring og avanserte analyser',plan==='premium']
   ];
   return `<div class="package-access-list">${modules.map(m=>`<section class="${m[2]?'unlocked':'locked'}"><b>${esc(m[0])}</b><span>${esc(m[1])}</span></section>`).join('')}<section class="${quota.blocked?'locked':'unlocked'}"><b>AI-klikk</b><span>${quota.used}/${quota.limit||0} brukt denne måneden · ${quota.remaining} igjen</span></section><section class="${buildingQuota.blocked?'locked':'unlocked'}"><b>Bygg</b><span>${buildingQuota.used}/${buildingQuota.limit||0} opprettet · ${buildingQuota.remaining} igjen</span></section></div>`;
 }
