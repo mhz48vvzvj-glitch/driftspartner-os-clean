@@ -721,7 +721,7 @@ function integrationItems(){
     {name:'OpenAI',status:'Aktiv når kvote er tilgjengelig',type:'warn',area:'AI Director og Property Brain',detail:'Gir anbefalinger fra live data. Krever aktiv API-kvote for å svare.',button:'Test AI',action:'testAiIntegration()'},
     {name:'Brønnøysundregistrene',status:'Klar for onboarding',type:'ok',area:'Kunde og leverandører',detail:'Org.nr-oppslag kan fylle inn firmanavn og adresse ved opprettelse.',button:canCustomerSetup?'Ny kunde':'Klar',action:canCustomerSetup?'showNewCustomerWizard()':"showIntegrationInfo('Brønnøysundregistrene')"},
     {name:'Kundeavsender / svar til',status:'Aktiv enkel løsning',type:'ok',area:'E-post',detail:'E-post sendes via Driftspartner, men vises med kundens/styrets navn og svar går til kunden.',button:'Send e-post',action:"showEmailFlow('all')"},
-    {name:'Microsoft 365 / Outlook',status:'Premium senere',type:'info',area:'E-post, kalender og styremøter',detail:'Kan senere kobles for ekte Outlook-avsender, møteinnkalling og kalender.',button:'Se anbefaling',action:"showIntegrationInfo('Microsoft 365 / Outlook')"},
+    {name:'Microsoft 365 / Outlook light',status:'V1 klar',type:'ok',area:'E-post, kalender og styremoter',detail:'Moteinnkalling med kalenderfil, kalenderlenker og svar-til kunde/styre uten Microsoft-admin.',button:'Ny moteinnkalling',action:"showOutlookLightForm('board')"},
     {name:'Signering',status:'V1 klar',type:'ok',area:'Kontrakter og vedtak',detail:'Opprett signeringsforespørsler for kontrakter, styrevedtak og tilbudsgodkjenning.',button:'Ny signering',action:"showSignatureRequestForm('Kontrakt')"},
     {name:'Tripletex',status:'Planlagt',type:'info',area:'Regnskap',detail:'Aktuell for faktura, prosjektkostnader, budsjett og rapportering.',button:'Se anbefaling',action:"showIntegrationInfo('Tripletex')"},
     {name:'PowerOffice Go',status:'Planlagt',type:'info',area:'Regnskap',detail:'Alternativ regnskapsintegrasjon for borettslag, sameier og forvaltere.',button:'Se anbefaling',action:"showIntegrationInfo('PowerOffice Go')"},
@@ -733,7 +733,7 @@ function IntegrationsPage(){
   if(typeof canManageCustomers==='function'&&!canManageCustomers())return `<div class="grid"><div class="card s12"><div class="empty-state"><strong>Ikke tilgjengelig.</strong><span>Integrasjoner administreres av Driftspartner Nord.</span></div></div></div>`;
   const items=integrationItems(),active=items.filter(i=>i.type==='ok').length,next=items.filter(i=>i.type==='warn').length,planned=items.filter(i=>i.type==='info').length;
   const customerButton=(typeof canManageCustomers==='function'&&canManageCustomers())?`<button class="action" onclick="showNewCustomerWizard()">Ny kunde</button>`:'';
-  return `<div class="grid integrations-page"><div class="card s12 module-hero integration-hero"><div><small>Integrasjoner</small><h2>Koble Driftspartner OS til verktøyene kundene bruker</h2><p>Her samles e-post, AI, regnskap, signering, offentlige data og kalender. Målet er mindre manuelt arbeid og mer live informasjon på valgt eiendom.</p></div><div class="module-actions"><button class="action primary" onclick="showEmailFlow('all')">Send som kunde/styre</button><button class="action" onclick="testAiIntegration()">Test AI</button><button class="action" onclick="location.href='mail-test.html'">Test e-post</button>${customerButton}</div></div><div class="card s12 integration-summary"><section><small>Aktive</small><b>${active}</b><span>Koblinger i bruk nå</span></section><section><small>Anbefalt neste</small><b>${next}</b><span>Gir raskest kundeverdi</span></section><section><small>Planlagt</small><b>${planned}</b><span>Regnskap og bank</span></section><section><small>Prioritet</small><b>Kundeavsender</b><span>Enkel løsning uten Microsoft-admin</span></section></div><div class="card s12">${SignaturePanel()}</div><div class="card s8"><div class="dash-title"><div><h3>Integrasjonsstatus</h3><p class="muted">Bare koblinger som faktisk er klare bør merkes som aktive.</p></div></div><div class="integration-card-grid">${items.map(integrationCard).join('')}</div></div><div class="card s4 integration-stack"><h3>Anbefalt rekkefølge</h3>${integrationRoadmap()}<div class="integration-note"><strong>V1 for salg</strong><span>Start med Brønnøysund, kundeavsender/svar-til, signering og én regnskapskobling. Outlook kan komme senere som premium-integrasjon.</span></div></div></div>`;
+  return `<div class="grid integrations-page"><div class="card s12 module-hero integration-hero"><div><small>Integrasjoner</small><h2>Koble Driftspartner OS til verktøyene kundene bruker</h2><p>Her samles e-post, AI, regnskap, signering, offentlige data og kalender. Målet er mindre manuelt arbeid og mer live informasjon på valgt eiendom.</p></div><div class="module-actions"><button class="action primary" onclick="showEmailFlow('all')">Send som kunde/styre</button><button class="action" onclick="showOutlookLightForm('board')">Ny moteinnkalling</button><button class="action" onclick="testAiIntegration()">Test AI</button><button class="action" onclick="location.href='mail-test.html'">Test e-post</button>${customerButton}</div></div><div class="card s12 integration-summary"><section><small>Aktive</small><b>${active}</b><span>Koblinger i bruk nå</span></section><section><small>Anbefalt neste</small><b>${next}</b><span>Gir raskest kundeverdi</span></section><section><small>Planlagt</small><b>${planned}</b><span>Regnskap og bank</span></section><section><small>Prioritet</small><b>Kundeavsender</b><span>Enkel løsning uten Microsoft-admin</span></section></div><div class="card s12">${SignaturePanel()}</div><div class="card s8"><div class="dash-title"><div><h3>Integrasjonsstatus</h3><p class="muted">Bare koblinger som faktisk er klare bør merkes som aktive.</p></div></div><div class="integration-card-grid">${items.map(integrationCard).join('')}</div></div><div class="card s4 integration-stack"><h3>Anbefalt rekkefølge</h3>${integrationRoadmap()}<div class="integration-note"><strong>V1 for salg</strong><span>Start med Brønnøysund, kundeavsender/svar-til, signering og én regnskapskobling. Outlook kan komme senere som premium-integrasjon.</span></div></div></div>`;
 }
 function integrationCard(item){
   const label=item.type==='ok'?'Aktiv':item.type==='warn'?'Neste steg':'Planlagt';
@@ -777,6 +777,56 @@ async function connectMicrosoft365(){
     if(!data.ok)throw new Error(data.message||'Kunne ikke starte Microsoft-kobling.');
     window.location.href=data.url;
   }catch(e){showDrawer('Microsoft 365',`<div class="output">${esc(customerError(e,'Microsoft 365 kunne ikke kobles akkurat nå.'))}</div><div class="integration-note"><strong>Mangler oppsett?</strong><span>Legg inn MICROSOFT_TENANT_ID, MICROSOFT_CLIENT_ID, MICROSOFT_CLIENT_SECRET og kjør supabase-microsoft-outlook-v1.sql.</span></div>`)}
+}
+
+function calendarPad(n){return String(n).padStart(2,'0')}
+function localDateTimeValue(d){return `${d.getFullYear()}-${calendarPad(d.getMonth()+1)}-${calendarPad(d.getDate())}T${calendarPad(d.getHours())}:${calendarPad(d.getMinutes())}`}
+function calendarUtcStamp(date){
+  const d=new Date(date);
+  return `${d.getUTCFullYear()}${calendarPad(d.getUTCMonth()+1)}${calendarPad(d.getUTCDate())}T${calendarPad(d.getUTCHours())}${calendarPad(d.getUTCMinutes())}${calendarPad(d.getUTCSeconds())}Z`;
+}
+function calendarEscape(value){return String(value||'').replace(/\\/g,'\\\\').replace(/\n/g,'\\n').replace(/,/g,'\\,').replace(/;/g,'\\;')}
+function calendarBase64(text){return btoa(unescape(encodeURIComponent(text)))}
+function outlookLightRecipients(kind='board'){return collectMailRecipients(kind).filter(r=>r.email&&r.email.includes('@'))}
+function buildIcs({title,start,end,location,description,organizer,attendees=[]}){
+  const now=calendarUtcStamp(new Date()),uid=`${Date.now()}-${Math.random().toString(16).slice(2)}@driftspartner-os`;
+  const attendeeLines=attendees.map(a=>`ATTENDEE;CN=${calendarEscape(a.label||a.email)};RSVP=TRUE:mailto:${a.email}`).join('\r\n');
+  return ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Driftspartner OS//Outlook Light//NO','CALSCALE:GREGORIAN','METHOD:REQUEST','BEGIN:VEVENT',`UID:${uid}`,`DTSTAMP:${now}`,`DTSTART:${calendarUtcStamp(start)}`,`DTEND:${calendarUtcStamp(end)}`,`SUMMARY:${calendarEscape(title)}`,`LOCATION:${calendarEscape(location)}`,`DESCRIPTION:${calendarEscape(description)}`,organizer?`ORGANIZER;CN=${calendarEscape(organizer.name||organizer.email)}:mailto:${organizer.email}`:'',attendeeLines,'STATUS:CONFIRMED','SEQUENCE:0','END:VEVENT','END:VCALENDAR'].filter(Boolean).join('\r\n');
+}
+function calendarComposeLinks({title,start,end,location,description}){
+  const enc=encodeURIComponent,s=new Date(start).toISOString(),e=new Date(end).toISOString();
+  return {outlook:`https://outlook.office.com/calendar/0/deeplink/compose?subject=${enc(title)}&body=${enc(description)}&location=${enc(location)}&startdt=${enc(s)}&enddt=${enc(e)}`,google:`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${enc(title)}&details=${enc(description)}&location=${enc(location)}&dates=${calendarUtcStamp(start)}/${calendarUtcStamp(end)}`};
+}
+function showOutlookLightForm(kind='board'){
+  const p=currentProperty(),recipients=outlookLightRecipients(kind);
+  const checks=recipients.map((r,i)=>`<label class="check-row recipient-email"><input class="meetingRecipient" type="checkbox" value="${esc(r.email)}" data-label="${esc(r.label)}" ${i===0?'checked':''}> <span>${esc(r.label)}</span><small>${esc(r.email)}</small></label>`).join('');
+  const board=(DP.cache.contacts||[]).find(c=>/styreleder|leder|styre/i.test(String(c.role||c.contact_role||''))&&String(c.email||'').includes('@'));
+  const reply=board?.email||p?.customer_billing_email||DP.user?.email||'';
+  const start=new Date(Date.now()+86400000);start.setHours(18,0,0,0);const end=new Date(start.getTime()+90*60000);
+  showDrawer('Møteinnkalling',`<div class="mail-compose meeting-compose"><div class="mail-template-head"><div><small>Outlook/Microsoft 365 light</small><h3>Møteinnkalling med kalenderfil</h3><p>Send innkalling fra kundens/styrets navn. Svar går til styret, og mottaker får kalenderfil som kan åpnes i Outlook, Apple Kalender og Google Kalender.</p></div><span>${esc(p?.name||'Eiendom')}</span></div><div class="form-grid two"><label>Tittel<input id="meetingTitle" value="Styremøte - ${esc(p?.name||'eiendom')}"></label><label>Sted / Teams-lenke<input id="meetingLocation" placeholder="Teams, møterom eller adresse"></label><label>Start<input id="meetingStart" type="datetime-local" value="${localDateTimeValue(start)}"></label><label>Slutt<input id="meetingEnd" type="datetime-local" value="${localDateTimeValue(end)}"></label><label>Vis som avsender<input id="meetingFromName" value="Styret i ${esc(p?.name||'borettslaget')}"></label><label>Svar går til<input id="meetingReplyTo" value="${esc(reply)}" placeholder="styreleder@kunde.no"></label></div><label>Mottakere</label><div class="choice-list">${checks||'<div class="empty-state"><strong>Ingen mottakere funnet.</strong><span>Legg inn styremedlemmer eller beboere med e-post først.</span></div>'}</div><label>Ekstra e-postadresser</label><input id="meetingExtra" placeholder="post@kunde.no, styret@kunde.no"><label>Agenda / melding</label><textarea id="meetingBody" rows="7">Hei,\n\nDu inviteres til møte for ${esc(p?.name||'eiendommen')}.\n\nAgenda:\n1. Status drift og avvik\n2. Økonomi og budsjett\n3. Dokumentasjon og FDV\n4. Eventuelle beslutninger\n\nVennlig hilsen\nStyret</textarea><div class="module-actions"><button class="action primary" onclick="sendOutlookLightInvite()">Send møteinnkalling</button><button class="action" onclick="downloadMeetingIcs()">Last ned kalenderfil</button><button class="action" onclick="previewCalendarLinks()">Kalenderlenker</button></div><div id="meetingOut" class="output">Klar til sending.</div></div>`);
+}
+function meetingPayload(){
+  const title=document.getElementById('meetingTitle')?.value.trim()||'Møte',location=document.getElementById('meetingLocation')?.value.trim()||'',start=document.getElementById('meetingStart')?.value,end=document.getElementById('meetingEnd')?.value,description=document.getElementById('meetingBody')?.value.trim()||'';
+  if(!start||!end)throw new Error('Velg start og slutt for møtet.');
+  if(new Date(end)<=new Date(start))throw new Error('Sluttid må være etter starttid.');
+  const checked=[...document.querySelectorAll('.meetingRecipient:checked')].map(x=>({email:x.value,label:x.dataset.label||x.value}));
+  const extra=parseMailAddresses(document.getElementById('meetingExtra')?.value).map(email=>({email,label:email}));
+  const attendees=[...checked,...extra].filter((r,i,a)=>a.findIndex(x=>x.email.toLowerCase()===r.email.toLowerCase())===i);
+  if(!attendees.length)throw new Error('Velg minst en mottaker.');
+  const replyTo=document.getElementById('meetingReplyTo')?.value.trim()||DP.user?.email||'',fromName=document.getElementById('meetingFromName')?.value.trim()||`Styret i ${currentProperty()?.name||'eiendommen'}`,links=calendarComposeLinks({title,start,end,location,description});
+  const message=`${description}\n\nTid: ${new Date(start).toLocaleString('nb-NO')} - ${new Date(end).toLocaleString('nb-NO')}\nSted: ${location||'-'}\n\nKalenderlenker:\nOutlook: ${links.outlook}\nGoogle Kalender: ${links.google}`;
+  const icsText=buildIcs({title,start,end,location,description,organizer:{email:replyTo,name:fromName},attendees});
+  return {to:attendees.map(a=>a.email),subject:title,message,kind:'board',caseId:'meeting',property:currentProperty()?.name||'',property_id:currentProperty()?.id||'',reply_to:replyTo,from_name:fromName,ics:{filename:`${title.replace(/[^\wæøåÆØÅ-]+/g,'-')}.ics`,content:calendarBase64(icsText)},links,icsText};
+}
+function downloadMeetingIcs(){
+  try{const payload=meetingPayload(),blob=new Blob([payload.icsText],{type:'text/calendar;charset=utf-8'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=payload.ics.filename;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);const out=document.getElementById('meetingOut');if(out)out.textContent='Kalenderfil lastet ned.'}catch(e){setOutputError(document.getElementById('meetingOut'),e)}
+}
+function previewCalendarLinks(){
+  try{const payload=meetingPayload();showDrawer('Kalenderlenker',`<div class="stack-list"><section class="mini-record"><div><strong>Outlook</strong><small>Åpne møtet i Outlook-kalender</small></div><button class="action primary" onclick="window.open('${esc(payload.links.outlook)}','_blank')">Åpne</button></section><section class="mini-record"><div><strong>Google Kalender</strong><small>Åpne møtet i Google Kalender</small></div><button class="action" onclick="window.open('${esc(payload.links.google)}','_blank')">Åpne</button></section></div>`)}catch(e){setOutputError(document.getElementById('meetingOut'),e)}
+}
+async function sendOutlookLightInvite(){
+  const out=document.getElementById('meetingOut');
+  try{const payload=meetingPayload();if(out)out.textContent='Sender møteinnkalling...';if(location.protocol==='file:'||location.hostname==='localhost'||location.hostname==='127.0.0.1')throw new Error('Møteinnkalling må sendes fra publisert Netlify-side.');const res=await fetch('/.netlify/functions/send-email',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});const data=await readJsonResponse(res,'E-postfunksjonen svarte ikke riktig. Prøv igjen, eller kontakt Driftspartner Nord hvis feilen fortsetter.');if(!res.ok||!data.ok)throw new Error(data.message||'Møteinnkalling ble ikke sendt.');await insertActivity(`Møteinnkalling sendt: ${payload.subject}`,'meeting',currentProperty()?.id||'-');await finishAction(`Møteinnkalling sendt til ${payload.to.length} mottaker${payload.to.length===1?'':'e'}.`,'integrations')}catch(e){setOutputError(out,e,'Møteinnkalling kunne ikke sendes akkurat nå. Sjekk mottaker og prøv igjen fra live-siden.')}
 }
 
 function mailKindLabel(kind){
@@ -887,6 +937,10 @@ window.showEmailFlow=showEmailFlow;
 window.sendEmailLog=sendEmailLog;
 window.connectMicrosoft365=connectMicrosoft365;
 window.sendEmailMicrosoft=sendEmailMicrosoft;
+window.showOutlookLightForm=showOutlookLightForm;
+window.sendOutlookLightInvite=sendOutlookLightInvite;
+window.downloadMeetingIcs=downloadMeetingIcs;
+window.previewCalendarLinks=previewCalendarLinks;
 
 function subscriptionPlans(){
   return [

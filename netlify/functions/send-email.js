@@ -45,6 +45,15 @@ const buildFrom = (baseFrom, displayName) => {
   return `${name} <${address}>`;
 };
 
+const safeFilename = (value, fallback = "driftspartner-mote.ics") => {
+  const cleaned = String(value || "")
+    .replace(/[\\/:*?"<>|\r\n]+/g, "-")
+    .replace(/\s+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80);
+  return cleaned || fallback;
+};
+
 const templateLabels = {
   demo: "Demoforespørsel",
   purchase: "Bestilling",
@@ -116,6 +125,13 @@ exports.handler = async (event) => {
     const replyTo = String(payload.reply_to || payload.replyTo || "").trim();
     const fromName = String(payload.from_name || payload.fromName || "").trim();
     const finalFrom = buildFrom(from, fromName);
+    const attachments = [];
+    if (payload.ics && payload.ics.content) {
+      attachments.push({
+        filename: safeFilename(payload.ics.filename, "driftspartner-mote.ics"),
+        content: String(payload.ics.content)
+      });
+    }
 
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -136,6 +152,7 @@ exports.handler = async (event) => {
           property,
           caseId
         }),
+        attachments: attachments.length ? attachments : undefined,
         tags: [
           { name: "kind", value: safeTagValue(kind, "general") },
           { name: "property", value: safeTagValue(property, "unknown") }
