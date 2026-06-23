@@ -12,6 +12,12 @@ create table if not exists signature_requests (
   due_date date,
   status text not null default 'Utkast',
   notes text,
+  provider text not null default 'penneo',
+  provider_case_id text,
+  signing_url text,
+  signed_document_path text,
+  provider_status text,
+  provider_payload jsonb not null default '{}'::jsonb,
   signed_at timestamptz,
   created_by uuid,
   created_at timestamptz not null default now(),
@@ -27,6 +33,12 @@ alter table signature_requests add column if not exists recipients jsonb not nul
 alter table signature_requests add column if not exists due_date date;
 alter table signature_requests add column if not exists status text not null default 'Utkast';
 alter table signature_requests add column if not exists notes text;
+alter table signature_requests add column if not exists provider text not null default 'penneo';
+alter table signature_requests add column if not exists provider_case_id text;
+alter table signature_requests add column if not exists signing_url text;
+alter table signature_requests add column if not exists signed_document_path text;
+alter table signature_requests add column if not exists provider_status text;
+alter table signature_requests add column if not exists provider_payload jsonb not null default '{}'::jsonb;
 alter table signature_requests add column if not exists signed_at timestamptz;
 alter table signature_requests add column if not exists created_by uuid;
 alter table signature_requests add column if not exists updated_at timestamptz not null default now();
