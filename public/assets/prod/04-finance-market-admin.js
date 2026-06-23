@@ -168,7 +168,7 @@ async function lookupBrregSupplier(){
     setFieldText('supLookupOut',`Fant ${entity.navn||'leverandør'} · ${entity.organisasjonsnummer||''}${address?' · '+address:''}`);
   }catch(e){setFieldText('supLookupOut',customerError(e,'Kunne ikke hente firmainfo. Sjekk org.nr og prøv igjen.'))}
 }
-async function saveSupplier(){try{requireLive('lagre leverandør');if(!supEmail.value.includes('@'))throw new Error('Leverandør må ha e-post.');const r=await db().from('suppliers').insert({name:supName.value,email:supEmail.value,trade:supTrade.value,status:'active'}).select().single();if(r.error)throw r.error;await insertActivity('Leverandør lagret','supplier',r.data.id);await finishAction('Leverandøren er lagret.','market')}catch(e){showDrawer('Leverandør ble ikke lagret',`<div class=\"output\">${esc(customerError(e))}</div>`)}}
+async function saveSupplier(){try{requireLive('lagre leverandør');if(typeof assertPackageLimit==='function')assertPackageLimit('suppliers','leverandører');if(!supEmail.value.includes('@'))throw new Error('Leverandør må ha e-post.');const r=await db().from('suppliers').insert({name:supName.value,email:supEmail.value,trade:supTrade.value,status:'active'}).select().single();if(r.error)throw r.error;await insertActivity('Leverandør lagret','supplier',r.data.id);await finishAction('Leverandøren er lagret.','market')}catch(e){showDrawer('Leverandør ble ikke lagret',`<div class=\"output\">${esc(customerError(e))}</div>`)}}
 function showRfqForm(workOrderId=''){showDrawer('Tilbudsforespørsel',`<input id="rfqWo" type="hidden" value="${esc(workOrderId)}"><label>Tittel</label><input id="rfqTitle"><label>Beskrivelse</label><textarea id="rfqDesc"></textarea><label>Frist</label><input id="rfqDeadline" type="date"><button class="action primary" onclick="saveRfq()">Lagre tilbudsforespørsel</button>`)}
 async function saveRfq(){try{if(typeof subscriptionHas==='function'&&!subscriptionHas('rfq'))throw new Error('Tilbudsforespørsel krever Premium.');requireLive('Lagre tilbudsforespørsel');let row={property_id:currentProperty().id,title:rfqTitle.value,description:rfqDesc.value,deadline:rfqDeadline.value||null,status:'Utkast'};if(isUuid(rfqWo.value))row.work_order_id=rfqWo.value;const r=await db().from('quote_requests').insert(row).select().single();if(r.error)throw r.error;await insertActivity('Tilbudsforespørsel opprettet','quote_request',r.data.id);await finishAction('Tilbudsforespørselen er opprettet.','market')}catch(e){showDrawer('Tilbudsforespørsel ble ikke lagret',`<div class=\"output\">${esc(customerError(e))}</div>`)}}
 function showOfferForm(){showDrawer('Last opp tilbud',`<label>Leverandør</label><select id="offerSupplier">${DP.suppliers.map(s=>`<option value="${s.id}">${esc(s.name)} - ${esc(s.email)}</option>`).join('')}</select><label>Pris</label><input id="offerPrice" type="number"><label>Forbehold</label><textarea id="offerTerms"></textarea><label>PDF</label><input id="offerFile" type="file"><button class="action primary" onclick="saveOffer()">Lagre tilbud</button><div id="offerOut" class="output"></div>`)}
@@ -792,6 +792,11 @@ async function sendEmailLog(kind='general',caseId=''){
   const out=document.getElementById('emailOut');
   try{
     const payload=emailPayloadFromForm(kind,caseId);
+    if(typeof packageLimitStatus==='function'){
+      const quota=packageLimitStatus('emails');
+      const label=typeof planName==='function'?planName():'Pakken';
+      if(quota.limit>0&&quota.used+payload.to.length>quota.limit)throw new Error(`${label} inkluderer ${quota.limit} e-postmottakere per 30 dager. Du har ${Math.max(0,quota.limit-quota.used)} igjen.`);
+    }
     if(out)out.textContent='Sender e-post...';
     if(location.protocol==='file:'||location.hostname==='localhost'||location.hostname==='127.0.0.1')throw new Error('Direkte e-post må testes fra publisert Netlify-side.');
     const res=await fetch('/.netlify/functions/send-email',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});
@@ -822,7 +827,7 @@ window.sendEmailMicrosoft=sendEmailMicrosoft;
 
 function subscriptionPlans(){
   return [
-    {id:'start',name:'Start',firstYear:9990,yearTwo:11880,unit:'For mindre sameier og borettslag',fit:'Opptil 20 enheter',items:['1 bygg','FDV-arkiv','Dokumenthåndtering','Avvikshåndtering','Basisanbefalinger','50 AI-klikk per måned','Styreportal','Mobiltilgang']},
+    {id:'start',name:'Start',firstYear:9990,yearTwo:11880,unit:'For mindre sameier og borettslag',fit:'Opptil 20 enheter',items:['1 bygg','Opptil 20 enheter','5 styremedlemmer','20 beboere','5 leverandører','200 dokumenter / 2 GB','300 e-postmottakere per 30 dager','FDV-arkiv','Dokumenthåndtering','Avvikshåndtering','Basisanbefalinger','50 AI-klikk per måned','Styreportal','Mobiltilgang']},
     {id:'pro',name:'Pro',firstYear:19990,yearTwo:23880,unit:'For de fleste sameier og borettslag',fit:'20-100 enheter',items:['Alt i Start','Inntil 10 bygg','AI Director','150 AI-klikk per måned','Vedlikeholdsplan','Arbeidsordre','Leverandørregister','Budsjettoversikt','Avansert rapportering','Ubegrenset antall styremedlemmer']},
     {id:'premium',name:'Premium',firstYear:39990,yearTwo:47880,unit:'For større borettslag og eiendomsaktører',fit:'100+ enheter',items:['Alt i Pro','Inntil 50 bygg','Property Brain AI','500 AI-klikk per måned','Risikoanalyse','Tilbudsinnhenting (RFQ)','Flere eiendommer','Prioritert support','Avanserte analyser']}
   ];
@@ -845,6 +850,20 @@ function ensureOnboardingDraft(){DP.onboardingDraft=DP.onboardingDraft||{board:[
 function obVal(id){return String(document.getElementById(id)?.value||'').trim()}
 function clearOb(ids){ids.forEach(id=>{const el=document.getElementById(id);if(el)el.value=''})}
 function onboardingNotice(message){const out=document.getElementById('obOut');if(out)out.textContent=message;else alert(message)}
+function onboardingPlanLimit(kind){return typeof packageLimitsForPlan==='function'?packageLimitsForPlan(selectedSubscriptionPlan().id)[kind]||0:0}
+function onboardingDraftCount(kind){
+  const draft=ensureOnboardingDraft();
+  if(kind==='board')return draft.board.length;
+  if(kind==='residents')return draft.residents.length;
+  if(kind==='suppliers')return draft.suppliers.length;
+  if(kind==='caretakers')return draft.users.filter(u=>/vaktmester|forvalter/i.test(String(u.role||''))).length;
+  return 0;
+}
+function assertOnboardingLimit(kind,label,add=1){
+  const limit=onboardingPlanLimit(kind),used=onboardingDraftCount(kind);
+  if(limit>0&&used+add>limit){onboardingNotice(`${selectedSubscriptionPlan().name} inkluderer ${limit} ${label}. Velg en større pakke eller fjern noen fra listen.`);return false}
+  return true;
+}
 async function lookupBrregCustomer(){
   try{
     setFieldText('obBrregOut','Henter kundeinformasjon fra Brønnøysund...');
@@ -883,26 +902,32 @@ function renderOnboardingDraftLists(){
 }
 function removeOnboardingItem(type,index){const draft=ensureOnboardingDraft();if(draft[type])draft[type].splice(index,1);renderOnboardingDraftLists()}
 function addOnboardingBoard(){
-  const name=obVal('obBoardName');if(!name)return onboardingNotice('Fyll inn navn på styremedlem.');
+  const name=obVal('obBoardName');if(!name)return onboardingNotice('Fyll inn navn p? styremedlem.');
+  if(!assertOnboardingLimit('board','styremedlemmer'))return;
   const createLogin=Boolean(document.getElementById('obBoardCreateLogin')?.checked),email=obVal('obBoardEmail'),role=obVal('obBoardRole')||'Styremedlem';
-  if(createLogin&&!email.includes('@'))return onboardingNotice('Fyll inn e-post når styret skal få innlogging.');
+  if(createLogin&&!email.includes('@'))return onboardingNotice('Fyll inn e-post n?r styret skal f? innlogging.');
   ensureOnboardingDraft().board.push({name,role,email,phone:obVal('obBoardPhone'),create_login:createLogin,password:obVal('obBoardPassword')});
   clearOb(['obBoardName','obBoardEmail','obBoardPhone','obBoardPassword']);const cb=document.getElementById('obBoardCreateLogin');if(cb)cb.checked=true;renderOnboardingDraftLists();
 }
 function addOnboardingResident(){
-  const name=obVal('obResidentName');if(!name)return onboardingNotice('Fyll inn navn på beboer.');
+  const name=obVal('obResidentName');if(!name)return onboardingNotice('Fyll inn navn p? beboer.');
+  if(!assertOnboardingLimit('residents','beboere'))return;
   const createLogin=Boolean(document.getElementById('obResidentCreateLogin')?.checked),email=obVal('obResidentEmail');
-  if(createLogin&&!email.includes('@'))return onboardingNotice('Fyll inn e-post når beboer skal få innlogging.');
+  if(createLogin&&!email.includes('@'))return onboardingNotice('Fyll inn e-post n?r beboer skal f? innlogging.');
   ensureOnboardingDraft().residents.push({name,role:'Beboer',unit:obVal('obResidentUnit')||'Beboer',email,phone:obVal('obResidentPhone'),create_login:createLogin,password:obVal('obResidentPassword')});
   clearOb(['obResidentName','obResidentUnit','obResidentEmail','obResidentPhone','obResidentPassword']);const cb=document.getElementById('obResidentCreateLogin');if(cb)cb.checked=true;renderOnboardingDraftLists();
 }
 function addOnboardingSupplier(){
   const name=obVal('obSupplierName'),email=obVal('obSupplierEmail');if(!name||!email)return onboardingNotice('Fyll inn firma og e-post.');
+  if(!assertOnboardingLimit('suppliers','leverand?rer'))return;
   ensureOnboardingDraft().suppliers.push({name,email,trade:obVal('obSupplierTrade'),org_no:obVal('obSupplierOrgNo')});
   clearOb(['obSupplierOrgNo','obSupplierName','obSupplierEmail','obSupplierTrade']);setFieldText('obSupplierLookupOut','Org.nr-oppslag kan fylle firmanavn automatisk.');renderOnboardingDraftLists();
 }
 function addOnboardingUser(){
   const name=obVal('obUserName'),email=obVal('obUserEmail'),role=obVal('obUserRole');if(!name||!email||!role)return onboardingNotice('Fyll inn navn, e-post og rolle.');
+  if(/styreleder|styremedlem/.test(role)&&!assertOnboardingLimit('board','styremedlemmer'))return;
+  if(role==='beboer'&&!assertOnboardingLimit('residents','beboere'))return;
+  if(role==='vaktmester'&&!assertOnboardingLimit('caretakers','vaktmester/forvalter-brukere'))return;
   ensureOnboardingDraft().users.push({name,email,role,phone:obVal('obUserPhone'),password:obVal('obUserPassword')});
   clearOb(['obUserName','obUserEmail','obUserPhone','obUserPassword']);renderOnboardingDraftLists();
 }
@@ -922,6 +947,8 @@ function validateNewCustomerOnboarding(){
   required.forEach(([id,label])=>{if(!obVal(id)){missing.push(label);ids.push(id)}});
   const units=Number(obVal('obUnits')||0);
   if(obVal('obUnits')&&(!Number.isFinite(units)||units<1)){missing.push('Antall enheter må være minst 1');ids.push('obUnits')}
+  const unitLimit=onboardingPlanLimit('units');
+  if(unitLimit>0&&units>unitLimit){missing.push(`${selectedSubscriptionPlan().name} inkluderer opptil ${unitLimit} enheter`);ids.push('obUnits')}
   const hasBoardLead=draft.board.some(x=>/styreleder|leder/i.test(String(x.role||''))&&String(x.email||'').includes('@'));
   const inlineBoardLead=/styreleder|leder/i.test(obVal('obBoardRole'))&&obVal('obBoardName')&&obVal('obBoardEmail').includes('@');
   if(!hasBoardLead&&!inlineBoardLead)missing.push('Legg til minst én styreleder med e-post');
@@ -946,6 +973,16 @@ function capturePendingOnboardingRows(){
   if(userName&&userEmail&&!draft.users.some(x=>x.name===userName&&x.email===userEmail)){
     draft.users.push({name:userName,email:userEmail,role:obVal('obUserRole'),phone:obVal('obUserPhone'),password:obVal('obUserPassword')});
   }
+}
+function validateOnboardingPackageLimits(){
+  const draft=ensureOnboardingDraft(),limits=typeof packageLimitsForPlan==='function'?packageLimitsForPlan(selectedSubscriptionPlan().id):{};
+  const issues=[],plan=selectedSubscriptionPlan().name;
+  if(limits.board&&draft.board.length>limits.board)issues.push(`${plan} inkluderer maks ${limits.board} styremedlemmer`);
+  if(limits.residents&&draft.residents.length>limits.residents)issues.push(`${plan} inkluderer maks ${limits.residents} beboere`);
+  if(limits.suppliers&&draft.suppliers.length>limits.suppliers)issues.push(`${plan} inkluderer maks ${limits.suppliers} leverand?rer`);
+  const caretakers=draft.users.filter(u=>/vaktmester|forvalter/i.test(String(u.role||''))).length;
+  if(limits.caretakers&&caretakers>limits.caretakers)issues.push(`${plan} inkluderer maks ${limits.caretakers} vaktmester/forvalter-brukere`);
+  return {ok:!issues.length,missing:issues,ids:[]};
 }
 function renderOnboardingValidationError(result){
   const out=document.getElementById('obOut');

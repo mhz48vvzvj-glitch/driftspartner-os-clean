@@ -21,6 +21,52 @@ function subscriptionPlanId(){return String(currentProperty()?.subscription_plan
 function aiLimitForPlan(plan=subscriptionPlanId()){
   return ({start:50,pro:150,premium:500}[String(plan||'').toLowerCase()]||0);
 }
+function packageLimitsForPlan(plan=subscriptionPlanId()){
+  const key=String(plan||'start').toLowerCase();
+  const limits={
+    start:{buildings:1,units:20,board:5,residents:20,caretakers:1,suppliers:5,documents:200,documentMb:2048,emails:300,ai:50},
+    pro:{buildings:10,units:100,board:9999,residents:9999,caretakers:5,suppliers:50,documents:2000,documentMb:20480,emails:3000,ai:150},
+    premium:{buildings:50,units:9999,board:9999,residents:9999,caretakers:25,suppliers:999,documents:10000,documentMb:102400,emails:10000,ai:500}
+  };
+  return limits[key]||limits.start;
+}
+function planName(plan=subscriptionPlanId()){
+  return ({start:'Start',pro:'Pro',premium:'Premium'}[String(plan||'').toLowerCase()]||String(plan||'Start'));
+}
+function contactRoleValue(c){
+  return String(c?.role||c?.contact_role||c?.contact_type||c?.type||c?.access_role||'').toLowerCase();
+}
+function packageUsage(){
+  const contacts=DP.cache?.contacts||[];
+  const board=contacts.filter(c=>/styre|leder|vara|nestleder/.test(contactRoleValue(c))).length;
+  const residents=contacts.filter(c=>/bebo|resident|leilighet|enhet/.test(contactRoleValue(c))).length;
+  const caretakers=contacts.filter(c=>/vaktmester|forvalter|caretaker|manager/.test(contactRoleValue(c))).length;
+  const now=new Date(),cutoff=new Date(now.getTime()-30*24*60*60*1000);
+  const emails=(DP.cache?.activity||[]).filter(a=>{
+    const d=new Date(a.created_at||a.createdAt||0);
+    return Number.isFinite(d.getTime())&&d>=cutoff&&/e-?post|mail|email/i.test(`${a.action||''} ${a.entity_type||''}`);
+  }).length;
+  return {
+    buildings:(DP.cache?.buildings||[]).length,
+    board,
+    residents,
+    caretakers,
+    suppliers:(DP.suppliers||[]).length,
+    documents:(DP.cache?.documents||[]).length,
+    emails,
+    ai:aiUsageThisMonth()
+  };
+}
+function packageLimitStatus(kind,plan=subscriptionPlanId()){
+  const limits=packageLimitsForPlan(plan),usage=packageUsage(),limit=Number(limits[kind]||0),used=Number(usage[kind]||0);
+  return {kind,plan,limit,used,remaining:Math.max(0,limit-used),blocked:limit>0&&used>=limit};
+}
+function assertPackageLimit(kind,label,plan=subscriptionPlanId(),extraUsed=0){
+  const status=packageLimitStatus(kind,plan);
+  const used=status.used+(Number(extraUsed)||0);
+  if(status.limit>0&&used>=status.limit)throw new Error(`${planName(plan)} inkluderer ${status.limit} ${label}. Oppgrader pakken eller slett noe for å legge til mer.`);
+  return status;
+}
 function aiUsageThisMonth(){
   const now=new Date(),month=now.getMonth(),year=now.getFullYear();
   const rows=[...(DP.cache?.aiRuns||[]),...(DP.cache?.activity||[])];
@@ -31,11 +77,11 @@ function aiUsageThisMonth(){
   }).length;
 }
 function aiQuotaStatus(){
-  const plan=subscriptionPlanId(),limit=aiLimitForPlan(plan),used=aiUsageThisMonth();
+  const plan=subscriptionPlanId(),limit=packageLimitsForPlan(plan).ai||aiLimitForPlan(plan),used=aiUsageThisMonth();
   return {plan,limit,used,remaining:Math.max(0,limit-used),blocked:limit>0&&used>=limit};
 }
 function buildingLimitForPlan(plan=subscriptionPlanId()){
-  return ({start:1,pro:10,premium:50}[String(plan||'').toLowerCase()]||1);
+  return packageLimitsForPlan(plan).buildings||1;
 }
 function buildingQuotaStatus(){
   const plan=subscriptionPlanId(),limit=buildingLimitForPlan(plan),used=(DP.cache?.buildings||[]).length;
@@ -270,7 +316,7 @@ function LandingPage(){
 }
 function publicLanding(){
   const plans=[
-    ['Start','9 990 kr','990 kr/mnd','For mindre sameier og borettslag','1 bygg|FDV-arkiv|Dokumenthåndtering|Avvikshåndtering|Basisanbefalinger|50 AI-klikk per måned|Styreportal|Mobiltilgang','opptil 20 enheter','dp-secondary'],
+    ['Start','9 990 kr','990 kr/mnd','For mindre sameier og borettslag','1 bygg|Opptil 20 enheter|5 styremedlemmer|20 beboere|5 leverandører|200 dokumenter / 2 GB|300 e-postmottakere per 30 dager|FDV-arkiv|Dokumenthåndtering|Avvikshåndtering|Basisanbefalinger|50 AI-klikk per måned|Styreportal|Mobiltilgang','opptil 20 enheter','dp-secondary'],
     ['Pro','19 990 kr','1 990 kr/mnd','For de fleste sameier og borettslag','Alt i Start|Inntil 10 bygg|AI Director|150 AI-klikk per måned|Vedlikeholdsplan|Arbeidsordre|Leverandørregister|Budsjettoversikt|Avansert rapportering|Ubegrenset antall styremedlemmer','20-100 enheter','dp-primary'],
     ['Premium','39 990 kr','3 990 kr/mnd','For større borettslag og profesjonelle eiendomsaktører','Alt i Pro|Inntil 50 bygg|Property Brain AI|500 AI-klikk per måned|Risikoanalyse|Tilbudsinnhenting (RFQ)|Flere eiendommer|Prioritert support|Avanserte analyser','100+ enheter','dp-secondary']
   ];
@@ -346,6 +392,10 @@ window.openModule=openModule;
 window.aiLimitForPlan=aiLimitForPlan;
 window.aiUsageThisMonth=aiUsageThisMonth;
 window.aiQuotaStatus=aiQuotaStatus;
+window.packageLimitsForPlan=packageLimitsForPlan;
+window.packageUsage=packageUsage;
+window.packageLimitStatus=packageLimitStatus;
+window.assertPackageLimit=assertPackageLimit;
 window.buildingLimitForPlan=buildingLimitForPlan;
 window.buildingQuotaStatus=buildingQuotaStatus;
 window.hideDrawer=hideDrawer;

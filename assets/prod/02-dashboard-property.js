@@ -99,7 +99,7 @@ function planLabel(plan){return ({start:'Start',pro:'Pro',premium:'Premium'}[Str
 function statusLabel(status){return ({active:'Aktiv',pending:'Venter avtale',trial:'Pilot',paused:'Pause'}[String(status).toLowerCase()]||status||'Venter avtale')}
 function dashboardSubscriptionPlans(){
   return [
-    {id:'start',name:'Start',firstYear:9990,yearTwo:11880,items:['1 bygg','FDV-arkiv','Dokumenthåndtering','Avvikshåndtering','Basisanbefalinger','50 AI-klikk per måned','Styreportal','Mobiltilgang']},
+    {id:'start',name:'Start',firstYear:9990,yearTwo:11880,items:['1 bygg','Opptil 20 enheter','5 styremedlemmer','20 beboere','5 leverandører','200 dokumenter / 2 GB','300 e-postmottakere per 30 dager','FDV-arkiv','Dokumenthåndtering','Avvikshåndtering','Basisanbefalinger','50 AI-klikk per måned','Styreportal','Mobiltilgang']},
     {id:'pro',name:'Pro',firstYear:19990,yearTwo:23880,items:['Alt i Start','Inntil 10 bygg','AI Director','150 AI-klikk per måned','Vedlikeholdsplan','Arbeidsordre','Leverandørregister','Budsjettoversikt','Avansert rapportering','Ubegrenset antall styremedlemmer']},
     {id:'premium',name:'Premium',firstYear:39990,yearTwo:47880,items:['Alt i Pro','Inntil 50 bygg','Property Brain AI','500 AI-klikk per måned','Risikoanalyse','Tilbudsinnhenting (RFQ)','Flere eiendommer','Prioritert support','Avanserte analyser']}
   ];
@@ -109,7 +109,7 @@ function PackageAccessSummary(){
   const quota=typeof aiQuotaStatus==='function'?aiQuotaStatus():{used:0,limit:0,remaining:0,blocked:false};
   const buildingQuota=typeof buildingQuotaStatus==='function'?buildingQuotaStatus():{used:0,limit:0,remaining:0,blocked:false};
   const modules=[
-    ['Start','FDV, dokumenter, avvik, styre og mobiltilgang',true],
+    ['Start','1 bygg, 20 enheter, 5 styremedlemmer, 20 beboere, 5 leverandører, FDV, avvik og styre',true],
     ['Pro','Vedlikeholdsplan, arbeidsordre, økonomi, rapporter og leverandørregister',['pro','premium'].includes(plan)],
     ['Premium','Property Brain AI, risikoanalyse, RFQ, flere eiendommer og avanserte analyser',plan==='premium']
   ];

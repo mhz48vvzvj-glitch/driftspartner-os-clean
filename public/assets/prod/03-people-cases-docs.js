@@ -89,7 +89,7 @@ async function createPersonLogin({name,email,phone,role='beboer',password=''}){
 }
 async function deleteContact(id){if(!confirm('Slette kontakt?'))return;try{requireLive('slette kontakt');const r=await db().from('property_contacts').delete().eq('id',id);if(r.error)throw r.error;await insertActivity('Kontakt slettet','contact',id);await finishAction('Kontakten er slettet.','people')}catch(e){showDrawer('Kontakt ble ikke slettet',`<div class=\"output\">${esc(customerError(e))}</div>`)}}
 function showUserForm(){showDrawer('Opprett bruker med innlogging',`<label>Navn</label><input id="newName"><label>E-post</label><input id="newEmail"><label>Telefon</label><input id="newPhone"><label>Rolle</label><select id="newRole"><option value="beboer">Beboer</option><option value="styreleder">Styreleder</option><option value="styremedlem">Styremedlem</option><option value="vaktmester">Vaktmester</option><option value="leverandor">Leverandør</option></select><label>Midlertidig passord</label><input id="newPassword" type="password"><button class="action primary" onclick="createUserLogin()">Opprett bruker</button><div id="newUserOut" class="output">Klar til å opprette bruker.</div>`)}
-async function createUserLogin(){const out=document.getElementById('newUserOut');try{requireLive('opprette bruker');const token=DP.session?.access_token;if(!token)throw new Error('Mangler innloggingstoken.');const access={beboer:'resident',styreleder:'owner',styremedlem:'member',vaktmester:'caretaker',leverandor:'vendor'}[newRole.value]||'member';const res=await fetch('/.netlify/functions/create-user',{method:'POST',headers:{'content-type':'application/json',authorization:`Bearer ${token}`},body:JSON.stringify({name:newName.value,email:newEmail.value,phone:newPhone.value,role:newRole.value,property_id:currentProperty().id,access_role:access,password:newPassword.value})});const data=await readJsonResponse(res,'Bruker-tjenesten svarte ikke riktig. Prøv igjen, eller kontakt Driftspartner Nord hvis feilen fortsetter.');if(!data.ok)throw new Error(data.message);await insertActivity(data.email_sent?'Bruker opprettet og e-post sendt':'Bruker opprettet','user',data.user?.id||newEmail.value);await finishAction(data.email_sent?'Bruker er opprettet og innloggingsmail er sendt.':'Bruker er opprettet. Innloggingsmail ble ikke sendt.','people')}catch(e){setOutputError(out,e)}}
+async function createUserLogin(){const out=document.getElementById('newUserOut');try{requireLive('opprette bruker');const token=DP.session?.access_token;if(!token)throw new Error('Mangler innloggingstoken.');if(typeof assertPackageLimit==='function'){if(/styreleder|styremedlem/.test(newRole.value))assertPackageLimit('board','styremedlemmer');if(newRole.value==='beboer')assertPackageLimit('residents','beboere');if(newRole.value==='vaktmester')assertPackageLimit('caretakers','vaktmester/forvalter-brukere')}const access={beboer:'resident',styreleder:'owner',styremedlem:'member',vaktmester:'caretaker',leverandor:'vendor'}[newRole.value]||'member';const res=await fetch('/.netlify/functions/create-user',{method:'POST',headers:{'content-type':'application/json',authorization:`Bearer ${token}`},body:JSON.stringify({name:newName.value,email:newEmail.value,phone:newPhone.value,role:newRole.value,property_id:currentProperty().id,access_role:access,password:newPassword.value})});const data=await readJsonResponse(res,'Bruker-tjenesten svarte ikke riktig. Prøv igjen, eller kontakt Driftspartner Nord hvis feilen fortsetter.');if(!data.ok)throw new Error(data.message);await insertActivity(data.email_sent?'Bruker opprettet og e-post sendt':'Bruker opprettet','user',data.user?.id||newEmail.value);await finishAction(data.email_sent?'Bruker er opprettet og innloggingsmail er sendt.':'Bruker er opprettet. Innloggingsmail ble ikke sendt.','people')}catch(e){setOutputError(out,e)}}
 
 function PeoplePage(){
   const contacts=DP.cache.contacts||[];
@@ -134,6 +134,11 @@ async function saveContact(){
     if(out)out.textContent='Lagrer kontakt...';
     const propertyId=currentProperty().id,id=document.getElementById('personId')?.value||'',name=personName.value.trim(),role=personRole.value.trim()||'Kontakt',email=personEmail.value.trim(),phone=personPhone.value.trim(),notes=personNotes.value.trim();
     if(!name)throw new Error('Fyll inn navn.');
+    if(!id&&typeof assertPackageLimit==='function'){
+      if(/styre|leder|vara|nestleder/i.test(role))assertPackageLimit('board','styremedlemmer');
+      else if(/bebo|resident|leilighet|enhet/i.test(role))assertPackageLimit('residents','beboere');
+      else if(/vaktmester|forvalter/i.test(role))assertPackageLimit('caretakers','vaktmester/forvalter-brukere');
+    }
     const variants=[
       {property_id:propertyId,name,role,contact_role:role,contact_type:role,email,phone,notes},
       {property_id:propertyId,name,role,contact_role:role,contact_type:role,email,phone},
@@ -542,6 +547,7 @@ async function uploadDocument(){
   const out=document.getElementById('docOut');
   try{
     requireLive('laste opp dokument');
+    if(typeof assertPackageLimit==='function')assertPackageLimit('documents','dokumenter');
     const file=docFile.files[0];if(!file)throw new Error('Velg fil.');
     const path=`${currentProperty().id}/${safeStorageName(docCat.value)}/${Date.now()}-${safeStorageName(file.name)}`;
     let up=await db().storage.from('documents').upload(path,file,{upsert:false,contentType:file.type||undefined});if(up.error)throw up.error;
