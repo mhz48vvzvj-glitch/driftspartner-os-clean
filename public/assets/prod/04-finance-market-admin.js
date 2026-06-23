@@ -676,6 +676,56 @@ function readSignatureRecipients(){
   const extra=String(document.getElementById('signExtra')?.value||'').split(/[,;\n]/).map(x=>x.trim()).filter(x=>x.includes('@')).map(email=>({email,name:email,role:'Ekstra mottaker'}));
   return [...picked,...extra].filter((r,i,a)=>a.findIndex(x=>x.email.toLowerCase()===r.email.toLowerCase())===i);
 }
+function signatureErrorMessage(error){
+  const msg=String(error?.message||error?.details||error?.hint||error||'');
+  if(/signature_requests|could not find the table|schema cache|relation .* does not exist|does not exist/i.test(msg))return 'Signeringstabellen mangler. Kjør supabase-signatures-v1.sql i Supabase SQL Editor, publiser siste pakke og prøv igjen.';
+  if(/row level|rls|policy|permission|not authorized|violates row-level/i.test(msg))return 'Brukeren mangler tilgang til å lagre signering på valgt eiendom. Sjekk property_access/RLS for brukeren.';
+  if(/column|related_id|recipients|signature_type|due_date/i.test(msg))return 'Signeringstabellen har feil oppsett. Kjør oppdatert supabase-signatures-v1.sql i Supabase og prøv igjen.';
+  if(/uuid|invalid input syntax/i.test(msg))return 'Signeringen peker til en ugyldig sak/dokument. Åpne signering fra Integrasjoner og prøv uten koblet sak.';
+  return customerError(error);
+}
+function signatureRecipientEmails(row){
+  try{
+    const list=Array.isArray(row.recipients)?row.recipients:JSON.parse(row.recipients||'[]');
+    return list.map(r=>String(r.email||r||'').trim()).filter(x=>x.includes('@'));
+  }catch{return []}
+}
+function signatureReplyTo(){
+  const p=currentProperty();
+  const board=(DP.cache.contacts||[]).find(c=>/styreleder|leder|styre/i.test(String(c.role||c.contact_role||''))&&String(c.email||'').includes('@'));
+  return board?.email||p?.customer_billing_email||DP.user?.email||'';
+}
+function signatureEmailPayload(row){
+  const p=currentProperty(),to=signatureRecipientEmails(row),replyTo=signatureReplyTo();
+  const due=row.due_date?`\nFrist: ${row.due_date}`:'';
+  const notes=row.notes?`\n\nInstruks:\n${row.notes}`:'';
+  const message=`Hei,\n\nDu har mottatt en signeringsforespørsel for ${p?.name||'valgt eiendom'}.\n\nTittel: ${row.title||'Signering'}\nType: ${row.signature_type||'Signering'}${due}${notes}\n\nGå gjennom grunnlaget og svar på denne e-posten dersom noe må avklares.\n\nVennlig hilsen\n${p?.name||'Styret'}`;
+  return {to,subject:`Signering: ${row.title||'Dokument'}`,message,kind:'signature',caseId:row.id||'',property:p?.name||'',property_id:p?.id||'',reply_to:replyTo,from_name:`${p?.name||'Kunde'} via Driftspartner OS`};
+}
+async function sendSignatureEmailRow(row,out){
+  if(!row)throw new Error('Fant ikke signeringsforespørselen.');
+  const payload=signatureEmailPayload(row);
+  if(!payload.to.length)throw new Error('Signeringen mangler mottakere med e-post.');
+  if(location.protocol==='file:'||location.hostname==='localhost'||location.hostname==='127.0.0.1')throw new Error('Signering kan bare sendes fra publisert Netlify-side.');
+  if(out)out.textContent='Sender signering på e-post...';
+  const res=await fetch('/.netlify/functions/send-email',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});
+  const data=await readJsonResponse(res,'E-postfunksjonen svarte ikke riktig. Publiser siste pakke og prøv igjen.');
+  if(!res.ok||!data.ok)throw new Error(data.message||'Signering ble ikke sendt på e-post.');
+  await db().from('signature_requests').update({status:'Sendt',updated_at:new Date().toISOString()}).eq('id',row.id);
+  await insertActivity(`Signering sendt på e-post: ${row.title||'Signering'}`,'signature_request',row.id);
+  return data;
+}
+async function sendSignatureEmail(id){
+  const out=document.getElementById('signatureOut');
+  try{
+    requireLive('sende signering');
+    await sendSignatureEmailRow(signatureRows().find(r=>String(r.id)===String(id)),out);
+    await finishAction('Signering er sendt på e-post.','integrations');
+  }catch(e){
+    const msg=signatureErrorMessage(e);
+    if(out)out.textContent=msg;else showDrawer('Signering ble ikke sendt',`<div class="output">${esc(msg)}</div>`);
+  }
+}
 async function saveSignatureRequest(relatedType='',relatedId=''){
   const out=document.getElementById('signOut');
   try{
@@ -688,8 +738,8 @@ async function saveSignatureRequest(relatedType='',relatedId=''){
     await insertActivity('Signering opprettet','signature_request',r.data.id);
     await finishAction('Signeringsforespørselen er opprettet.','integrations');
   }catch(e){
-    const msg=/signature_requests|schema cache|relation|does not exist/i.test(String(e.message||''))?'Signeringstabellen mangler. Kjør supabase-signatures-v1.sql i Supabase og publiser siste pakke.':customerError(e);
-    if(out)setOutputError(out,{message:msg});else showDrawer('Signering ble ikke opprettet',`<div class="output">${esc(msg)}</div>`);
+    const msg=signatureErrorMessage(e);
+    if(out)out.textContent=msg;else showDrawer('Signering ble ikke opprettet',`<div class="output">${esc(msg)}</div>`);
   }
 }
 async function updateSignatureStatus(id,status){
@@ -707,10 +757,10 @@ async function deleteSignatureRequest(id){
 }
 function SignaturePanel(){
   const rows=signatureRows();
-  return `<div class="dash-title"><div><h3>Digital signering</h3><p class="muted">Kontrakter, styrevedtak og tilbudsgodkjenning med mottakere, frist og status.</p></div><button class="action primary" onclick="showSignatureRequestForm('Kontrakt')">Ny signering</button></div>${rows.length?`<div class="market-card-list">${rows.map(signatureCard).join('')}</div>`:'<div class="empty-state"><strong>Ingen signeringer opprettet.</strong><span>Opprett signering fra kontrakt, styrevedtak eller tilbudsgodkjenning.</span><button class="action primary" onclick="showSignatureRequestForm(\'Kontrakt\')">Opprett første signering</button></div>'}`;
+  return `<div class="dash-title"><div><h3>Digital signering</h3><p class="muted">Kontrakter, styrevedtak og tilbudsgodkjenning med mottakere, frist og status.</p></div><button class="action primary" onclick="showSignatureRequestForm('Kontrakt')">Ny signering</button></div><div id="signatureOut" class="output">Klar for signering.</div>${rows.length?`<div class="market-card-list">${rows.map(signatureCard).join('')}</div>`:'<div class="empty-state"><strong>Ingen signeringer opprettet.</strong><span>Opprett signering fra kontrakt, styrevedtak eller tilbudsgodkjenning.</span><button class="action primary" onclick="showSignatureRequestForm(\'Kontrakt\')">Opprett første signering</button></div>'}`;
 }
 function signatureCard(row){
-  return `<section class="market-record"><div class="market-record-head"><div><strong>${esc(row.title||'Signering')}</strong><small>${esc(row.signature_type||'Kontrakt')} · ${signatureRecipientCount(row)} mottakere · Frist ${esc(row.due_date||'ikke satt')}</small></div><span class="soft-pill ${signatureStatusClass(row.status)}">${esc(row.status||'Utkast')}</span></div>${row.notes?`<p>${esc(row.notes)}</p>`:''}<div class="row-actions"><button class="action" onclick="updateSignatureStatus('${esc(row.id)}','Venter signering')">Venter</button><button class="action primary" onclick="updateSignatureStatus('${esc(row.id)}','Signert')">Marker signert</button><button class="action red" onclick="deleteSignatureRequest('${esc(row.id)}')">Slett</button></div></section>`;
+  return `<section class="market-record"><div class="market-record-head"><div><strong>${esc(row.title||'Signering')}</strong><small>${esc(row.signature_type||'Kontrakt')} · ${signatureRecipientCount(row)} mottakere · Frist ${esc(row.due_date||'ikke satt')}</small></div><span class="soft-pill ${signatureStatusClass(row.status)}">${esc(row.status||'Utkast')}</span></div>${row.notes?`<p>${esc(row.notes)}</p>`:''}<div class="row-actions"><button class="action" onclick="sendSignatureEmail('${esc(row.id)}')">Send e-post</button><button class="action" onclick="updateSignatureStatus('${esc(row.id)}','Venter signering')">Venter</button><button class="action primary" onclick="updateSignatureStatus('${esc(row.id)}','Signert')">Marker signert</button><button class="action red" onclick="deleteSignatureRequest('${esc(row.id)}')">Slett</button></div></section>`;
 }
 
 function integrationItems(){

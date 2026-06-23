@@ -62,6 +62,7 @@ const templateLabels = {
   quote: "Tilbudsforespørsel",
   board: "Styresak",
   contract: "Kontrakt",
+  signature: "Signering",
   resident: "Beboer",
   general: "Melding"
 };
