@@ -643,7 +643,7 @@ function DocumentsPage(){
   const expiring=documentsExpiring(docs);
   const stats=cats.map(c=>`<button class="doc-filter ${active===c?'active':''}" onclick="DP.docCat='${esc(c)}';render()"><span>${esc(c)}</span><b>${c==='Alle'?docs.length:byCat(c)}</b></button>`).join('');
   return `<div class="grid documents-page premium-documents">
-    <div class="card s12 module-hero documents-hero"><div><small>FDV og dokumentarkiv</small><h2>Dokumentasjon for ${esc(currentProperty()?.name||'valgt eiendom')}</h2><p>FDV, HMS, tegninger, kontrakter, styrepapirer, bilder og tilbud lagres på valgt eiendom og kan knyttes til bygg eller sak.</p></div><div class="module-actions"><button class="action primary" onclick="showDocForm()">Last opp dokument</button><button class="action" onclick="showScanDocumentForm()">Skann dokument</button><button class="action" onclick="showStandaloneContractForm()">Lag kontrakt</button><button class="action" onclick="showEmailFlow('contract')">Send e-post</button>${brainAction}</div></div>
+    <div class="card s12 module-hero documents-hero"><div><small>FDV og dokumentarkiv</small><h2>Dokumentasjon for ${esc(currentProperty()?.name||'valgt eiendom')}</h2><p>FDV, HMS, tegninger, kontrakter, styrepapirer, bilder og tilbud lagres på valgt eiendom og kan knyttes til bygg eller sak.</p></div><div class="module-actions"><button class="action primary" onclick="showDocForm()">Last opp dokument</button><button class="action" onclick="showScanDocumentForm()">Skann dokument</button><button class="action" onclick="showStandaloneContractForm()">Lag kontrakt</button><button class="action" onclick="showSignatureRequestForm('Kontrakt')">Send til signering</button><button class="action" onclick="showEmailFlow('contract')">Send e-post</button>${brainAction}</div></div>
     ${docSummaryCard('Dokumenter',docs.length,'Lagret på eiendommen','showDocForm()','info')}
     ${docSummaryCard('Dokumentasjonsgrad',`${required.length-missing.length}/${required.length}`,missing.length?'Mangler nøkkeldokumenter':'Nøkkeldokumenter finnes',documentGradeAction,missing.length?'warn':'ok')}
     ${docSummaryCard('Utløper snart',expiring.length,'Kontroller, avtaler og frister','showExpiringDocuments()','warn')}
@@ -678,11 +678,12 @@ function documentCards(docs){
 }
 function documentCard(d){
   const exp=d.expires_at?new Date(d.expires_at):null,isSoon=exp&&!Number.isNaN(exp.getTime())&&exp<(new Date(Date.now()+1000*60*60*24*60));
+  const signType=/styrepapir/i.test(d.category||'')?'Styrevedtak':/tilbud/i.test(d.category||'')?'Tilbudsgodkjenning':'Kontrakt';
   return `<section class="document-card premium-doc-card ${isSoon?'warn':''}">
     <div class="document-head"><div><span>${esc(d.category||'Dokument')}</span><strong>${esc(d.title||'Uten tittel')}</strong></div><b>v${esc(d.version||1)}</b></div>
     <div class="document-meta"><div><small>Knyttet til</small><b>${esc(documentLinkLabel(d))}</b></div><div><small>Status</small><b>${esc(d.status||'Arkivert')}</b></div><div><small>Utløp</small><b>${esc(d.expires_at||'Ikke satt')}</b></div></div>
     ${d.notes?`<p>${esc(d.notes)}</p>`:''}
-    <div class="row-actions"><button class="action primary" onclick="openDocument('${esc(d.id)}')">Åpne</button><button class="action" onclick="showDocumentDetails('${esc(d.id)}')">Detaljer</button><button class="action" onclick="showDocumentVersionForm('${esc(d.id)}')">Ny versjon</button><button class="action red" onclick="deleteDocument('${esc(d.id)}','${esc(d.storage_path)}')">Slett</button></div>
+    <div class="row-actions"><button class="action primary" onclick="openDocument('${esc(d.id)}')">Åpne</button><button class="action" onclick="showDocumentDetails('${esc(d.id)}')">Detaljer</button><button class="action" onclick="showDocumentVersionForm('${esc(d.id)}')">Ny versjon</button><button class="action" onclick="showSignatureRequestForm('${esc(signType)}','document','${esc(d.id)}','${esc(signType)} - ${esc(d.title||'Dokument')}')">Signer</button><button class="action red" onclick="deleteDocument('${esc(d.id)}','${esc(d.storage_path)}')">Slett</button></div>
   </section>`;
 }
 function showDocForm(){

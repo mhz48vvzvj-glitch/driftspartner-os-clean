@@ -148,6 +148,7 @@ async function hydrateAll(){
   await q('projects',()=>client.from('projects').select('*').eq('property_id',id).order('created_at',{ascending:false}));
   await q('quote_requests',()=>client.from('quote_requests').select('*').eq('property_id',id).order('created_at',{ascending:false}));
   await q('offers',()=>client.from('offers').select('*, suppliers(name,email)').eq('property_id',id).order('created_at',{ascending:false}));
+  await q('signature_requests',()=>client.from('signature_requests').select('*').eq('property_id',id).order('created_at',{ascending:false}));
   await q('activity',()=>client.from('activity_log').select('*').eq('property_id',id).order('created_at',{ascending:false}).limit(80));
   const aiRuns=await client.from('ai_agent_runs').select('*').eq('property_id',id).order('created_at',{ascending:false}).limit(200);
   DP.cache.aiRuns=aiRuns.error?[]:(aiRuns.data||[]);
