@@ -25,7 +25,7 @@ function packageLimitsForPlan(plan=subscriptionPlanId()){
   const key=String(plan||'start').toLowerCase();
   const limits={
     start:{buildings:1,units:20,board:5,residents:20,caretakers:1,suppliers:5,documents:200,documentMb:2048,emails:300,ai:50},
-    pro:{buildings:10,units:100,board:9999,residents:9999,caretakers:5,suppliers:50,documents:2000,documentMb:20480,emails:3000,ai:150},
+    pro:{buildings:10,units:100,board:9999,residents:100,caretakers:5,suppliers:50,documents:2000,documentMb:20480,emails:3000,ai:150},
     premium:{buildings:50,units:9999,board:9999,residents:9999,caretakers:25,suppliers:999,documents:10000,documentMb:102400,emails:10000,ai:500}
   };
   return limits[key]||limits.start;
@@ -317,7 +317,7 @@ function LandingPage(){
 function publicLanding(){
   const plans=[
     ['Start','9 990 kr','990 kr/mnd','For mindre sameier og borettslag','1 bygg|Opptil 20 enheter|5 styremedlemmer|20 beboere|5 leverandører|200 dokumenter / 2 GB|300 e-postmottakere per 30 dager|FDV-arkiv|Dokumenthåndtering|Avvikshåndtering|Basisanbefalinger|50 AI-klikk per måned|Styreportal|Mobiltilgang','opptil 20 enheter','dp-secondary'],
-    ['Pro','19 990 kr','1 990 kr/mnd','For de fleste sameier og borettslag','Alt i Start|Inntil 10 bygg|AI Director|150 AI-klikk per måned|Vedlikeholdsplan|Arbeidsordre|Leverandørregister|Budsjettoversikt|Avansert rapportering|Ubegrenset antall styremedlemmer','20-100 enheter','dp-primary'],
+    ['Pro','19 990 kr','1 990 kr/mnd','For de fleste sameier og borettslag','Alt i Start|Inntil 10 bygg|Opptil 100 enheter|100 beboere|Ubegrenset antall styremedlemmer|5 vaktmester/forvalter-brukere|50 leverandører|2000 dokumenter / 20 GB|3000 e-postmottakere per 30 dager|AI Director|150 AI-klikk per måned|Vedlikeholdsplan|Arbeidsordre|Leverandørregister|Budsjettoversikt|Avansert rapportering','20-100 enheter','dp-primary'],
     ['Premium','39 990 kr','3 990 kr/mnd','For større borettslag og profesjonelle eiendomsaktører','Alt i Pro|Inntil 50 bygg|Property Brain AI|500 AI-klikk per måned|Risikoanalyse|Tilbudsinnhenting (RFQ)|Flere eiendommer|Prioritert support|Avanserte analyser','100+ enheter','dp-secondary']
   ];
   const priceCards=plans.map(p=>`<div class="dp-price ${p[0]==='Pro'?'featured':''} ${p[0]==='Premium'?'premium':''}">${p[0]==='Pro'?'<div class="dp-ribbon">Mest valgt</div>':''}<div class="dp-plan-head"><div class="dp-plan-icon">${esc(p[0])}</div><div><h3>${esc(p[0])}</h3><small>${esc(p[3])}</small></div></div><b>${esc(p[1])} <small>første år</small></b><small>${esc(p[2])} · faktureres årlig. År 2 faktureres for 12 måneder.</small><ul>${p[4].split('|').map(i=>`<li>${esc(i)}</li>`).join('')}</ul><p class="fit">Passer for <span>${esc(p[5])}</span></p><button class="${esc(p[6])}" type="button" data-purchase-plan="${esc(p[0])}">Kom i gang</button></div>`).join('');

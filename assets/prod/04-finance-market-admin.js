@@ -828,7 +828,7 @@ window.sendEmailMicrosoft=sendEmailMicrosoft;
 function subscriptionPlans(){
   return [
     {id:'start',name:'Start',firstYear:9990,yearTwo:11880,unit:'For mindre sameier og borettslag',fit:'Opptil 20 enheter',items:['1 bygg','Opptil 20 enheter','5 styremedlemmer','20 beboere','5 leverandører','200 dokumenter / 2 GB','300 e-postmottakere per 30 dager','FDV-arkiv','Dokumenthåndtering','Avvikshåndtering','Basisanbefalinger','50 AI-klikk per måned','Styreportal','Mobiltilgang']},
-    {id:'pro',name:'Pro',firstYear:19990,yearTwo:23880,unit:'For de fleste sameier og borettslag',fit:'20-100 enheter',items:['Alt i Start','Inntil 10 bygg','AI Director','150 AI-klikk per måned','Vedlikeholdsplan','Arbeidsordre','Leverandørregister','Budsjettoversikt','Avansert rapportering','Ubegrenset antall styremedlemmer']},
+    {id:'pro',name:'Pro',firstYear:19990,yearTwo:23880,unit:'For de fleste sameier og borettslag',fit:'20-100 enheter',items:['Alt i Start','Inntil 10 bygg','Opptil 100 enheter','100 beboere','Ubegrenset antall styremedlemmer','5 vaktmester/forvalter-brukere','50 leverandører','2000 dokumenter / 20 GB','3000 e-postmottakere per 30 dager','AI Director','150 AI-klikk per måned','Vedlikeholdsplan','Arbeidsordre','Leverandørregister','Budsjettoversikt','Avansert rapportering']},
     {id:'premium',name:'Premium',firstYear:39990,yearTwo:47880,unit:'For større borettslag og eiendomsaktører',fit:'100+ enheter',items:['Alt i Pro','Inntil 50 bygg','Property Brain AI','500 AI-klikk per måned','Risikoanalyse','Tilbudsinnhenting (RFQ)','Flere eiendommer','Prioritert support','Avanserte analyser']}
   ];
 }
