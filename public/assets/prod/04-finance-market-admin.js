@@ -690,19 +690,21 @@ function signatureRecipientEmails(row){
     return list.map(r=>String(r.email||r||'').trim()).filter(x=>x.includes('@'));
   }catch{return []}
 }
-function signatureReplyTo(){
+function signatureBoardSigner(){
   const p=currentProperty();
-  const board=(DP.cache.contacts||[]).find(c=>/styreleder|leder|styre/i.test(String(c.role||c.contact_role||''))&&String(c.email||'').includes('@'));
-  return board?.email||p?.customer_billing_email||DP.user?.email||'';
+  const contacts=DP.cache.contacts||[];
+  const lead=contacts.find(c=>/styreleder/i.test(String(c.role||c.contact_role||''))&&String(c.email||'').includes('@'))
+    ||contacts.find(c=>/leder|styre/i.test(String(c.role||c.contact_role||''))&&String(c.email||'').includes('@'));
+  return {name:lead?.name||`Styret i ${p?.name||'eiendommen'}`,email:lead?.email||p?.customer_billing_email||DP.user?.email||'',role:lead?.role||lead?.contact_role||'Styreleder'};
 }
+function signatureReplyTo(){return signatureBoardSigner().email}
 function signatureEmailPayload(row){
-  const p=currentProperty(),to=signatureRecipientEmails(row),replyTo=signatureReplyTo();
+  const p=currentProperty(),to=signatureRecipientEmails(row),signer=signatureBoardSigner(),replyTo=signer.email;
   const due=row.due_date?`\nFrist: ${row.due_date}`:'';
   const notes=row.notes?`\n\nInstruks:\n${row.notes}`:'';
-  const message=`Hei,\n\nDu har mottatt en signeringsforespørsel for ${p?.name||'valgt eiendom'}.\n\nTittel: ${row.title||'Signering'}\nType: ${row.signature_type||'Signering'}${due}${notes}\n\nGå gjennom grunnlaget og svar på denne e-posten dersom noe må avklares.\n\nVennlig hilsen\n${p?.name||'Styret'}`;
-  return {to,subject:`Signering: ${row.title||'Dokument'}`,message,kind:'signature',caseId:row.id||'',property:p?.name||'',property_id:p?.id||'',reply_to:replyTo,from_name:`${p?.name||'Kunde'} via Driftspartner OS`};
-}
-async function sendSignatureEmailRow(row,out){
+  const message=`Hei,\n\nDu har mottatt en signeringsforespørsel for ${p?.name||'valgt eiendom'}.\n\nTittel: ${row.title||'Signering'}\nType: ${row.signature_type||'Signering'}${due}${notes}\n\nGå gjennom grunnlaget og svar på denne e-posten dersom noe må avklares.\n\nVennlig hilsen\n${signer.name}\n${signer.role}\n${p?.name||''}`;
+  return {to,subject:`Signering: ${row.title||'Dokument'}`,message,kind:'signature',caseId:row.id||'',property:p?.name||'',property_id:p?.id||'',reply_to:replyTo,from_name:`${signer.name} via Driftspartner OS`};
+}async function sendSignatureEmailRow(row,out){
   if(!row)throw new Error('Fant ikke signeringsforespørselen.');
   const payload=signatureEmailPayload(row);
   if(!payload.to.length)throw new Error('Signeringen mangler mottakere med e-post.');
