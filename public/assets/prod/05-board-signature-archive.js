@@ -138,7 +138,10 @@ saveSignatureRequest=async function(relatedType='',relatedId=''){
       const rows=signatureRows();
       const latest=rows[0];
       if(latest&&!latest.archive_category)await db().from('signature_requests').update({archive_category:category}).eq('id',latest.id);
-      if(relatedType==='board_meeting'&&relatedId)await db().from('board_meetings').update({status:'Vedtak til signering',updated_at:new Date().toISOString()}).eq('id',relatedId);
+      if(relatedType==='board_meeting'&&relatedId){
+        await db().from('board_meetings').update({status:'Vedtak til signering',updated_at:new Date().toISOString()}).eq('id',relatedId);
+        await finishAction('Vedtak er sendt til signering.','people');
+      }
     }catch(e){console.warn(e)}
   }
 }
@@ -158,7 +161,10 @@ updateSignatureStatus=async function(id,status){
     const row=(signatureRows()||[]).find(x=>String(x.id)===String(id));
     if(row){
       await archiveSignatureDocument({...row,status},'Signert');
-      if(String(row.related_type)==='board_meeting'&&row.related_id)await db().from('board_meetings').update({status:'Vedtak signert',updated_at:new Date().toISOString()}).eq('id',row.related_id);
+      if(String(row.related_type)==='board_meeting'&&row.related_id){
+        await db().from('board_meetings').update({status:'Vedtak signert',updated_at:new Date().toISOString()}).eq('id',row.related_id);
+        await finishAction('Vedtaket er signert og flyttet til arkiverte styremøter.','people');
+      }
     }
   }
 }
