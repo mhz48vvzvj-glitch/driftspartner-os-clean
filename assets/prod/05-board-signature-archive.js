@@ -1,5 +1,6 @@
 function boardMeetingRows(){return DP.cache.board_meetings||[]}
 function shortBoardText(value){const s=String(value||'').trim();return s.length>120?s.slice(0,117)+'...':s}
+function boardMeetingIsArchived(m){return /arkivert|signert|referat klart/i.test(String(m?.status||''))}
 function toLocalDatetimeValue(value){
   if(!value)return '';
   const d=new Date(value);
@@ -7,17 +8,23 @@ function toLocalDatetimeValue(value){
   const pad=n=>String(n).padStart(2,'0');
   return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
-function boardMeetingList(){
-  const rows=boardMeetingRows();
-  if(!rows.length)return '<div class="empty-state"><strong>Ingen styremøter registrert.</strong><span>Opprett første styremøte med agenda, vedtak og referat.</span><button class="action primary" onclick="showBoardMeetingForm()">Nytt styremøte</button></div>';
+function boardMeetingList(mode='active'){
+  const all=boardMeetingRows();
+  const rows=all.filter(m=>mode==='archived'?boardMeetingIsArchived(m):!boardMeetingIsArchived(m));
+  if(!rows.length&&mode==='archived')return '<div class="empty-state"><strong>Ingen arkiverte styremøter ennå.</strong><span>Når styrepapir lagres eller vedtak signeres, flyttes møtet hit.</span></div>';
+  if(!rows.length)return '<div class="empty-state"><strong>Ingen aktive styremøter.</strong><span>Opprett første styremøte med agenda, vedtak og referat.</span><button class="action primary" onclick="showBoardMeetingForm()">Nytt styremøte</button></div>';
   return `<div class="stack-list">${rows.map(boardMeetingCard).join('')}</div>`;
 }
 function boardMeetingCard(m){
-  return `<section class="mini-record board-meeting-card"><div><strong>${esc(m.title||'Styremøte')}</strong><small>${esc([m.meeting_type,m.meeting_date?new Date(m.meeting_date).toLocaleString('nb-NO'):'',m.status].filter(Boolean).join(' · '))}</small></div><div class="mini-meta"><span>Agenda</span><span>${esc(shortBoardText(m.agenda||'Ikke lagt inn'))}</span></div><div class="mini-meta"><span>Vedtak</span><span>${esc(shortBoardText(m.decisions||'Ikke lagt inn'))}</span></div><div class="row-actions"><button class="action" onclick="showBoardMeetingForm('${esc(m.id)}')">Endre</button><button class="action" onclick="saveBoardMeetingDocument('${esc(m.id)}')">Lagre som styrepapir</button><button class="action" onclick="showSignatureRequestForm('Styrevedtak','board_meeting','${esc(m.id)}','Styrevedtak - ${esc(m.title||'Styremøte')}')">Signer vedtak</button><button class="action red" onclick="deleteBoardMeeting('${esc(m.id)}')">Slett</button></div></section>`;
+  const archived=boardMeetingIsArchived(m);
+  const actions=archived
+    ? `<button class="action" onclick="showBoardMeetingForm('${esc(m.id)}')">Detaljer</button><button class="action" onclick="saveBoardMeetingDocument('${esc(m.id)}')">Oppdater styrepapir</button><button class="action red" onclick="deleteBoardMeeting('${esc(m.id)}')">Slett</button>`
+    : `<button class="action" onclick="showBoardMeetingForm('${esc(m.id)}')">Endre</button><button class="action" onclick="saveBoardMeetingDocument('${esc(m.id)}')">Lagre som styrepapir</button><button class="action" onclick="showSignatureRequestForm('Styrevedtak','board_meeting','${esc(m.id)}','Styrevedtak - ${esc(m.title||'Styremøte')}')">Signer vedtak</button><button class="action red" onclick="deleteBoardMeeting('${esc(m.id)}')">Slett</button>`;
+  return `<section class="mini-record board-meeting-card ${archived?'is-archived':''}"><div><strong>${esc(m.title||'Styremøte')}</strong><small>${esc([m.meeting_type,m.meeting_date?new Date(m.meeting_date).toLocaleString('nb-NO'):'',m.status].filter(Boolean).join(' · '))}</small></div><div class="mini-meta"><span>Agenda</span><span>${esc(shortBoardText(m.agenda||'Ikke lagt inn'))}</span></div><div class="mini-meta"><span>Vedtak</span><span>${esc(shortBoardText(m.decisions||'Ikke lagt inn'))}</span></div><div class="row-actions">${actions}</div></section>`;
 }
 function showBoardMeetingForm(id=''){
   const m=boardMeetingRows().find(x=>String(x.id)===String(id))||{};
-  showDrawer(id?'Endre styremøte':'Nytt styremøte',`<input id="boardMeetingId" type="hidden" value="${esc(id)}"><div class="form-grid two"><label>Tittel<input id="boardMeetingTitle" value="${esc(m.title||'Styremøte')}" placeholder="Styremøte / årsmøte / ekstraordinært møte"></label><label>Type<select id="boardMeetingType"><option ${m.meeting_type==='Styremøte'?'selected':''}>Styremøte</option><option ${m.meeting_type==='Årsmøte'?'selected':''}>Årsmøte</option><option ${m.meeting_type==='Ekstraordinært møte'?'selected':''}>Ekstraordinært møte</option><option ${m.meeting_type==='Beboermøte'?'selected':''}>Beboermøte</option></select></label><label>Dato<input id="boardMeetingDate" type="datetime-local" value="${esc(toLocalDatetimeValue(m.meeting_date))}"></label><label>Status<select id="boardMeetingStatus"><option ${m.status==='Planlagt'?'selected':''}>Planlagt</option><option ${m.status==='Gjennomført'?'selected':''}>Gjennomført</option><option ${m.status==='Referat klart'?'selected':''}>Referat klart</option><option ${m.status==='Vedtak signert'?'selected':''}>Vedtak signert</option></select></label></div><label>Agenda</label><textarea id="boardMeetingAgenda" rows="5" placeholder="Sak 1, sak 2, dokumenter som skal gjennomgås...">${esc(m.agenda||'')}</textarea><label>Vedtak</label><textarea id="boardMeetingDecisions" rows="5" placeholder="Hva ble vedtatt, hvem følger opp og frist?">${esc(m.decisions||'')}</textarea><label>Oppgaver / ansvar</label><textarea id="boardMeetingTasks" rows="4" placeholder="Ansvarlig, oppgave og frist">${esc(m.tasks||'')}</textarea><label>Referat / notat</label><textarea id="boardMeetingMinutes" rows="5" placeholder="Kort referat eller intern kommentar">${esc(m.minutes||m.notes||'')}</textarea><button class="action primary" onclick="saveBoardMeeting()">Lagre styremøte</button><div id="boardMeetingOut" class="output">Klar til lagring.</div>`);
+  showDrawer(id?'Endre styremøte':'Nytt styremøte',`<input id="boardMeetingId" type="hidden" value="${esc(id)}"><div class="form-grid two"><label>Tittel<input id="boardMeetingTitle" value="${esc(m.title||'Styremøte')}" placeholder="Styremøte / årsmøte / ekstraordinært møte"></label><label>Type<select id="boardMeetingType"><option ${m.meeting_type==='Styremøte'?'selected':''}>Styremøte</option><option ${m.meeting_type==='Årsmøte'?'selected':''}>Årsmøte</option><option ${m.meeting_type==='Ekstraordinært møte'?'selected':''}>Ekstraordinært møte</option><option ${m.meeting_type==='Beboermøte'?'selected':''}>Beboermøte</option></select></label><label>Dato<input id="boardMeetingDate" type="datetime-local" value="${esc(toLocalDatetimeValue(m.meeting_date))}"></label><label>Status<select id="boardMeetingStatus"><option ${m.status==='Planlagt'?'selected':''}>Planlagt</option><option ${m.status==='Gjennomført'?'selected':''}>Gjennomført</option><option ${m.status==='Vedtak til signering'?'selected':''}>Vedtak til signering</option><option ${m.status==='Arkivert'?'selected':''}>Arkivert</option><option ${m.status==='Referat klart'?'selected':''}>Referat klart</option><option ${m.status==='Vedtak signert'?'selected':''}>Vedtak signert</option></select></label></div><label>Agenda</label><textarea id="boardMeetingAgenda" rows="5" placeholder="Sak 1, sak 2, dokumenter som skal gjennomgås...">${esc(m.agenda||'')}</textarea><label>Vedtak</label><textarea id="boardMeetingDecisions" rows="5" placeholder="Hva ble vedtatt, hvem følger opp og frist?">${esc(m.decisions||'')}</textarea><label>Oppgaver / ansvar</label><textarea id="boardMeetingTasks" rows="4" placeholder="Ansvarlig, oppgave og frist">${esc(m.tasks||'')}</textarea><label>Referat / notat</label><textarea id="boardMeetingMinutes" rows="5" placeholder="Kort referat eller intern kommentar">${esc(m.minutes||m.notes||'')}</textarea><button class="action primary" onclick="saveBoardMeeting()">Lagre styremøte</button><div id="boardMeetingOut" class="output">Klar til lagring.</div>`);
 }
 async function saveBoardMeeting(){
   const out=document.getElementById('boardMeetingOut');
@@ -43,6 +50,7 @@ async function saveBoardMeetingDocument(id){
     const m=boardMeetingRows().find(x=>String(x.id)===String(id));if(!m)throw new Error('Fant ikke styremøtet.');
     if(typeof uploadGeneratedDocument!=='function')throw new Error('Dokumentarkivet er ikke klart.');
     const doc=await uploadGeneratedDocument((m.meeting_type||'Styremøte')+' - '+(m.title||currentProperty()?.name||'eiendom'),'Styrepapir',boardMeetingDocumentHtml(m),'Klar');
+    await db().from('board_meetings').update({status:'Arkivert',updated_at:new Date().toISOString()}).eq('id',id);
     await insertActivity('Styremøte lagret som styrepapir','document',doc.id);
     await finishAction('Styremøtet er lagret som styrepapir.','people');
   }catch(e){showDrawer('Styrepapir ble ikke laget',`<div class="output">${esc(customerError(e))}</div>`)}
@@ -63,7 +71,8 @@ function PeoplePage(){
     ${peopleSummaryCard('Beboere',res.length,'Kontakter som kan få beboertilgang','showPersonForm("Beboer")','ok')}
     ${peopleSummaryCard('Styremøter',boardMeetingRows().length,'Agenda, vedtak og referat','showBoardMeetingForm()','purple')}
     ${peopleSummaryCard('Innlogging',contacts.filter(c=>String(c.email||'').includes('@')).length,'Kontakter med registrert e-post','showUserForm()','warn')}
-    <div class="card s12 people-section board-meetings-section"><div class="dash-title"><div><h3>Styremøter og vedtak</h3><p class="muted">Agenda, vedtak, oppgaver og referat lagres på valgt eiendom.</p></div><button class="action primary" onclick="showBoardMeetingForm()">Nytt styremøte</button></div>${boardMeetingList()}</div>
+    <div class="card s12 people-section board-meetings-section"><div class="dash-title"><div><h3>Aktive styremøter</h3><p class="muted">Møter som planlegges, behandles eller venter på signering.</p></div><button class="action primary" onclick="showBoardMeetingForm()">Nytt styremøte</button></div>${boardMeetingList('active')}</div>
+    <div class="card s12 people-section board-meetings-section"><div class="dash-title"><div><h3>Arkiverte styremøter</h3><p class="muted">Styrepapirer, signerte vedtak og ferdige referater flyttes hit.</p></div><button class="action" onclick="go('documents')">Åpne dokumentarkiv</button></div>${boardMeetingList('archived')}</div>
     <div class="card s7 people-section"><div class="dash-title"><div><h3>Styre</h3><p class="muted">Legg inn rolle, e-post, telefon og periode.</p></div><button class="action primary" onclick="showPersonForm('Styremedlem')">Legg til</button></div>${personList(board,'Ingen styremedlemmer registrert.','Legg inn styreleder, styremedlemmer og vara for valgt eiendom.')}</div>
     <div class="card s5 people-access-card"><h3>Tilgang per rolle</h3><div class="people-access-list"><section><strong>Styreleder</strong><span>Dashboard, eiendom, styre, økonomi, FDV og saker.</span></section><section><strong>Styremedlem</strong><span>Styre, saker, dokumenter og økonomigrunnlag.</span></section><section><strong>Beboer</strong><span>Kan melde avvik og følge egne saker.</span></section><section><strong>Vaktmester</strong><span>Arbeidsordre, avvik og dokumentasjon.</span></section></div></div>
     <div class="card s6 people-section"><div class="dash-title"><div><h3>Beboere</h3><p class="muted">Beboere kan registreres som kontakt eller få egen innlogging.</p></div><button class="action primary" onclick="showPersonForm('Beboer')">Legg til</button></div>${personList(res,'Ingen beboere registrert.','Legg inn beboere eller kontaktpersoner som skal kunne melde avvik.')}</div>
@@ -129,6 +138,7 @@ saveSignatureRequest=async function(relatedType='',relatedId=''){
       const rows=signatureRows();
       const latest=rows[0];
       if(latest&&!latest.archive_category)await db().from('signature_requests').update({archive_category:category}).eq('id',latest.id);
+      if(relatedType==='board_meeting'&&relatedId)await db().from('board_meetings').update({status:'Vedtak til signering',updated_at:new Date().toISOString()}).eq('id',relatedId);
     }catch(e){console.warn(e)}
   }
 }
@@ -146,6 +156,9 @@ updateSignatureStatus=async function(id,status){
   await __dpOriginalUpdateSignatureStatus(id,status);
   if(/signert|ferdig|godkjent/i.test(status)){
     const row=(signatureRows()||[]).find(x=>String(x.id)===String(id));
-    if(row)await archiveSignatureDocument({...row,status},'Signert');
+    if(row){
+      await archiveSignatureDocument({...row,status},'Signert');
+      if(String(row.related_type)==='board_meeting'&&row.related_id)await db().from('board_meetings').update({status:'Vedtak signert',updated_at:new Date().toISOString()}).eq('id',row.related_id);
+    }
   }
 }
