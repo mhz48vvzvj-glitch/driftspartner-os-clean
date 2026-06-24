@@ -91,9 +91,23 @@ async function archiveSignatureDocument(row,stage){
   try{
     if(typeof uploadGeneratedDocument!=='function'||!row?.id)return null;
     const category=signatureArchiveCategory(row);
-    const doc=await uploadGeneratedDocument(`${stage} - ${row.title||'Signering'}`,category,signatureArchiveHtml(row,stage),'Arkivert');
+    const title=`Signaturbevis - ${row.title||'Signering'}`;
+    const html=signatureArchiveHtml(row,stage);
+    let doc=null;
+    if(row.archive_document_id){
+      const existing=await db().from('documents').select('*').eq('id',row.archive_document_id).maybeSingle();
+      if(!existing.error&&existing.data?.storage_path){
+        const blob=new Blob([html],{type:'text/html;charset=utf-8'});
+        const up=await db().storage.from('documents').upload(existing.data.storage_path,blob,{upsert:true,contentType:'text/html;charset=utf-8'});
+        if(up.error)throw up.error;
+        const upd=await db().from('documents').update({title,category,status:'Signert'}).eq('id',existing.data.id).select().single();
+        if(upd.error)throw upd.error;
+        doc=upd.data;
+      }
+    }
+    if(!doc)doc=await uploadGeneratedDocument(title,category,html,'Signert');
     await db().from('signature_requests').update({archive_category:category,archive_document_id:doc.id,updated_at:new Date().toISOString()}).eq('id',row.id);
-    await insertActivity(`${stage} arkivert som dokument`,'signature_request',row.id);
+    await insertActivity(`${stage} arkivert som signaturbevis`,'signature_request',row.id);
     return doc;
   }catch(e){console.warn('Signaturarkiv feilet',e);return null}
 }
@@ -110,7 +124,6 @@ const __dpOriginalSaveSignatureRequest=typeof saveSignatureRequest==='function'?
 saveSignatureRequest=async function(relatedType='',relatedId=''){
   const category=signatureArchiveCategory({});
   if(__dpOriginalSaveSignatureRequest){
-    const oldFrom=document.getElementById('signOut')?.textContent||'';
     await __dpOriginalSaveSignatureRequest(relatedType,relatedId);
     try{
       const rows=signatureRows();
@@ -122,7 +135,10 @@ saveSignatureRequest=async function(relatedType='',relatedId=''){
 const __dpOriginalSendSignatureEmailRow=typeof sendSignatureEmailRow==='function'?sendSignatureEmailRow:null;
 sendSignatureEmailRow=async function(row,out){
   const data=await __dpOriginalSendSignatureEmailRow(row,out);
-  await archiveSignatureDocument({...row,status:'Sendt'},'Signering sendt');
+  try{
+    const category=signatureArchiveCategory(row);
+    await db().from('signature_requests').update({archive_category:category,updated_at:new Date().toISOString()}).eq('id',row.id);
+  }catch(e){console.warn(e)}
   return data;
 }
 const __dpOriginalUpdateSignatureStatus=typeof updateSignatureStatus==='function'?updateSignatureStatus:null;
