@@ -650,6 +650,18 @@ function roleAccessPanel(){
 }
 function runCleanCheck(){const out=document.getElementById('adminOut');const s=launchSummary();if(out)out.textContent=`Kontroll fullført. Klar ${s.total-s.bad-s.warn}/${s.total}. Må fikses ${s.bad}. Må testes ${s.warn}.`;runLaunchControl()}
 
+function signatureActor(){
+  const p=currentProperty();
+  const name=DP.profile?.name||DP.user?.user_metadata?.name||DP.user?.email||'Innlogget bruker';
+  const email=DP.user?.email||'';
+  return {name,email,role:DP.profile?.role||appRole()||'',property:p?.name||''};
+}
+function signatureLogText(row){
+  const parts=[];
+  if(row.sent_by_name||row.sent_at)parts.push(`Sendt av ${row.sent_by_name||'ukjent'}${row.sent_at?' · '+new Date(row.sent_at).toLocaleString('no-NO'):''}`);
+  if(row.signed_by_name||row.signed_at)parts.push(`Signert av ${row.signed_by_name||'ukjent'}${row.signed_at?' · '+new Date(row.signed_at).toLocaleString('no-NO'):''}`);
+  return parts.join(' | ')||'Ingen signaturhendelser logget ennå.';
+}
 function signatureRows(){return DP.cache.signature_requests||[]}
 function signatureRecipients(){
   const rows=[];
@@ -669,7 +681,7 @@ function showSignatureRequestForm(type='Kontrakt',relatedType='',relatedId='',ti
   const recipients=signatureRecipients();
   const options=recipients.length?recipients.map((r,i)=>`<label class="check-row"><input type="checkbox" name="signRecipient" value="${esc(r.email)}" data-name="${esc(r.name)}" data-role="${esc(r.role)}" ${i===0?'checked':''}> <span><b>${esc(r.name)}</b><small>${esc(r.role)} · ${esc(r.email)}</small></span></label>`).join(''):'<div class="empty-state"><strong>Ingen mottakere funnet.</strong><span>Legg inn styremedlemmer, beboere eller leverandører med e-post først.</span></div>';
   const heading=title||`${type} - ${currentProperty()?.name||'eiendom'}`;
-  showDrawer('Ny Penneo-signering',`<div class="form-grid two"><label>Tittel<input id="signTitle" value="${esc(heading)}"></label><label>Type<select id="signType"><option ${type==='Kontrakt'?'selected':''}>Kontrakt</option><option ${type==='Styrevedtak'?'selected':''}>Styrevedtak</option><option ${type==='Tilbudsgodkjenning'?'selected':''}>Tilbudsgodkjenning</option><option ${type==='Annet'?'selected':''}>Annet</option></select></label><label>Frist<input id="signDue" type="date"></label><label>Status<select id="signStatus"><option>Sendt</option><option>Utkast</option><option>Venter signering</option><option>Signert</option></select></label></div><h4>Mottakere</h4><div class="recipient-picker">${options}</div><label>Ekstra e-postadresser</label><textarea id="signExtra" rows="2" placeholder="navn@kunde.no, styret@kunde.no"></textarea><label>Notat / instruks</label><textarea id="signNotes" rows="4" placeholder="Hva skal signeres, hvorfor, og hva må mottaker vite?"></textarea><div class="flow-note">Penneo er valgt som signeringsleverandør. Inntil Penneo API-nøkler er lagt inn, sender V1 e-post, logger forespørselen og holder status i Driftspartner OS.</div><button class="action primary" onclick="saveSignatureRequest('${esc(relatedType)}','${esc(relatedId)}')">Opprett Penneo-signering</button><div id="signOut" class="output"></div>`);
+  showDrawer('Ny signering',`<div class="form-grid two"><label>Tittel<input id="signTitle" value="${esc(heading)}"></label><label>Type<select id="signType"><option ${type==='Kontrakt'?'selected':''}>Kontrakt</option><option ${type==='Styrevedtak'?'selected':''}>Styrevedtak</option><option ${type==='Tilbudsgodkjenning'?'selected':''}>Tilbudsgodkjenning</option><option ${type==='Annet'?'selected':''}>Annet</option></select></label><label>Frist<input id="signDue" type="date"></label><label>Status<select id="signStatus"><option>Sendt</option><option>Utkast</option><option>Venter signering</option><option>Signert</option></select></label></div><h4>Mottakere</h4><div class="recipient-picker">${options}</div><label>Ekstra e-postadresser</label><textarea id="signExtra" rows="2" placeholder="navn@kunde.no, styret@kunde.no"></textarea><label>Notat / instruks</label><textarea id="signNotes" rows="4" placeholder="Hva skal signeres, hvorfor, og hva må mottaker vite?"></textarea><div class="flow-note">Intern signaturstyring: systemet sender e-post, logger hvem som sendte, hvem som signerte og tidspunkt for begge handlinger.</div><button class="action primary" onclick="saveSignatureRequest('${esc(relatedType)}','${esc(relatedId)}')">Opprett signering</button><div id="signOut" class="output"></div>`);
 }
 function readSignatureRecipients(){
   const picked=[...document.querySelectorAll('[name=signRecipient]:checked')].map(x=>({email:x.value,name:x.dataset.name||x.value,role:x.dataset.role||'Mottaker'}));
@@ -716,7 +728,8 @@ function signatureEmailPayload(row){
   const res=await fetch('/.netlify/functions/send-email',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});
   const data=await readJsonResponse(res,'E-postfunksjonen svarte ikke riktig. Publiser siste pakke og prøv igjen.');
   if(!res.ok||!data.ok)throw new Error(data.message||'Signering ble ikke sendt på e-post.');
-  await db().from('signature_requests').update({status:'Sendt',updated_at:new Date().toISOString()}).eq('id',row.id);
+  const actor=signatureActor();
+  await db().from('signature_requests').update({status:'Sendt',sent_by_name:actor.name,sent_by_email:actor.email,sent_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq('id',row.id);
   await insertActivity(`Signering sendt på e-post: ${row.title||'Signering'}`,'signature_request',row.id);
   return data;
 }
@@ -737,7 +750,7 @@ async function saveSignatureRequest(relatedType='',relatedId=''){
     requireLive('opprette signering');
     const recipients=readSignatureRecipients();
     if(!recipients.length)throw new Error('Velg minst en mottaker med e-post.');
-    const row={property_id:currentProperty().id,title:document.getElementById('signTitle')?.value||'Signering',signature_type:document.getElementById('signType')?.value||'Kontrakt',related_type:relatedType||null,related_id:relatedId||null,recipients,due_date:document.getElementById('signDue')?.value||null,status:document.getElementById('signStatus')?.value||'Sendt',notes:document.getElementById('signNotes')?.value||null,provider:'penneo',provider_status:'not_connected',provider_payload:{source:'driftspartner_os_v1'}};
+    const row={property_id:currentProperty().id,title:document.getElementById('signTitle')?.value||'Signering',signature_type:document.getElementById('signType')?.value||'Kontrakt',related_type:relatedType||null,related_id:relatedId||null,recipients,due_date:document.getElementById('signDue')?.value||null,status:document.getElementById('signStatus')?.value||'Sendt',notes:document.getElementById('signNotes')?.value||null,sent_by_name:signatureActor().name,sent_by_email:signatureActor().email,sent_at:document.getElementById('signStatus')?.value==='Sendt'?new Date().toISOString():null,signature_log:[{event:'created',name:signatureActor().name,email:signatureActor().email,at:new Date().toISOString()}]};
     const r=await db().from('signature_requests').insert(row).select().single();
     if(r.error)throw r.error;
     await insertActivity('Signering opprettet','signature_request',r.data.id);
@@ -750,8 +763,9 @@ async function saveSignatureRequest(relatedType='',relatedId=''){
 async function updateSignatureStatus(id,status){
   try{
     requireLive('oppdatere signering');
+    const actor=signatureActor();
     const row={status,updated_at:new Date().toISOString()};
-    if(/signert|ferdig|godkjent/i.test(status))row.signed_at=new Date().toISOString();
+    if(/signert|ferdig|godkjent/i.test(status)){row.signed_at=new Date().toISOString();row.signed_by_name=actor.name;row.signed_by_email=actor.email;}
     const r=await db().from('signature_requests').update(row).eq('id',id);if(r.error)throw r.error;
     await insertActivity('Signering oppdatert','signature_request',id);
     await finishAction('Signering er oppdatert.','integrations');
@@ -762,11 +776,11 @@ async function deleteSignatureRequest(id){
 }
 function SignaturePanel(){
   const rows=signatureRows();
-  return `<div class="dash-title"><div><h3>Penneo signering</h3><p class="muted">Kontrakter, styrevedtak og tilbudsgodkjenning med mottakere, frist og status.</p></div><button class="action primary" onclick="showSignatureRequestForm('Kontrakt')">Ny Penneo-signering</button></div><div id="signatureOut" class="output">Klar for Penneo-signering.</div>${rows.length?`<div class="market-card-list">${rows.map(signatureCard).join('')}</div>`:'<div class="empty-state"><strong>Ingen signeringer opprettet.</strong><span>Opprett signering fra kontrakt, styrevedtak eller tilbudsgodkjenning.</span><button class="action primary" onclick="showSignatureRequestForm(\'Kontrakt\')">Opprett første signering</button></div>'}`;
+  return `<div class="dash-title"><div><h3>Intern signatur</h3><p class="muted">Kontrakter, styrevedtak og tilbudsgodkjenning med mottakere, frist og status.</p></div><button class="action primary" onclick="showSignatureRequestForm('Kontrakt')">Ny signering</button></div><div id="signatureOut" class="output">Klar for signering.</div>${rows.length?`<div class="market-card-list">${rows.map(signatureCard).join('')}</div>`:'<div class="empty-state"><strong>Ingen signeringer opprettet.</strong><span>Opprett signering fra kontrakt, styrevedtak eller tilbudsgodkjenning.</span><button class="action primary" onclick="showSignatureRequestForm(\'Kontrakt\')">Opprett første signering</button></div>'}`;
 }
 function signatureCard(row){
-  const provider=row.provider||'penneo',providerStatus=row.provider_status||'e-postflyt';
-  return `<section class="market-record"><div class="market-record-head"><div><strong>${esc(row.title||'Signering')}</strong><small>${esc(row.signature_type||'Kontrakt')} · ${signatureRecipientCount(row)} mottakere · Frist ${esc(row.due_date||'ikke satt')}</small></div><span class="soft-pill ${signatureStatusClass(row.status)}">${esc(row.status||'Utkast')}</span></div><div class="mini-meta"><span>Penneo</span><span>${esc(provider)}</span><span>${esc(providerStatus)}</span></div>${row.notes?`<p>${esc(row.notes)}</p>`:''}<div class="row-actions"><button class="action" onclick="sendSignatureEmail('${esc(row.id)}')">Send e-post</button><button class="action" onclick="updateSignatureStatus('${esc(row.id)}','Venter signering')">Venter</button><button class="action primary" onclick="updateSignatureStatus('${esc(row.id)}','Signert')">Marker signert</button><button class="action red" onclick="deleteSignatureRequest('${esc(row.id)}')">Slett</button></div></section>`;
+  const log=signatureLogText(row);
+  return `<section class="market-record"><div class="market-record-head"><div><strong>${esc(row.title||'Signering')}</strong><small>${esc(row.signature_type||'Kontrakt')} · ${signatureRecipientCount(row)} mottakere · Frist ${esc(row.due_date||'ikke satt')}</small></div><span class="soft-pill ${signatureStatusClass(row.status)}">${esc(row.status||'Utkast')}</span></div><div class="mini-meta"><span>Intern signatur</span><span>${esc(log)}</span></div>${row.notes?`<p>${esc(row.notes)}</p>`:''}<div class="row-actions"><button class="action" onclick="sendSignatureEmail('${esc(row.id)}')">Send e-post</button><button class="action" onclick="updateSignatureStatus('${esc(row.id)}','Venter signering')">Venter</button><button class="action primary" onclick="updateSignatureStatus('${esc(row.id)}','Signert')">Marker signert</button><button class="action red" onclick="deleteSignatureRequest('${esc(row.id)}')">Slett</button></div></section>`;
 }
 
 function integrationItems(){
@@ -778,7 +792,7 @@ function integrationItems(){
     {name:'Brønnøysundregistrene',status:'Klar for onboarding',type:'ok',area:'Kunde og leverandører',detail:'Org.nr-oppslag kan fylle inn firmanavn og adresse ved opprettelse.',button:canCustomerSetup?'Ny kunde':'Klar',action:canCustomerSetup?'showNewCustomerWizard()':"showIntegrationInfo('Brønnøysundregistrene')"},
     {name:'Kundeavsender / svar til',status:'Aktiv enkel løsning',type:'ok',area:'E-post',detail:'E-post sendes via Driftspartner, men vises med kundens/styrets navn og svar går til kunden.',button:'Send e-post',action:"showEmailFlow('all')"},
     {name:'Microsoft 365 / Outlook light',status:'V1 klar',type:'ok',area:'E-post, kalender og styremoter',detail:'Moteinnkalling med kalenderfil, kalenderlenker og svar-til kunde/styre uten Microsoft-admin.',button:'Ny moteinnkalling',action:"showOutlookLightForm('board')"},
-    {name:'Penneo signering',status:'Valgt leverandør',type:'ok',area:'Kontrakter og vedtak',detail:'Penneo er valgt for BankID-signering. V1 logger signeringsforespørsler og sender e-post til API-nøkler er lagt inn.',button:'Ny Penneo-signering',action:"showSignatureRequestForm('Kontrakt')"},
+    {name:'Intern signatur',status:'Aktiv',type:'ok',area:'Kontrakter og vedtak',detail:'Sender signeringsforespørsler på e-post og logger navn, e-post og tidspunkt når noe sendes eller markeres signert.',button:'Ny signering',action:"showSignatureRequestForm('Kontrakt')"},
     {name:'Tripletex',status:'Planlagt',type:'info',area:'Regnskap',detail:'Aktuell for faktura, prosjektkostnader, budsjett og rapportering.',button:'Se anbefaling',action:"showIntegrationInfo('Tripletex')"},
     {name:'PowerOffice Go',status:'Planlagt',type:'info',area:'Regnskap',detail:'Alternativ regnskapsintegrasjon for borettslag, sameier og forvaltere.',button:'Se anbefaling',action:"showIntegrationInfo('PowerOffice Go')"},
     {name:'Fiken',status:'Planlagt',type:'info',area:'Regnskap',detail:'Enklere regnskapskobling for mindre kunder og startpakker.',button:'Se anbefaling',action:"showIntegrationInfo('Fiken')"},
@@ -789,7 +803,7 @@ function IntegrationsPage(){
   if(typeof canManageCustomers==='function'&&!canManageCustomers())return `<div class="grid"><div class="card s12"><div class="empty-state"><strong>Ikke tilgjengelig.</strong><span>Integrasjoner administreres av Driftspartner Nord.</span></div></div></div>`;
   const items=integrationItems(),active=items.filter(i=>i.type==='ok').length,next=items.filter(i=>i.type==='warn').length,planned=items.filter(i=>i.type==='info').length;
   const customerButton=(typeof canManageCustomers==='function'&&canManageCustomers())?`<button class="action" onclick="showNewCustomerWizard()">Ny kunde</button>`:'';
-  return `<div class="grid integrations-page"><div class="card s12 module-hero integration-hero"><div><small>Integrasjoner</small><h2>Koble Driftspartner OS til verktøyene kundene bruker</h2><p>Her samles e-post, AI, regnskap, signering, offentlige data og kalender. Målet er mindre manuelt arbeid og mer live informasjon på valgt eiendom.</p></div><div class="module-actions"><button class="action primary" onclick="showEmailFlow('all')">Send som kunde/styre</button><button class="action" onclick="showOutlookLightForm('board')">Ny moteinnkalling</button><button class="action" onclick="testPenneoIntegration()">Test Penneo</button><button class="action" onclick="testPenneoIntegration()">Test Penneo</button><button class="action" onclick="testAiIntegration()">Test AI</button><button class="action" onclick="location.href='mail-test.html'">Test e-post</button>${customerButton}</div></div><div class="card s12 integration-summary"><section><small>Aktive</small><b>${active}</b><span>Koblinger i bruk nå</span></section><section><small>Anbefalt neste</small><b>${next}</b><span>Gir raskest kundeverdi</span></section><section><small>Planlagt</small><b>${planned}</b><span>Regnskap og bank</span></section><section><small>Prioritet</small><b>Penneo</b><span>BankID-signering for kontrakt og vedtak</span></section></div><div class="card s12">${SignaturePanel()}</div><div class="card s8"><div class="dash-title"><div><h3>Integrasjonsstatus</h3><p class="muted">Bare koblinger som faktisk er klare bør merkes som aktive.</p></div></div><div class="integration-card-grid">${items.map(integrationCard).join('')}</div></div><div class="card s4 integration-stack"><h3>Anbefalt rekkefølge</h3>${integrationRoadmap()}<div class="integration-note"><strong>V1 for salg</strong><span>Start med Brønnøysund, kundeavsender/svar-til, Penneo-signering og én regnskapskobling. Outlook kan komme senere som premium-integrasjon.</span></div></div></div>`;
+  return `<div class="grid integrations-page"><div class="card s12 module-hero integration-hero"><div><small>Integrasjoner</small><h2>Koble Driftspartner OS til verktøyene kundene bruker</h2><p>Her samles e-post, AI, regnskap, signering, offentlige data og kalender. Målet er mindre manuelt arbeid og mer live informasjon på valgt eiendom.</p></div><div class="module-actions"><button class="action primary" onclick="showEmailFlow('all')">Send som kunde/styre</button><button class="action" onclick="showOutlookLightForm('board')">Ny moteinnkalling</button><button class="action" onclick="testAiIntegration()">Test AI</button><button class="action" onclick="location.href='mail-test.html'">Test e-post</button>${customerButton}</div></div><div class="card s12 integration-summary"><section><small>Aktive</small><b>${active}</b><span>Koblinger i bruk nå</span></section><section><small>Anbefalt neste</small><b>${next}</b><span>Gir raskest kundeverdi</span></section><section><small>Planlagt</small><b>${planned}</b><span>Regnskap og bank</span></section><section><small>Prioritet</small><b>Signaturstyring</b><span>Navn, rolle og tidspunkt logges</span></section></div><div class="card s12">${SignaturePanel()}</div><div class="card s8"><div class="dash-title"><div><h3>Integrasjonsstatus</h3><p class="muted">Bare koblinger som faktisk er klare bør merkes som aktive.</p></div></div><div class="integration-card-grid">${items.map(integrationCard).join('')}</div></div><div class="card s4 integration-stack"><h3>Anbefalt rekkefølge</h3>${integrationRoadmap()}<div class="integration-note"><strong>V1 for salg</strong><span>Start med Brønnøysund, kundeavsender/svar-til, intern signaturstyring og én regnskapskobling. Outlook kan komme senere som premium-integrasjon.</span></div></div></div>`;
 }
 function integrationCard(item){
   const label=item.type==='ok'?'Aktiv':item.type==='warn'?'Neste steg':'Planlagt';
@@ -799,22 +813,10 @@ function integrationRoadmap(){
   return `<ol class="integration-roadmap">${[
     ['Brønnøysund','Org.nr-oppslag i kunde, eiendom og leverandør.'],
     ['Microsoft 365 / Outlook','Møteinnkalling, kalender, e-post og styredokumenter.'],
-    ['Penneo signering','BankID-signering for kontrakter, styrevedtak og tilbudsgodkjenning.'],
+    ['Intern signatur','Navn, e-post og tidspunkt for kontrakter, styrevedtak og tilbudsgodkjenning.'],
     ['Tripletex / PowerOffice / Fiken','Budsjett, faktura, prosjektkost og rapport.'],
     ['Bankimport','Saldo og transaksjoner direkte inn i økonomimodulen.']
   ].map((r,i)=>`<li><b>${i+1}</b><div><strong>${esc(r[0])}</strong><span>${esc(r[1])}</span></div></li>`).join('')}</ol>`;
-}
-async function testPenneoIntegration(){
-  try{
-    const res=await fetch('/.netlify/functions/penneo-ping',{method:'GET'});
-    const data=await readJsonResponse(res,'Penneo-testen svarte ikke riktig. Publiser siste pakke og prøv igjen.');
-    const missing=[];
-    if(!data.has_client_id)missing.push('PENNEO_CLIENT_ID');
-    if(!data.has_client_secret)missing.push('PENNEO_CLIENT_SECRET');
-    if(!data.has_api_base_url)missing.push('PENNEO_API_BASE_URL');
-    if(!data.has_webhook_secret)missing.push('PENNEO_WEBHOOK_SECRET');
-    showDrawer('Penneo-integrasjon',`<div class="info-grid"><section><small>Leverandør</small><strong>Penneo</strong><span>Valgt for BankID-signering</span></section><section><small>Status</small><strong>${data.ready?'Klar for API':'Mangler nøkler'}</strong><span>${esc(data.message||'')}</span></section></div><div class="output">${missing.length?`Legg inn disse i Netlify Functions: ${esc(missing.join(', '))}.`:'Penneo-miljøet er klart. Neste steg er å aktivere ekte API-sending og webhook.'}</div>`);
-  }catch(e){showDrawer('Penneo-integrasjon',`<div class="output error">${esc(customerError(e,'Penneo-testen kunne ikke kjøres akkurat nå.'))}</div>`)}
 }
 async function testAiIntegration(){
   try{
@@ -827,7 +829,7 @@ async function testAiIntegration(){
 function showIntegrationInfo(name){
   const text={
     'Microsoft 365 / Outlook':'Koble møteinnkallinger, styrekalender, e-posttråder og dokumentdeling. Dette gjør styremodulen mye mer nyttig for kunder.',
-    'Penneo signering':'Penneo er valgt som signeringsleverandør. V1 logger signeringsforespørselen og sender e-post. Når Penneo API-nøkler er lagt inn kan flyten sende dokumenter til Penneo, hente signeringsstatus og lagre signert PDF i dokumentarkivet.',
+    'Intern signatur':'Intern signaturstyring sender forespørsel på e-post og logger hvem som sendte, hvem som signerte og tidspunkt. Dette er enklere, billigere og godt nok for V1 der ekstern signering ikke er et krav.',
     'Tripletex':'Passer godt for kunder som vil hente faktura, prosjektkostnader og rapporttall direkte inn i økonomimodulen.',
     'PowerOffice Go':'Aktuelt som regnskapsalternativ for forvaltere og kunder som allerede bruker PowerOffice.',
     'Fiken':'Godt alternativ for mindre kunder som trenger enkel regnskapskobling.',
