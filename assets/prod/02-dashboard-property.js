@@ -211,12 +211,12 @@ function DashboardFinanceChart(){
     ];
   }
   const max=Math.max(1,...rows.flatMap(r=>[r.budget,r.actual]),budget,actual,projectBudget,projectActual);
-  const variance=actual-budget,budgetStatus=budget-actual,overBudget=variance>0,projectVariance=projectActual-projectBudget;
+  const variance=actual-budget,overBudget=variance>0,projectVariance=projectActual-projectBudget;
   const summary=[
     ['Bank/konto',money(finance.bank_balance||0),'ok'],
     ['Budsjett',money(budget),'info'],
     ['Faktisk',money(actual),overBudget?'bad':'ok'],
-    ['Avvik',formatBudgetVariance(budgetStatus),overBudget?'bad':'ok'],
+    ['Avvik',formatBudgetVariance(variance),overBudget?'bad':'ok'],
     ['Prosjekt',`${money(projectActual)} / ${money(projectBudget)}`,projectVariance>0?'warn':'purple']
   ];
   const chartMax=Math.max(max,budget,actual,1)*1.18;
@@ -227,8 +227,8 @@ function DashboardFinanceChart(){
     const gy=86-(t*66),val=chartMax*t;
     return `<g><line x1="10" y1="${gy}" x2="94" y2="${gy}" class="finance-grid"></line><text x="1.5" y="${gy+1.4}" class="finance-axis">${esc(compactMoney(val))}</text></g>`;
   }).join('');
-  const varianceArrow=overBudget?`<g class="finance-variance"><line x1="78" y1="${actualY}" x2="78" y2="${budgetY}" class="variance-line"></line><text x="82" y="${Math.max(18,(actualY+budgetY)/2-2)}" class="variance-text">${esc(formatBudgetVariance(budgetStatus))}</text><text x="82" y="${Math.max(24,(actualY+budgetY)/2+5)}" class="variance-sub">over budsjett</text></g>`:'';
-  const insight=overBudget?`${formatBudgetVariance(budgetStatus)} over budsjett`:(budget||actual)?`${formatBudgetVariance(budgetStatus)} innenfor budsjett`:'Mangler budsjettgrunnlag';
+  const varianceArrow=overBudget?`<g class="finance-variance"><line x1="78" y1="${actualY}" x2="78" y2="${budgetY}" class="variance-line"></line><text x="82" y="${Math.max(18,(actualY+budgetY)/2-2)}" class="variance-text">${esc(formatBudgetVariance(variance))}</text><text x="82" y="${Math.max(24,(actualY+budgetY)/2+5)}" class="variance-sub">over budsjett</text></g>`:'';
+  const insight=overBudget?`${formatBudgetVariance(variance)} over budsjett`:(budget||actual)?`${formatBudgetVariance(variance)} innenfor budsjett`:'Mangler budsjettgrunnlag';
   const insightText=rawRows.length?`Basert på ${rawRows.length} økonomilinje${rawRows.length===1?'':'r'} og prosjektposter for valgt eiendom.`:'Legg inn budsjettlinjer og faktiske kostnader for å bygge live graf.';
   const emptyHint=rawRows.length?'':`<div class="empty-state finance-empty-hint"><strong>Ingen budsjettlinjer ennå.</strong><span>Grafen viser nullgrunnlag til økonomi er registrert.</span><button class="action primary" onclick="openModule('finance')">Legg inn økonomi</button></div>`;
   return `<div class="finance-report-card">
