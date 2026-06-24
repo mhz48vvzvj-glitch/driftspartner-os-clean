@@ -18,6 +18,8 @@ create table if not exists signature_requests (
   signed_by_name text,
   signed_by_email text,
   signature_log jsonb not null default '[]'::jsonb,
+  archive_category text,
+  archive_document_id uuid references documents(id) on delete set null,
   signed_at timestamptz,
   created_by uuid,
   created_at timestamptz not null default now(),
@@ -39,6 +41,8 @@ alter table signature_requests add column if not exists sent_at timestamptz;
 alter table signature_requests add column if not exists signed_by_name text;
 alter table signature_requests add column if not exists signed_by_email text;
 alter table signature_requests add column if not exists signature_log jsonb not null default '[]'::jsonb;
+alter table signature_requests add column if not exists archive_category text;
+alter table signature_requests add column if not exists archive_document_id uuid references documents(id) on delete set null;
 alter table signature_requests add column if not exists signed_at timestamptz;
 alter table signature_requests add column if not exists created_by uuid;
 alter table signature_requests add column if not exists updated_at timestamptz not null default now();
