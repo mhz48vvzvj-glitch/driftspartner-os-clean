@@ -688,6 +688,32 @@ function signatureLogText(row){
   if(row.signed_by_name||row.signed_at)parts.push(`Signert av ${row.signed_by_name||'ukjent'}${row.signed_at?' · '+new Date(row.signed_at).toLocaleString('no-NO'):''}`);
   return parts.join(' | ')||'Ingen signaturhendelser logget ennå.';
 }
+
+function signatureLogArray(row){
+  try{return Array.isArray(row?.signature_log)?row.signature_log:JSON.parse(row?.signature_log||'[]')}catch{return []}
+}
+function signatureLogEntry(event,row={},extra={}){
+  const actor=signatureActor(),p=currentProperty();
+  return {
+    event,
+    name:actor.name,
+    email:actor.email,
+    role:actor.role,
+    property_id:p?.id||row.property_id||'',
+    property:p?.name||actor.property||'',
+    title:row.title||document.getElementById('signTitle')?.value||'Signering',
+    signature_type:row.signature_type||document.getElementById('signType')?.value||'Signering',
+    approved_text:extra.approved_text||row.notes||document.getElementById('signNotes')?.value||'',
+    related_type:row.related_type||'',
+    related_id:row.related_id||'',
+    at:new Date().toISOString(),
+    metadata:{path:location.pathname,host:location.host,user_agent:navigator.userAgent},
+    ...extra
+  };
+}
+function signatureLogWith(row,event,extra={}){
+  return [...signatureLogArray(row),signatureLogEntry(event,row,extra)];
+}
 function signatureRows(){return DP.cache.signature_requests||[]}
 function signatureRecipients(){
   const rows=[];
@@ -755,7 +781,7 @@ function signatureEmailPayload(row){
   const data=await readJsonResponse(res,'E-postfunksjonen svarte ikke riktig. Publiser siste pakke og prøv igjen.');
   if(!res.ok||!data.ok)throw new Error(data.message||'Signering ble ikke sendt på e-post.');
   const actor=signatureActor();
-  await db().from('signature_requests').update({status:'Sendt',sent_by_name:actor.name,sent_by_email:actor.email,sent_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq('id',row.id);
+  await db().from('signature_requests').update({status:'Sendt',sent_by_name:actor.name,sent_by_email:actor.email,sent_at:new Date().toISOString(),signature_log:signatureLogWith(row,'sent',{approved_text:row.notes||row.title,recipients:row.recipients||[]}),updated_at:new Date().toISOString()}).eq('id',row.id);
   await insertActivity(`Signering sendt på e-post: ${row.title||'Signering'}`,'signature_request',row.id);
   return data;
 }
@@ -776,7 +802,8 @@ async function saveSignatureRequest(relatedType='',relatedId=''){
     requireLive('opprette signering');
     const recipients=readSignatureRecipients();
     if(!recipients.length)throw new Error('Velg minst en mottaker med e-post.');
-    const row={property_id:currentProperty().id,title:document.getElementById('signTitle')?.value||'Signering',signature_type:document.getElementById('signType')?.value||'Kontrakt',related_type:relatedType||null,related_id:relatedId||null,recipients,due_date:document.getElementById('signDue')?.value||null,status:document.getElementById('signStatus')?.value||'Sendt',notes:document.getElementById('signNotes')?.value||null,sent_by_name:signatureActor().name,sent_by_email:signatureActor().email,sent_at:document.getElementById('signStatus')?.value==='Sendt'?new Date().toISOString():null,signature_log:[{event:'created',name:signatureActor().name,email:signatureActor().email,at:new Date().toISOString()}]};
+    const row={property_id:currentProperty().id,title:document.getElementById('signTitle')?.value||'Signering',signature_type:document.getElementById('signType')?.value||'Kontrakt',related_type:relatedType||null,related_id:relatedId||null,recipients,due_date:document.getElementById('signDue')?.value||null,status:document.getElementById('signStatus')?.value||'Sendt',notes:document.getElementById('signNotes')?.value||null,sent_by_name:signatureActor().name,sent_by_email:signatureActor().email,sent_at:document.getElementById('signStatus')?.value==='Sendt'?new Date().toISOString():null};
+    row.signature_log=[signatureLogEntry('created',row,{recipients,approved_text:row.notes||row.title})];
     const r=await db().from('signature_requests').insert(row).select().single();
     if(r.error)throw r.error;
     await insertActivity('Signering opprettet','signature_request',r.data.id);
@@ -790,8 +817,10 @@ async function updateSignatureStatus(id,status){
   try{
     requireLive('oppdatere signering');
     const actor=signatureActor();
-    const row={status,updated_at:new Date().toISOString()};
-    if(/signert|ferdig|godkjent/i.test(status)){row.signed_at=new Date().toISOString();row.signed_by_name=actor.name;row.signed_by_email=actor.email;}
+    const existing=signatureRows().find(x=>String(x.id)===String(id))||{};
+    const isSigned=/signert|ferdig|godkjent/i.test(status);
+    const row={status,signature_log:signatureLogWith(existing,isSigned?'signed':'status',{status,approved_text:existing.notes||existing.title}),updated_at:new Date().toISOString()};
+    if(isSigned){row.signed_at=new Date().toISOString();row.signed_by_name=actor.name;row.signed_by_email=actor.email;}
     const r=await db().from('signature_requests').update(row).eq('id',id);if(r.error)throw r.error;
     await insertActivity('Signering oppdatert','signature_request',id);
     await finishAction('Signering er oppdatert.','integrations');
@@ -806,7 +835,7 @@ function SignaturePanel(){
 }
 function signatureCard(row){
   const log=signatureLogText(row);
-  return `<section class="market-record"><div class="market-record-head"><div><strong>${esc(row.title||'Signering')}</strong><small>${esc(row.signature_type||'Kontrakt')} · ${signatureRecipientCount(row)} mottakere · Frist ${esc(row.due_date||'ikke satt')}</small></div><span class="soft-pill ${signatureStatusClass(row.status)}">${esc(row.status||'Utkast')}</span></div><div class="mini-meta"><span>Intern signatur</span><span>${esc(log)}</span></div>${row.notes?`<p>${esc(row.notes)}</p>`:''}<div class="row-actions"><button class="action" onclick="sendSignatureEmail('${esc(row.id)}')">Send e-post</button><button class="action" onclick="updateSignatureStatus('${esc(row.id)}','Venter signering')">Venter</button><button class="action primary" onclick="updateSignatureStatus('${esc(row.id)}','Signert')">Marker signert</button><button class="action red" onclick="deleteSignatureRequest('${esc(row.id)}')">Slett</button></div></section>`;
+  return `<section class="market-record"><div class="market-record-head"><div><strong>${esc(row.title||'Signering')}</strong><small>${esc(row.signature_type||'Kontrakt')} · ${signatureRecipientCount(row)} mottakere · Frist ${esc(row.due_date||'ikke satt')}</small></div><span class="soft-pill ${signatureStatusClass(row.status)}">${esc(row.status||'Utkast')}</span></div><div class="mini-meta"><span>Intern signatur</span><span>${esc(log)}</span></div><div class="mini-meta"><span>Godkjenningsgrunnlag</span><span>${esc(row.notes||row.title||'Ikke beskrevet')}</span></div>${row.notes?`<p>${esc(row.notes)}</p>`:''}<div class="row-actions"><button class="action" onclick="sendSignatureEmail('${esc(row.id)}')">Send e-post</button><button class="action" onclick="updateSignatureStatus('${esc(row.id)}','Venter signering')">Venter</button><button class="action primary" onclick="updateSignatureStatus('${esc(row.id)}','Signert')">Marker signert</button><button class="action red" onclick="deleteSignatureRequest('${esc(row.id)}')">Slett</button></div></section>`;
 }
 
 function integrationItems(){
