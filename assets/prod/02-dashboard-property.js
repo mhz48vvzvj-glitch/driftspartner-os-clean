@@ -265,7 +265,7 @@ function formatBudgetVariance(v){
   return `${n>0?'-':'+'}${money(Math.abs(n))}`;
 }
 function dashboardBudgetCategoryValue(row={}){
-  const value=String(row.category||row.label||row.budget_category||'').trim();
+  const value=String(row.label||row.budget_category||row.category||'').trim();
   return value||'Annet';
 }
 function shortLabel(v){
