@@ -192,7 +192,7 @@ function DashboardFinanceChart(){
   const projectBudget=projects.reduce((s,p)=>s+Number(p.budget||p.budget_amount||0),0);
   const projectActual=projects.reduce((s,p)=>s+Number(p.actual_cost||p.actual_amount||0),0);
   const rawRows=[
-    ...lines.map(l=>({label:l.category||l.label||'Budsjettlinje',budget:Number(l.budget_amount||l.budget||0),actual:Number(l.actual_amount||l.actual||0)})),
+    ...lines.map(l=>({label:dashboardBudgetCategoryValue(l),budget:Number(l.budget_amount||l.budget||0),actual:Number(l.actual_amount||l.actual||0)})),
     ...projects.map(p=>({label:p.name||p.title||'Prosjekt',budget:Number(p.budget||p.budget_amount||0),actual:Number(p.actual_cost||p.actual_amount||0)}))
   ].filter(r=>r.budget||r.actual);
   const grouped={};
@@ -262,7 +262,11 @@ function compactMoney(v){
 function formatBudgetVariance(v){
   const n=Number(v)||0;
   if(!n)return money(0);
-  return `${n>0?'+':'-'}${money(Math.abs(n))}`;
+  return `${n>0?'-':'+'}${money(Math.abs(n))}`;
+}
+function dashboardBudgetCategoryValue(row={}){
+  const value=String(row.category||row.label||row.budget_category||'').trim();
+  return value||'Annet';
 }
 function shortLabel(v){
   const s=String(v||'').trim();
