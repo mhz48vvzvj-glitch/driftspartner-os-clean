@@ -17,6 +17,10 @@ const ROLE_MENUS={
 };
 function appRole(){return String(DP.user?.role||'').toLowerCase()}
 function canManageCustomers(){return appRole()==='superadmin'}
+function isDemoProperty(p=currentProperty()){
+  const text=[p?.customer_status,p?.status,p?.customer,p?.name].filter(Boolean).join(' ').toLowerCase();
+  return /\bdemo\b|\btest\b/.test(text);
+}
 function subscriptionPlanId(){return String(currentProperty()?.subscription_plan||'').toLowerCase()}
 function aiLimitForPlan(plan=subscriptionPlanId()){
   return ({start:50,pro:150,premium:500}[String(plan||'').toLowerCase()]||0);

@@ -92,8 +92,10 @@ function DashboardActivityFeed(){
 function activityIcon(a){return /e-?post|mail|send/i.test(String(a.action||''))?'E-post':/slett/i.test(String(a.action||''))?'Slett':'Logg'}
 function DashboardSubscriptionStatus(){
   const p=currentProperty()||{},plan=String(p.subscription_plan||''),meta=dashboardSubscriptionPlans().find(x=>x.id===plan.toLowerCase()),status=String(p.subscription_status||'pending'),first=Number(p.subscription_first_year_amount||meta?.firstYear||0),yearTwo=Number(p.subscription_year_two_amount||meta?.yearTwo||0);
-  const buttonLabel=(typeof canManageCustomers==='function'&&canManageCustomers())?'Velg pakke':'Be om endring';
-  return `<div class="dash-title"><div><h3>Abonnement</h3><p class="muted">Kundestatus og fakturagrunnlag.</p></div><button class="action" onclick="showSubscriptionPicker()">${buttonLabel}</button></div><div class="subscription-status-card"><small>Pakke</small><strong>${esc(planLabel(plan))}</strong><span class="${status==='active'?'ok':'warn'}">${esc(statusLabel(status))}</span><div><b>${money(first)}</b><small>Første år</small></div><div><b>${money(yearTwo)}</b><small>År 2 · 12 mnd</small></div></div>${PackageAccessSummary()}`;
+  const demo=typeof isDemoProperty==='function'&&isDemoProperty(p);
+  const buttonLabel=demo?'Bytt demo-pakke':(typeof canManageCustomers==='function'&&canManageCustomers())?'Velg pakke':'Be om endring';
+  const demoNote=demo?'<div class="demo-plan-note"><strong>Demo/test</strong><span>Pakke kan byttes fritt for visning. Ekte kundeabonnement endres ikke.</span></div>':'';
+  return `<div class="dash-title"><div><h3>Abonnement</h3><p class="muted">Kundestatus og fakturagrunnlag.</p></div><button class="action" onclick="showSubscriptionPicker()">${buttonLabel}</button></div>${demoNote}<div class="subscription-status-card"><small>Pakke</small><strong>${esc(planLabel(plan))}</strong><span class="${status==='active'?'ok':'warn'}">${esc(statusLabel(status))}</span><div><b>${money(first)}</b><small>Første år</small></div><div><b>${money(yearTwo)}</b><small>År 2 · 12 mnd</small></div></div>${PackageAccessSummary()}`;
 }
 function planLabel(plan){return ({start:'Start',pro:'Pro',premium:'Premium'}[String(plan).toLowerCase()]||plan||'Ikke valgt')}
 function statusLabel(status){return ({active:'Aktiv',pending:'Venter avtale',trial:'Pilot',paused:'Pause'}[String(status).toLowerCase()]||status||'Venter avtale')}
@@ -117,10 +119,11 @@ function PackageAccessSummary(){
 }
 function showSubscriptionPicker(){
   const p=currentProperty()||{},selected=String(p.subscription_plan||'pro').toLowerCase();
+  const demo=typeof isDemoProperty==='function'&&isDemoProperty(p);
   const isAdmin=typeof canManageCustomers==='function'&&canManageCustomers();
-  const title=isAdmin?'Velg abonnement':'Be om abonnementendring';
-  const help=isAdmin?'Oppdaterer valgt pakke på kunden som eier denne eiendommen.':'Velg ønsket pakke. Forespørselen sendes til Driftspartner Nord og må godkjennes av superadmin før den aktiveres.';
-  const actionText=isAdmin?'Aktiver pakke':'Send forespørsel';
+  const title=demo?'Bytt demo-pakke':isAdmin?'Velg abonnement':'Be om abonnementendring';
+  const help=demo?'Dette er en demo/test-eiendom. Du kan bytte mellom Start, Pro og Premium uten å endre ekte kundeabonnement.':isAdmin?'Oppdaterer valgt pakke på kunden som eier denne eiendommen.':'Velg ønsket pakke. Forespørselen sendes til Driftspartner Nord og må godkjennes av superadmin før den aktiveres.';
+  const actionText=demo?'Vis denne pakken':isAdmin?'Aktiver pakke':'Send forespørsel';
   showDrawer(title,`<p class="muted">${help}</p><div class="subscription-grid">${dashboardSubscriptionPlans().map(plan=>`<button type="button" class="subscription-card ${plan.id===selected?'selected':''}" onclick="savePropertySubscription('${plan.id}')"><span>${esc(plan.name)}</span><strong>${money(plan.firstYear)}</strong><small>Første år · faktureres årlig</small><em>År 2: ${money(plan.yearTwo)} for 12 mnd</em><ul>${plan.items.map(i=>`<li>${esc(i)}</li>`).join('')}</ul><b class="subscription-action-label">${actionText}</b></button>`).join('')}</div><div id="subscriptionOut" class="output">${isAdmin?'Velg pakken som skal vises på dashboard og kundekort.':'Kunden kan ikke endre pakken direkte. Dette sender bare en forespørsel.'}</div>`);
 }
 async function savePropertySubscription(planId){
@@ -130,6 +133,13 @@ async function savePropertySubscription(planId){
     const p=currentProperty(),plan=dashboardSubscriptionPlans().find(x=>x.id===planId);
     if(!p?.customer_id)throw new Error('Eiendommen mangler kundekobling.');
     if(!plan)throw new Error('Ugyldig pakke.');
+    if(typeof isDemoProperty==='function'&&isDemoProperty(p)){
+      Object.assign(p,{subscription_plan:plan.id,subscription_status:'active',subscription_first_year_amount:plan.firstYear,subscription_year_two_amount:plan.yearTwo,subscription_billing_period:'yearly'});
+      hideDrawer();
+      showNotice(`Demo viser nå ${plan.name}.`, 'ok');
+      render();
+      return;
+    }
     if(typeof canManageCustomers==='function'&&!canManageCustomers()){
       await requestPropertySubscription(plan);
       return;
