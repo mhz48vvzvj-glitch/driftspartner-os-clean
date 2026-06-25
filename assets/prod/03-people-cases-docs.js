@@ -73,23 +73,34 @@ async function saveContact(){
     showDrawer('Kontakt ble ikke lagret',`<div class=\"output\">${esc(msg)}</div>`);
   }
 }
+function contactRoleOptions(selected='Kontakt'){
+  const roles=['Styreleder','Nestleder','Styremedlem','Vara','Beboer','Forvalter','Vaktmester','Leverandørkontakt','Regnskapsfører','Forsikringskontakt','Revisor','HMS-ansvarlig','Kontakt','Annet'];
+  const current=String(selected||'Kontakt');
+  const all=roles.includes(current)?roles:[current,...roles];
+  return all.map(role=>`<option value="${esc(role)}" ${role===current?'selected':''}>${esc(role)}</option>`).join('');
+}
 function boardLoginRole(contactRole,forcedRole=''){
+  const forced=String(forcedRole||'').toLowerCase();
+  if(forced)return normalizeRole(forced);
   const value=String(contactRole||'').toLowerCase();
-  if(String(forcedRole||'').toLowerCase()==='beboer')return 'beboer';
+  if(value.includes('bebo'))return 'beboer';
+  if(value.includes('vaktmester'))return 'vaktmester';
+  if(value.includes('leverand'))return 'leverandor';
+  if(value.includes('forvalter'))return 'forvalter';
   if(value.includes('styreleder')||value.includes('leder'))return 'styreleder';
   return 'styremedlem';
 }
 async function createPersonLogin({name,email,phone,role='beboer',password=''}){
   const token=DP.session?.access_token;if(!token)throw new Error('Mangler innloggingstoken.');
-  const normalized=normalizeRole(role),access={beboer:'resident',styreleder:'owner',styremedlem:'member'}[normalized]||'member';
+  const normalized=normalizeRole(role),access={beboer:'resident',styreleder:'owner',styremedlem:'member',vaktmester:'caretaker',leverandor:'vendor',forvalter:'owner'}[normalized]||'member';
   const res=await fetch('/.netlify/functions/create-user',{method:'POST',headers:{'content-type':'application/json',authorization:`Bearer ${token}`},body:JSON.stringify({name,email,phone,role:normalized,property_id:currentProperty().id,access_role:access,password})});
   const data=await readJsonResponse(res,'Bruker-tjenesten svarte ikke riktig. Prøv igjen, eller kontakt Driftspartner Nord hvis feilen fortsetter.');
   if(!data.ok)throw new Error(data.message||'Innlogging kunne ikke opprettes.');
   return data;
 }
 async function deleteContact(id){if(!confirm('Slette kontakt?'))return;try{requireLive('slette kontakt');const r=await db().from('property_contacts').delete().eq('id',id);if(r.error)throw r.error;await insertActivity('Kontakt slettet','contact',id);await finishAction('Kontakten er slettet.','people')}catch(e){showDrawer('Kontakt ble ikke slettet',`<div class=\"output\">${esc(customerError(e))}</div>`)}}
-function showUserForm(){showDrawer('Opprett bruker med innlogging',`<label>Navn</label><input id="newName"><label>E-post</label><input id="newEmail"><label>Telefon</label><input id="newPhone"><label>Rolle</label><select id="newRole"><option value="beboer">Beboer</option><option value="styreleder">Styreleder</option><option value="styremedlem">Styremedlem</option><option value="vaktmester">Vaktmester</option><option value="leverandor">Leverandør</option></select><label>Midlertidig passord</label><input id="newPassword" type="password"><button class="action primary" onclick="createUserLogin()">Opprett bruker</button><div id="newUserOut" class="output">Klar til å opprette bruker.</div>`)}
-async function createUserLogin(){const out=document.getElementById('newUserOut');try{requireLive('opprette bruker');const token=DP.session?.access_token;if(!token)throw new Error('Mangler innloggingstoken.');if(typeof assertPackageLimit==='function'){if(/styreleder|styremedlem/.test(newRole.value))assertPackageLimit('board','styremedlemmer');if(newRole.value==='beboer')assertPackageLimit('residents','beboere');if(newRole.value==='vaktmester')assertPackageLimit('caretakers','vaktmester/forvalter-brukere')}const access={beboer:'resident',styreleder:'owner',styremedlem:'member',vaktmester:'caretaker',leverandor:'vendor'}[newRole.value]||'member';const res=await fetch('/.netlify/functions/create-user',{method:'POST',headers:{'content-type':'application/json',authorization:`Bearer ${token}`},body:JSON.stringify({name:newName.value,email:newEmail.value,phone:newPhone.value,role:newRole.value,property_id:currentProperty().id,access_role:access,password:newPassword.value})});const data=await readJsonResponse(res,'Bruker-tjenesten svarte ikke riktig. Prøv igjen, eller kontakt Driftspartner Nord hvis feilen fortsetter.');if(!data.ok)throw new Error(data.message);await insertActivity(data.email_sent?'Bruker opprettet og e-post sendt':'Bruker opprettet','user',data.user?.id||newEmail.value);await finishAction(data.email_sent?'Bruker er opprettet og innloggingsmail er sendt.':'Bruker er opprettet. Innloggingsmail ble ikke sendt.','people')}catch(e){setOutputError(out,e)}}
+function showUserForm(){showDrawer('Opprett bruker med innlogging',`<label>Navn</label><input id="newName"><label>E-post</label><input id="newEmail"><label>Telefon</label><input id="newPhone"><label>Rolle</label><select id="newRole"><option value="beboer">Beboer</option><option value="styreleder">Styreleder</option><option value="styremedlem">Styremedlem</option><option value="forvalter">Forvalter</option><option value="vaktmester">Vaktmester</option><option value="leverandor">Leverandør</option></select><label>Midlertidig passord</label><input id="newPassword" type="password"><button class="action primary" onclick="createUserLogin()">Opprett bruker</button><div id="newUserOut" class="output">Klar til å opprette bruker.</div>`)}
+async function createUserLogin(){const out=document.getElementById('newUserOut');try{requireLive('opprette bruker');const token=DP.session?.access_token;if(!token)throw new Error('Mangler innloggingstoken.');if(typeof assertPackageLimit==='function'){if(/styreleder|styremedlem/.test(newRole.value))assertPackageLimit('board','styremedlemmer');if(newRole.value==='beboer')assertPackageLimit('residents','beboere');if(/vaktmester|forvalter/.test(newRole.value))assertPackageLimit('caretakers','vaktmester/forvalter-brukere')}const access={beboer:'resident',styreleder:'owner',styremedlem:'member',forvalter:'owner',vaktmester:'caretaker',leverandor:'vendor'}[newRole.value]||'member';const res=await fetch('/.netlify/functions/create-user',{method:'POST',headers:{'content-type':'application/json',authorization:`Bearer ${token}`},body:JSON.stringify({name:newName.value,email:newEmail.value,phone:newPhone.value,role:newRole.value,property_id:currentProperty().id,access_role:access,password:newPassword.value})});const data=await readJsonResponse(res,'Bruker-tjenesten svarte ikke riktig. Prøv igjen, eller kontakt Driftspartner Nord hvis feilen fortsetter.');if(!data.ok)throw new Error(data.message);await insertActivity(data.email_sent?'Bruker opprettet og e-post sendt':'Bruker opprettet','user',data.user?.id||newEmail.value);await finishAction(data.email_sent?'Bruker er opprettet og innloggingsmail er sendt.':'Bruker er opprettet. Innloggingsmail ble ikke sendt.','people')}catch(e){setOutputError(out,e)}}
 
 function PeoplePage(){
   const contacts=DP.cache.contacts||[];
@@ -120,11 +131,11 @@ function personCard(c){
 function showPersonForm(role,id=''){
   const existing=(DP.cache.contacts||[]).find(c=>c.id===id)||{};
   const currentRole=existing.role||existing.contact_role||existing.contact_type||existing.type||role;
-  const canCreateLogin=/beboer|styre|leder|vara/i.test(currentRole);
-  const loginRole=/beboer/i.test(currentRole)?'beboer':'styremedlem';
-  const accessText=/beboer/i.test(currentRole)?'beboerportal-tilgang':'styreportal-tilgang';
+  const canCreateLogin=/beboer|styre|leder|vara|vaktmester|leverand|forvalter/i.test(currentRole);
+  const loginRole=boardLoginRole(currentRole);
+  const accessText=loginRole==='beboer'?'beboerportal-tilgang':loginRole==='vaktmester'?'vaktmestertilgang':loginRole==='leverandor'?'leverandørportal-tilgang':loginRole==='forvalter'?'forvaltertilgang':'styreportal-tilgang';
   const loginBlock=canCreateLogin&&!id?`<section class="inline-option"><label><input id="personCreateLogin" type="checkbox" checked> Opprett innlogging og send e-post</label><small>Hvis e-post er fylt inn, opprettes ${accessText} til valgt eiendom.</small><input id="personLoginRole" type="hidden" value="${loginRole}"><label>Midlertidig passord</label><input id="personPassword" type="password" placeholder="La stå tomt for automatisk passord"></section>`:'';
-  const roleField=/styre|leder|vara/i.test(currentRole)?`<select id="personRole"><option ${currentRole==='Styreleder'?'selected':''}>Styreleder</option><option ${currentRole==='Nestleder'?'selected':''}>Nestleder</option><option ${currentRole==='Styremedlem'?'selected':''}>Styremedlem</option><option ${currentRole==='Vara'?'selected':''}>Vara</option></select>`:`<input id="personRole" value="${esc(currentRole||role)}">`;
+  const roleField=`<select id="personRole">${contactRoleOptions(currentRole||role)}</select>`;
   showDrawer((id?'Endre ':'Legg til ')+role,`<input id="personId" type="hidden" value="${esc(id)}"><div class="form-grid two"><label>Navn<input id="personName" value="${esc(existing.name||'')}"></label><label>Rolle${roleField}</label><label>E-post<input id="personEmail" type="email" value="${esc(existing.email||'')}"></label><label>Telefon<input id="personPhone" value="${esc(existing.phone||'')}"></label></div><label>${/bebo/i.test(currentRole)?'Leilighet/enhet eller notat':'Periode, verv eller notat'}</label><textarea id="personNotes" rows="4">${esc(existing.notes||existing.unit||'')}</textarea>${loginBlock}<button class="action primary" onclick="saveContact()">${id?'Lagre endring':'Lagre'}</button><div id="personOut" class="output">${id?'Klar til å lagre endring.':'Klar til lagring.'}</div>`);
 }
 async function saveContact(){
