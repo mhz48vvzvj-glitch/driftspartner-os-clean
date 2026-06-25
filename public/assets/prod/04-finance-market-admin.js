@@ -426,8 +426,75 @@ async function runLaunchControl(){
 function AdminPage(){
   if(typeof canManageCustomers==='function'&&!canManageCustomers())return `<div class="grid admin-page"><div class="card s12"><div class="empty-state"><strong>Ingen tilgang til kundeoppsett.</strong><span>Ny kunde og onboarding kan bare utføres av superadmin.</span></div></div></div>`;
   const s=launchSummary();
-  return `<div class="grid admin-page premium-admin-page"><div class="card s12 module-hero control-hero"><div><small>Kontrollsenter</small><h2>Produksjonskontroll og onboarding</h2><p>Her ser du om valgt eiendom er klar for pilot, om roller/tilgang stemmer, og hva som bør fullføres før kunde tas i bruk.</p></div><div class="module-actions"><button class="action primary" onclick="runLaunchControl()">Kjør kontroll</button><button class="action" onclick="showNewCustomerWizard()">Ny kunde</button><button class="action" onclick="hydrateAll().then(render)">Oppdater</button></div></div><div class="card s12">${SuperadminOpsPage()}</div><div class="card s12">${LaunchControlPage()}</div><div class="card s6 control-panel"><div class="dash-title"><div><h3>Onboarding</h3><p class="muted">Kunde, eiendom, styre/beboere, leverandører, FDV, økonomi og brukere.</p></div><button class="action primary" onclick="showNewCustomerWizard()">Start</button></div><div class="control-mini-grid"><div><small>Eiendommer</small><b>${DP.properties.length}</b></div><div><small>Klar status</small><b>${s.total-s.bad-s.warn}/${s.total}</b></div><div><small>Rolle</small><b>${esc(appRole()||'-')}</b></div></div></div><div class="card s6 control-panel"><div class="dash-title"><div><h3>Rolle og tilgang</h3><p class="muted">Bekreft at brukeren bare ser riktige menyer og eiendommer.</p></div></div>${roleAccessPanel()}</div><div class="card s12 control-panel"><div class="dash-title"><div><h3>Siste aktivitet</h3><p class="muted">Sporing av endringer og hendelser på valgt eiendom.</p></div><button class="action" onclick="hydrateAll().then(render)">Oppdater</button></div>${activityCards()}</div></div>`;
+  return `<div class="grid admin-page premium-admin-page"><div class="card s12 module-hero control-hero"><div><small>Kontrollsenter</small><h2>Produksjonskontroll og onboarding</h2><p>Her ser du om valgt eiendom er klar for pilot, om roller/tilgang stemmer, og hva som bør fullføres før kunde tas i bruk.</p></div><div class="module-actions"><button class="action primary" onclick="runLaunchControl()">Kjør kontroll</button><button class="action" onclick="showNewCustomerWizard()">Ny kunde</button><button class="action" onclick="showDemoUserWizard()">Demo-bruker</button><button class="action" onclick="hydrateAll().then(render)">Oppdater</button></div></div><div class="card s12">${SuperadminOpsPage()}</div><div class="card s12">${DemoUserPanel()}</div><div class="card s12">${LaunchControlPage()}</div><div class="card s6 control-panel"><div class="dash-title"><div><h3>Onboarding</h3><p class="muted">Kunde, eiendom, styre/beboere, leverandører, FDV, økonomi og brukere.</p></div><button class="action primary" onclick="showNewCustomerWizard()">Start</button></div><div class="control-mini-grid"><div><small>Eiendommer</small><b>${DP.properties.length}</b></div><div><small>Klar status</small><b>${s.total-s.bad-s.warn}/${s.total}</b></div><div><small>Rolle</small><b>${esc(appRole()||'-')}</b></div></div></div><div class="card s6 control-panel"><div class="dash-title"><div><h3>Rolle og tilgang</h3><p class="muted">Bekreft at brukeren bare ser riktige menyer og eiendommer.</p></div></div>${roleAccessPanel()}</div><div class="card s12 control-panel"><div class="dash-title"><div><h3>Siste aktivitet</h3><p class="muted">Sporing av endringer og hendelser på valgt eiendom.</p></div><button class="action" onclick="hydrateAll().then(render)">Oppdater</button></div>${activityCards()}</div></div>`;
 }
+function DemoUserPanel(){
+  if(typeof canManageCustomers==='function'&&!canManageCustomers())return '';
+  return `<div class="demo-user-panel"><div class="dash-title"><div><h3>Demo-brukere</h3><p class="muted">Lag testbrukere for Start, Pro og Premium uten å gi tilgang til ekte kundedata.</p></div><button class="action primary" onclick="showDemoUserWizard()">Ny demo-bruker</button></div><div class="demo-package-strip"><section><b>Start-demo</b><span>FDV, avvik og styre.</span></section><section><b>Pro-demo</b><span>Årshjul, arbeidsordre, økonomi og rapport.</span></section><section><b>Premium-demo</b><span>Property Brain, RFQ/tilbud og AI-vurdering.</span></section></div><div id="demoUserOut" class="output">Demo-brukeren får bare tilgang til demo-eiendommen som opprettes her.</div></div>`;
+}
+function showDemoUserWizard(){
+  if(typeof canManageCustomers==='function'&&!canManageCustomers()){showDrawer('Ingen tilgang','<div class="output">Bare superadmin kan lage demo-brukere.</div>');return}
+  const stamp=Date.now().toString().slice(-6);
+  showDrawer('Ny demo-bruker',`<div class="form-grid two"><label>Pakke<select id="demoPlan"><option value="start">Start - grunnpakke</option><option value="pro" selected>Pro - operativ drift</option><option value="premium">Premium - AI og tilbud</option></select></label><label>Rolle<select id="demoRole"><option value="styreleder" selected>Styreleder</option><option value="styremedlem">Styremedlem</option><option value="beboer">Beboer</option><option value="vaktmester">Vaktmester</option><option value="leverandor">Leverandør</option></select></label><label>Navn<input id="demoName" value="Demo Styreleder ${stamp}"></label><label>E-post<input id="demoEmail" placeholder="demo@kundedomene.no"></label><label>Telefon<input id="demoPhone" value=""></label><label>Midlertidig passord<input id="demoPassword" value="Demo${stamp}!"></label><label class="span-2">Demo-eiendom<input id="demoPropertyName" value="Demo Borettslag ${stamp}"></label><label class="span-2 check-row"><input id="demoSeedData" type="checkbox" checked> Legg inn enkle eksempeldata for valgt pakke</label></div><div class="validation-box"><strong>Viktig</strong><span>Bruk en e-postadresse du kan motta innloggingsmail på. Testbrukeren får bare tilgang til demo-eiendommen.</span></div><button class="action primary" onclick="createDemoUser()">Opprett demo-bruker</button><div id="createDemoOut" class="output">Klar.</div>`);
+}
+function demoPlanConfig(planId){
+  const plans={start:{name:'Start',firstYear:9990,yearTwo:11880},pro:{name:'Pro',firstYear:19990,yearTwo:23880},premium:{name:'Premium',firstYear:39990,yearTwo:47880}};
+  return plans[String(planId||'pro').toLowerCase()]||plans.pro;
+}
+async function createDemoProperty(planId,propertyName){
+  const plan=demoPlanConfig(planId);
+  const customerRow={name:`Demo ${plan.name} - ${propertyName}`,subscription_plan:planId,subscription_first_year_amount:plan.firstYear,subscription_year_two_amount:plan.yearTwo,subscription_billing_period:'yearly',subscription_status:'active',status:'demo'};
+  const customer=await insertWithFallback('customers',customerRow,['name']);
+  if(customer.error)throw customer.error;
+  const propertyRow={customer_id:customer.data.id,name:propertyName,address:'Demo-veien 1',property_type:'Borettslag',units_count:planId==='start'?12:planId==='pro'?64:180,technical_summary:`Demo-eiendom for ${plan.name}-pakken.`};
+  const property=await insertWithFallback('properties',propertyRow,['customer_id','name','address']);
+  if(property.error)throw property.error;
+  return {customer:customer.data,property:property.data,plan};
+}
+async function seedDemoData(propertyId,planId){
+  try{await safeInsertContacts([{property_id:propertyId,name:'Kari Demo',role:'Styreleder',email:'styreleder@example.no',phone:'90000000',notes:'Demo'},{property_id:propertyId,name:'Ola Demo',role:'Beboer',email:'beboer@example.no',phone:'',notes:'Demo'}])}catch(e){console.warn('Demo kontakter hoppet over',e)}
+  try{await safeInsertMany('deviations',[{property_id:propertyId,title:'Tak/VVS - oppfølging',description:'Demoavvik for visning av saksløp.',category:'Tak',priority:'Høy',status:'Ny'}])}catch(e){console.warn('Demo avvik hoppet over',e)}
+  if(['pro','premium'].includes(planId)){
+    try{await safeInsertMany('work_orders',[{property_id:propertyId,title:'Kontroll av fellesareal',description:'Demo arbeidsordre med frist og ansvarlig.',due_date:new Date(Date.now()+7*86400000).toISOString().slice(0,10),status:'Ny'}])}catch(e){console.warn('Demo arbeidsordre hoppet over',e)}
+    try{await safeUpsertFinance({property_id:propertyId,bank_balance:450000,reserved_funds:240000,project_funds:150000,updated_at:new Date().toISOString()})}catch(e){console.warn('Demo økonomi hoppet over',e)}
+    try{await safeInsertMany('budget_lines',[{property_id:propertyId,category:'Vedlikehold',budget_amount:120000,actual_amount:95000,notes:'Demo budsjettlinje'}])}catch(e){console.warn('Demo budsjett hoppet over',e)}
+    try{await safeInsertMany('annual_wheel_items',[{property_id:propertyId,month:4,title:'Vårbefaring',category:'Vedlikehold',responsible_role:'Styreleder',status:'Planlagt'}])}catch(e){console.warn('Demo årshjul hoppet over',e)}
+  }
+  if(planId==='premium'){
+    try{await safeInsertMany('suppliers',[{name:'Demo Tak AS',email:'tilbud@example.no',trade:'Tak',status:'active'}])}catch(e){console.warn('Demo leverandør hoppet over',e)}
+    try{await safeInsertMany('quote_requests',[{property_id:propertyId,title:'Tilbud på tak/VVS',description:'Demo RFQ for Premium-visning.',deadline:new Date(Date.now()+14*86400000).toISOString().slice(0,10),status:'Utkast'}])}catch(e){console.warn('Demo RFQ hoppet over',e)}
+    try{await safeInsertMany('offers',[{property_id:propertyId,price:146000,reservations:'Demo tilbud uten forbehold.',status:'Mottatt'}])}catch(e){console.warn('Demo tilbud hoppet over',e)}
+  }
+}
+async function createDemoUser(){
+  const out=document.getElementById('createDemoOut');
+  try{
+    if(typeof canManageCustomers==='function'&&!canManageCustomers())throw new Error('Bare superadmin kan lage demo-brukere.');
+    requireLive('lage demo-bruker');
+    const token=DP.session?.access_token;if(!token)throw new Error('Mangler innlogging.');
+    const planId=document.getElementById('demoPlan')?.value||'pro';
+    const role=document.getElementById('demoRole')?.value||'styreleder';
+    const name=document.getElementById('demoName')?.value?.trim()||'';
+    const email=document.getElementById('demoEmail')?.value?.trim()||'';
+    const phone=document.getElementById('demoPhone')?.value?.trim()||'';
+    const password=document.getElementById('demoPassword')?.value||'';
+    const propertyName=document.getElementById('demoPropertyName')?.value?.trim()||`Demo ${demoPlanConfig(planId).name}`;
+    if(!name||!email.includes('@'))throw new Error('Fyll inn navn og gyldig e-post for testbrukeren.');
+    if(out)out.textContent='Oppretter demo-eiendom...';
+    const created=await createDemoProperty(planId,propertyName);
+    if(document.getElementById('demoSeedData')?.checked){if(out)out.textContent='Legger inn eksempeldata...';await seedDemoData(created.property.id,planId)}
+    const access={beboer:'resident',styreleder:'owner',styremedlem:'member',vaktmester:'caretaker',leverandor:'vendor'}[role]||'member';
+    if(out)out.textContent='Oppretter testbruker og sender e-post...';
+    const res=await fetch('/.netlify/functions/create-user',{method:'POST',headers:{'content-type':'application/json',authorization:`Bearer ${token}`},body:JSON.stringify({name,email,phone,role,property_id:created.property.id,access_role:access,password})});
+    const data=await readJsonResponse(res,'Bruker-tjenesten svarte ikke riktig. Prøv igjen fra publisert side.');
+    if(!data.ok)throw new Error(data.message||'Demo-bruker kunne ikke opprettes.');
+    await loadProperties();DP.propertyId=created.property.id;
+    await insertActivity(`Demo-bruker opprettet: ${created.plan.name}`,'demo_user',created.property.id);
+    await hydrateAll();
+    showDrawer('Demo-bruker opprettet',`<div class="empty-state"><strong>${esc(name)} er klar for ${esc(created.plan.name)}-demo.</strong><span>Testbrukeren har bare tilgang til ${esc(propertyName)}. Innloggingsmail er sendt hvis e-post er konfigurert.</span></div><table><tr><td>Pakke</td><td>${esc(created.plan.name)}</td></tr><tr><td>E-post</td><td>${esc(email)}</td></tr><tr><td>Midlertidig passord</td><td>${esc(password||data.temporaryPassword||'Sendt på e-post')}</td></tr><tr><td>Demo-eiendom</td><td>${esc(propertyName)}</td></tr></table><button class="action primary" onclick="hideDrawer();render()">Åpne demo-eiendom</button>`);
+  }catch(e){setOutputError(out,e,'Demo-brukeren kunne ikke opprettes. Sjekk e-post, tilgang og databaseoppsett.')}
+}
+
 function opsWithinDays(row,days=30){
   const t=Date.parse(row?.created_at||row?.updated_at||'');
   return Number.isFinite(t)&&t>=Date.now()-days*86400000;

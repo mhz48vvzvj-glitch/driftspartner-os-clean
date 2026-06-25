@@ -1302,6 +1302,34 @@ body:not(.public-mode) td,body:not(.public-mode) th{word-break:break-word}
 @media(max-width:1320px){
   .refined-landing .dp-product-premium .dp-phone{display:none}
 }
+
+.demo-user-panel .dash-title{align-items:flex-start}
+.demo-package-strip{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:14px;
+  margin:14px 0;
+}
+.demo-package-strip section{
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:16px;
+  background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.025));
+}
+.demo-package-strip b{
+  display:block;
+  color:var(--text);
+  margin-bottom:6px;
+}
+.demo-package-strip span{
+  display:block;
+  color:var(--muted);
+  font-size:13px;
+  line-height:1.45;
+}
+@media(max-width:850px){
+  .demo-package-strip{grid-template-columns:1fr}
+}
 @media(max-width:620px){.refined-landing.dp-landing{padding:18px 12px}.refined-landing .dp-brand span{font-size:16px}.refined-landing .dp-logo-img{width:38px;height:38px}.refined-landing .dp-nav-actions{gap:8px}.refined-landing .dp-primary,.refined-landing .dp-secondary{padding:12px 14px}.refined-landing .dp-copy h1{font-size:36px}.refined-landing .dp-copy p{font-size:16px;line-height:1.55}.refined-landing .dp-mini{grid-template-columns:1fr}.refined-landing .dp-panel{padding:18px}.refined-landing .dp-prices{gap:16px}.refined-landing .dp-price{padding:22px}.refined-landing .dp-plan-head{display:grid}.refined-landing .dp-cta{padding:22px}}
 .integrations-page{align-items:start}
 .integration-hero{background:linear-gradient(135deg,rgba(22,88,185,.42),rgba(8,18,32,.96));border-color:#28528b}
