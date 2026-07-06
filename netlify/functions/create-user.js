@@ -87,8 +87,11 @@ async function upsertAppUserProfile({ supabaseUrl, serviceKey, authUserId, name,
       delete fallbackBody.status;
       return request(fallbackBody);
     }
+    if (message.includes("app_users_role_check") || (message.includes("check constraint") && message.includes("role"))) {
+      throw new Error("Admin-rollen mangler i app_users-regelen. Kjør supabase-internal-admin-role-v1.sql i Supabase, og prøv igjen.");
+    }
     if (message.includes("invalid input value for enum") || message.includes("app_role")) {
-      throw new Error("Rollen finnes ikke i rollelisten i databasen. Kjør supabase-app-roles-v1.sql i Supabase, og prøv igjen.");
+      throw new Error("Rollen finnes ikke i rollelisten i databasen. Kjør supabase-internal-admin-role-v1.sql i Supabase, og prøv igjen.");
     }
     throw error;
   }
