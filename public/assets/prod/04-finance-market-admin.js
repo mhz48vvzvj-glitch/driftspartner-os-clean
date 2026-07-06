@@ -446,7 +446,17 @@ function showDemoUserWizard(){
 }
 function showInternalLoginForm(){
   if(!(typeof canManageSuperadmin==='function'&&canManageSuperadmin())){showDrawer('Ingen tilgang','<div class="output">Bare superadmin kan opprette intern innlogging uten eiendom.</div>');return}
-  showDrawer('Intern innlogging',`<div class="validation-box"><strong>Kun intern bruker</strong><span>Bruk denne for salgsjef, admin eller forvalter uten å knytte brukeren til en kunde/eiendom.</span></div><div class="form-grid two"><label>Navn<input id="internalName" placeholder="Salgsjef"></label><label>E-post<input id="internalEmail" type="email" placeholder="salgsjef@driftspartnernord.no"></label><label>Telefon<input id="internalPhone" placeholder="Valgfritt"></label><label>Rolle<select id="internalRole"><option value="admin" selected>Admin</option><option value="forvalter">Forvalter</option><option value="superadmin">Superadmin</option></select></label><label>Midlertidig passord<input id="internalPassword" type="password" placeholder="La stå tomt for automatisk passord"></label></div><button class="action primary" onclick="createInternalLogin()">Opprett og send e-post</button><div id="internalLoginOut" class="output">Klar.</div>`);
+  showDrawer('Intern innlogging',`<div class="validation-box"><strong>Kun intern bruker</strong><span>Bruk denne for salgsjef, admin eller forvalter uten å knytte brukeren til en kunde/eiendom. Finnes brukeren fra før, oppdateres rollen og passordet.</span></div><div class="form-grid two"><label>Navn<input id="internalName" placeholder="Salgsjef"></label><label>E-post<input id="internalEmail" type="email" placeholder="salgsjef@driftspartnernord.no"></label><label>Telefon<input id="internalPhone" placeholder="Valgfritt"></label><label>Rolle<select id="internalRole"><option value="admin" selected>Admin</option><option value="forvalter">Forvalter</option><option value="superadmin">Superadmin</option></select></label><label>Midlertidig passord<input id="internalPassword" type="password" placeholder="La stå tomt for automatisk passord"></label></div><div class="module-actions"><button class="action primary" onclick="createInternalLogin()">Opprett/oppdater og send e-post</button><button class="action" onclick="testCreateUserFunction()">Test bruker-tjeneste</button></div><div id="internalLoginOut" class="output">Klar.</div>`);
+}
+async function testCreateUserFunction(){
+  const out=document.getElementById('internalLoginOut');
+  try{
+    if(out)out.textContent='Tester bruker-tjeneste...';
+    const res=await fetch('/.netlify/functions/create-user',{method:'GET'});
+    const text=await res.text();
+    if(res.status===405&&/json|application\/json/i.test(res.headers.get('content-type')||'')){if(out)out.textContent='Bruker-tjenesten er publisert og svarer. Prøv å opprette intern innlogging igjen.';return}
+    if(out)out.textContent=`Bruker-tjenesten svarte ikke som forventet. Status ${res.status}. ${text.replace(/\s+/g,' ').slice(0,180)}`;
+  }catch(e){if(out)out.textContent=`Bruker-tjenesten kunne ikke nås: ${String(e.message||e)}`}
 }
 async function createInternalLogin(){
   const out=document.getElementById('internalLoginOut');
@@ -455,19 +465,21 @@ async function createInternalLogin(){
     const token=DP.session?.access_token;if(!token)throw new Error('Mangler innloggingstoken.');
     const name=internalName.value.trim(),email=internalEmail.value.trim(),role=internalRole.value,phone=internalPhone.value.trim(),password=internalPassword.value;
     if(!name||!email.includes('@'))throw new Error('Fyll inn navn og gyldig e-post.');
-    if(out)out.textContent='Oppretter intern innlogging og sender e-post...';
+    if(out)out.textContent='Oppretter eller oppdaterer intern innlogging og sender e-post...';
     const res=await fetch('/.netlify/functions/create-user',{method:'POST',headers:{'content-type':'application/json',authorization:`Bearer ${token}`},body:JSON.stringify({name,email,phone,role,password})});
     const data=await readJsonResponse(res,'Bruker-tjenesten svarte ikke riktig. Prøv igjen, eller kontakt Driftspartner Nord hvis feilen fortsetter.');
     if(!data.ok)throw new Error(data.message||'Intern innlogging kunne ikke opprettes.');
-    await insertActivity(data.email_sent?'Intern innlogging opprettet og e-post sendt':'Intern innlogging opprettet','user',data.user?.id||email);
-    await finishAction(data.email_sent?'Intern innlogging er opprettet og e-post er sendt.':'Intern innlogging er opprettet. E-post ble ikke sendt.','admin');
+    await insertActivity(data.email_sent?'Intern innlogging opprettet/oppdatert og e-post sendt':'Intern innlogging opprettet/oppdatert','user',data.user?.id||email);
+    await finishAction(data.email_sent?'Intern innlogging er opprettet/oppdatert og e-post er sendt.':'Intern innlogging er opprettet/oppdatert. E-post ble ikke sendt.','admin');
   }catch(e){
     const msg=String(e?.message||e||'');
     if(out){
       if(/app_role|rollelisten|invalid input value for enum|admin/i.test(msg)&&/rolle|role|enum|app_role|admin/i.test(msg)){
         out.textContent='Admin-rollen mangler i Supabase. Kjør supabase-internal-admin-role-v1.sql i Supabase SQL Editor, publiser siste pakke og prøv igjen.';
+      }else if(/failed to fetch|404|not found|page not found|unexpected token|not valid json|html/i.test(msg)){
+        out.textContent='Bruker-tjenesten er ikke riktig publisert på live-siden. Publiser siste pakke på nytt, og sjekk at netlify/functions/create-user.js er med.';
       }else{
-        out.textContent=customerError(e,'Intern innlogging kunne ikke opprettes. Sjekk at du er logget inn som superadmin og at Netlify Functions er publisert.');
+        out.textContent=msg||'Intern innlogging kunne ikke opprettes. Sjekk at du er logget inn som superadmin og at Netlify Functions er publisert.';
       }
     }
   }
