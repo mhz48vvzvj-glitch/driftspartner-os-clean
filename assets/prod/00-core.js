@@ -8,6 +8,7 @@
 };
 const ROLE_MENUS={
   superadmin:['dashboard','property','people','cases','documents','maintenance','finance','reports','market','brain','integrations','admin'],
+  admin:['dashboard','property','people','cases','documents','maintenance','finance','reports','market','brain','integrations','admin'],
   forvalter:['dashboard','property','people','cases','documents','maintenance','finance','reports','market','brain','integrations','admin'],
   styreleder:['dashboard','property','people','cases','documents','maintenance','finance','reports','market','brain','integrations'],
   styremedlem:['dashboard','people','cases','documents','maintenance','finance','reports','brain'],
@@ -16,7 +17,8 @@ const ROLE_MENUS={
   leverandor:['market']
 };
 function appRole(){return String(DP.user?.role||'').toLowerCase()}
-function canManageCustomers(){return appRole()==='superadmin'}
+function canManageCustomers(){return ['superadmin','admin'].includes(appRole())}
+function canManageSuperadmin(){return appRole()==='superadmin'}
 function isDemoProperty(p=currentProperty()){
   const text=[p?.customer_status,p?.status,p?.customer,p?.name].filter(Boolean).join(' ').toLowerCase();
   return /\bdemo\b|\btest\b/.test(text);

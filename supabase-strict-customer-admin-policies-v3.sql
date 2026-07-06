@@ -1,7 +1,7 @@
 -- Driftspartner OS - streng kunde/eiendom-tilgang V3
 -- Kjor hele filen i Supabase SQL Editor.
 -- Formal: vanlige kunder skal IKKE kunne opprette nye kunder eller eiendommer.
--- Kun superadmin kan opprette kunder, eiendommer og property_access.
+-- Kun superadmin og intern admin kan opprette kunder, eiendommer og property_access.
 
 create or replace function dp_onboarding_role()
 returns text
@@ -24,7 +24,7 @@ security definer
 set search_path = public
 stable
 as $$
-  select coalesce(dp_onboarding_role() = 'superadmin', false)
+  select coalesce(dp_onboarding_role() in ('superadmin', 'admin'), false)
 $$;
 
 alter table customers enable row level security;

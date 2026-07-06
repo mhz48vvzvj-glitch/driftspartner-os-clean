@@ -105,7 +105,7 @@ async function resumeSession(){
 }
 async function loadProperties(){
   const client=db();
-  if(DP.user.role==='superadmin'){
+  if(['superadmin','admin'].includes(DP.user.role)){
     const r=await client.from('properties').select('*, customers(*)').order('name').limit(200);
     if(r.error)throw r.error;
     DP.properties=(r.data||[]).map(mapProperty);

@@ -18,13 +18,14 @@ const normalizeRole = (role) => {
   if (value === "vendor") return "leverandor";
   return value;
 };
-const allowedRoles = new Set(["superadmin", "forvalter", "styreleder", "styremedlem", "beboer", "vaktmester", "leverandor"]);
+const allowedRoles = new Set(["superadmin", "admin", "forvalter", "styreleder", "styremedlem", "beboer", "vaktmester", "leverandor"]);
 const randomPassword = () => {
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!#%";
   return Array.from({ length: 18 }, () => alphabet[Math.floor(Math.random() * alphabet.length)]).join("");
 };
 const roleLabel = (role) => ({
   superadmin: "Superadmin",
+  admin: "Admin",
   forvalter: "Forvalter",
   styreleder: "Styreleder",
   styremedlem: "Styremedlem",
@@ -94,7 +95,7 @@ async function upsertAppUserProfile({ supabaseUrl, serviceKey, authUserId, name,
 }
 
 async function restrictSinglePropertyAccess({ supabaseUrl, serviceKey, appUserId, propertyId, role }) {
-  const portfolioRoles = new Set(["superadmin", "forvalter"]);
+  const portfolioRoles = new Set(["superadmin", "admin", "forvalter"]);
   if (portfolioRoles.has(role)) return;
   await supabaseFetch(`/rest/v1/property_access?user_id=eq.${appUserId}&property_id=neq.${propertyId}`, {
     method: "DELETE",
@@ -173,8 +174,9 @@ exports.handler = async (event) => {
       { serviceKey, supabaseUrl }
     );
     const callerProfile = callerProfiles?.[0];
-    if (callerProfile?.role !== "superadmin") {
-      return json(403, { ok: false, message: "Bare superadmin kan opprette brukere." });
+    const callerRole = String(callerProfile?.role || "").toLowerCase();
+    if (!["superadmin", "admin"].includes(callerRole)) {
+      return json(403, { ok: false, message: "Bare intern admin kan opprette brukere." });
     }
 
     const payload = JSON.parse(event.body || "{}");
@@ -191,6 +193,17 @@ exports.handler = async (event) => {
     }
     if (!allowedRoles.has(role)) {
       return json(400, { ok: false, message: `Ugyldig rolle: ${role}. Velg en av rollene i listen.` });
+    }
+    if (callerRole !== "superadmin" && role === "superadmin") {
+      return json(403, { ok: false, message: "Bare superadmin kan opprette eller endre superadmin-brukere." });
+    }
+    const existingProfiles = await supabaseFetch(`/rest/v1/app_users?email=eq.${encodeURIComponent(email)}&select=id,role,email`, {
+      serviceKey,
+      supabaseUrl
+    });
+    const existingProfile = existingProfiles?.[0];
+    if (callerRole !== "superadmin" && String(existingProfile?.role || "").toLowerCase() === "superadmin") {
+      return json(403, { ok: false, message: "Admin kan ikke endre superadmin-brukere." });
     }
 
     let authUser;
