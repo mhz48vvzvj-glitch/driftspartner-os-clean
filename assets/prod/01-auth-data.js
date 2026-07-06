@@ -109,6 +109,10 @@ async function loadProperties(){
     const r=await client.from('properties').select('*, customers(*)').order('name').limit(200);
     if(r.error)throw r.error;
     DP.properties=(r.data||[]).map(mapProperty);
+  }else if(DP.user.role==='selger'){
+    const r=await client.from('properties').select('*, customers(*)').order('name').limit(200);
+    if(r.error)throw r.error;
+    DP.properties=(r.data||[]).map(mapProperty).filter(p=>typeof isDemoProperty==='function'&&isDemoProperty(p));
   }else{
     const r=await client.from('property_access').select('access_role, properties(*, customers(*))').eq('user_id',DP.user.id);
     if(r.error)throw r.error;

@@ -7,6 +7,7 @@ begin
   if exists (select 1 from pg_type where typname = 'app_role') then
     alter type app_role add value if not exists 'superadmin';
     alter type app_role add value if not exists 'admin';
+    alter type app_role add value if not exists 'selger';
     alter type app_role add value if not exists 'forvalter';
     alter type app_role add value if not exists 'styreleder';
     alter type app_role add value if not exists 'styremedlem';

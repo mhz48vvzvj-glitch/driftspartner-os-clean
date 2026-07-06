@@ -5,12 +5,13 @@
 --
 -- Viktig:
 -- Hvis app_users har en gammel rolle-regel, ma den oppdateres sa rollen
--- "admin" godtas. Dette scriptet rydder den regelen og lager den pa nytt.
+-- "admin" og "selger" godtas. Dette scriptet rydder den regelen og lager den pa nytt.
 
 do $$
 begin
   if exists (select 1 from pg_type where typname = 'app_role') then
     alter type app_role add value if not exists 'admin';
+    alter type app_role add value if not exists 'selger';
   end if;
 end $$;
 
@@ -35,6 +36,7 @@ check (
   role::text in (
     'superadmin',
     'admin',
+    'selger',
     'forvalter',
     'styreleder',
     'styremedlem',

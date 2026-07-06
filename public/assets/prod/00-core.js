@@ -3,12 +3,13 @@
   session:null,user:null,properties:[],propertyId:'',suppliers:[],tab:'dashboard',module:'dashboard',cache:{},
   menus:[
     ['dashboard','Dashboard'],['property','Eiendom'],['people','Beboere/styre'],['cases','Avvik/arbeid'],
-    ['documents','FDV/dokumenter'],['maintenance','Vedlikeholdsplan'],['finance','Økonomi'],['reports','Rapporter'],['market','Marked/tilbud'],['brain','Property Brain'],['integrations','Integrasjoner'],['admin','Kontroll']
+    ['documents','FDV/dokumenter'],['maintenance','Vedlikeholdsplan'],['finance','Økonomi'],['reports','Rapporter'],['market','Marked/tilbud'],['brain','Property Brain'],['integrations','Integrasjoner'],['admin','Kontroll'],['intranet','Internhåndbok']
   ]
 };
 const ROLE_MENUS={
-  superadmin:['dashboard','property','people','cases','documents','maintenance','finance','reports','market','brain','integrations','admin'],
-  admin:['dashboard','property','people','cases','documents','maintenance','finance','reports','market','brain','integrations','admin'],
+  superadmin:['dashboard','property','people','cases','documents','maintenance','finance','reports','market','brain','integrations','admin','intranet'],
+  admin:['dashboard','property','people','cases','documents','maintenance','finance','reports','market','brain','integrations','admin','intranet'],
+  selger:['dashboard','property','people','cases','documents','maintenance','finance','reports','market','brain','integrations','intranet'],
   forvalter:['dashboard','property','people','cases','documents','maintenance','finance','reports','market','brain','integrations','admin'],
   styreleder:['dashboard','property','people','cases','documents','maintenance','finance','reports','market','brain','integrations'],
   styremedlem:['dashboard','people','cases','documents','maintenance','finance','reports','brain'],
@@ -19,6 +20,7 @@ const ROLE_MENUS={
 function appRole(){return String(DP.user?.role||'').toLowerCase()}
 function canManageCustomers(){return ['superadmin','admin'].includes(appRole())}
 function canManageSuperadmin(){return appRole()==='superadmin'}
+function canAccessIntranet(){return ['superadmin','admin','selger'].includes(appRole())}
 function isDemoProperty(p=currentProperty()){
   const text=[p?.customer_status,p?.status,p?.customer,p?.name].filter(Boolean).join(' ').toLowerCase();
   return /\bdemo\b|\btest\b/.test(text);
@@ -120,6 +122,7 @@ function visibleMenus(){
   const packageAllowed=subscriptionAllowedMenus();
   return DP.menus.filter(m=>{
     if(!allowed.includes(m[0]))return false;
+    if(m[0]==='intranet')return canAccessIntranet();
     if(['admin','integrations'].includes(m[0]))return canManageCustomers();
     return packageAllowed.includes(m[0]);
   });
@@ -220,7 +223,7 @@ function render(){
   if(!DP.session){renderPublic();return}
   if(DP.closePanelsOnRender)closeTransientPanels();
   renderShell();
-  const map={dashboard:DashboardPage,property:PropertyPage,people:PeoplePage,cases:CasesPage,documents:DocumentsPage,maintenance:MaintenancePage,finance:FinancePage,reports:ReportsPage,market:MarketPage,brain:PropertyBrainPage,integrations:IntegrationsPage,admin:AdminPage};
+  const map={dashboard:DashboardPage,property:PropertyPage,people:PeoplePage,cases:CasesPage,documents:DocumentsPage,maintenance:MaintenancePage,finance:FinancePage,reports:ReportsPage,market:MarketPage,brain:PropertyBrainPage,integrations:IntegrationsPage,admin:AdminPage,intranet:IntranetQualityPage};
   document.getElementById('title').textContent=(DP.menus.find(m=>m[0]===DP.module)||['','Dashboard'])[1];
   document.getElementById('tabs').innerHTML='';
   document.getElementById('content').innerHTML=(map[DP.module]||DashboardPage)();

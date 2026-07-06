@@ -86,12 +86,24 @@ exports.handler = async (event) => {
     let properties = [];
     if (["superadmin", "admin"].includes(role)) {
       properties = await supabaseFetch("/rest/v1/properties?select=*,customers(*)&order=name.asc&limit=200", { serviceKey, supabaseUrl });
+    } else if (role === "selger") {
+      const allProperties = await supabaseFetch("/rest/v1/properties?select=*,customers(*)&order=name.asc&limit=200", { serviceKey, supabaseUrl });
+      properties = (allProperties || []).filter((property) => {
+        const text = [
+          property?.name,
+          property?.status,
+          property?.customer_status,
+          property?.customers?.name,
+          property?.customers?.status
+        ].filter(Boolean).join(" ").toLowerCase();
+        return /\bdemo\b|\btest\b/.test(text);
+      });
     } else {
       const access = await supabaseFetch(`/rest/v1/property_access?user_id=eq.${profile.id}&select=access_role,properties(*,customers(*))`, { serviceKey, supabaseUrl });
       properties = (access || []).map((row) => row.properties ? { ...row.properties, access_role: row.access_role } : null).filter(Boolean);
     }
 
-    if (!["superadmin", "admin", "forvalter"].includes(role) && properties.length > 1) {
+    if (!["superadmin", "admin", "forvalter", "selger"].includes(role) && properties.length > 1) {
       properties = properties.slice(0, 1);
     }
 

@@ -18,7 +18,7 @@ const normalizeRole = (role) => {
   if (value === "vendor") return "leverandor";
   return value;
 };
-const allowedRoles = new Set(["superadmin", "admin", "forvalter", "styreleder", "styremedlem", "beboer", "vaktmester", "leverandor"]);
+const allowedRoles = new Set(["superadmin", "admin", "selger", "forvalter", "styreleder", "styremedlem", "beboer", "vaktmester", "leverandor"]);
 const randomPassword = () => {
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!#%";
   return Array.from({ length: 18 }, () => alphabet[Math.floor(Math.random() * alphabet.length)]).join("");
@@ -26,6 +26,7 @@ const randomPassword = () => {
 const roleLabel = (role) => ({
   superadmin: "Superadmin",
   admin: "Admin",
+  selger: "Selger",
   forvalter: "Forvalter",
   styreleder: "Styreleder",
   styremedlem: "Styremedlem",
@@ -88,7 +89,7 @@ async function upsertAppUserProfile({ supabaseUrl, serviceKey, authUserId, name,
       return request(fallbackBody);
     }
     if (message.includes("app_users_role_check") || (message.includes("check constraint") && message.includes("role"))) {
-      throw new Error("Admin-rollen mangler i app_users-regelen. Kjør supabase-internal-admin-role-v1.sql i Supabase, og prøv igjen.");
+      throw new Error("Rollen admin/selger mangler i app_users-regelen. Kjør supabase-internal-admin-role-v1.sql i Supabase, og prøv igjen.");
     }
     if (message.includes("invalid input value for enum") || message.includes("app_role")) {
       throw new Error("Rollen finnes ikke i rollelisten i databasen. Kjør supabase-internal-admin-role-v1.sql i Supabase, og prøv igjen.");
@@ -190,7 +191,7 @@ exports.handler = async (event) => {
     const propertyId = String(payload.property_id || "").trim();
     const accessRole = String(payload.access_role || "member").trim();
     const password = String(payload.password || "").trim() || randomPassword();
-    const canCreateWithoutProperty = new Set(["superadmin", "admin", "forvalter"]).has(role);
+    const canCreateWithoutProperty = new Set(["superadmin", "admin", "selger", "forvalter"]).has(role);
 
     if (!email.includes("@") || !name || (!propertyId && !canCreateWithoutProperty)) {
       return json(400, { ok: false, message: "Mangler navn, e-post eller eiendom." });
