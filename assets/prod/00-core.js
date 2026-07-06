@@ -203,7 +203,7 @@ function renderShell(){
   if(!canOpenModule(DP.module))DP.module=menus[0]?.[0]||'dashboard';
   document.getElementById('sideNav').innerHTML=menus.map(m=>`<button class="${DP.module===m[0]?'active':''}" onclick="openModule('${m[0]}')">${esc(m[1])}</button>`).join('')+`<button onclick="logout()">Logg ut</button>`;
   document.getElementById('userSelect').innerHTML=`<option>${esc(DP.user?.email||'Innlogget')}</option>`;
-  document.getElementById('propertyContext').innerHTML=DP.properties.length?`<div>${propSelect()}</div><button class="action" onclick="hydrateAll().then(render)">Hent live data</button>`:'<div class="output">Ingen eiendommer funnet for brukeren.</div>';
+  document.getElementById('propertyContext').innerHTML=DP.properties.length?`<div>${propSelect()}</div><button class="action" onclick="hydrateAll().then(render)">Hent live data</button>`:(canAccessIntranet()?'<div class="output">Intern bruker: åpne Internhåndbok i menyen.</div>':'<div class="output">Ingen eiendommer funnet for brukeren.</div>');
 }
 function openModule(id){
   if(!canOpenModule(id)){setStatus('Denne funksjonen er ikke tilgjengelig for valgt rolle eller pakke.','bad');return}

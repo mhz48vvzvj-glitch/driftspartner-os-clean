@@ -38,9 +38,9 @@ async function login(){
     if(out)out.textContent='Profil funnet. Henter eiendommer...';
     if(propertyData){DP.properties=propertyData.map(mapProperty).filter(Boolean);DP.propertyId=DP.properties[0]?.id||''}
     else await loadProperties();
-    if(!DP.properties.length)throw new Error('Brukeren har ikke tilgang til noen eiendom ennå. Kontakt administrator.');
-    await hydrateAll();
-    hideDrawer();DP.module='dashboard';render();setStatus('Innlogget.');
+    if(!DP.properties.length&&!(typeof canAccessIntranet==='function'&&canAccessIntranet()))throw new Error('Brukeren har ikke tilgang til noen eiendom ennå. Kontakt administrator.');
+    if(DP.properties.length)await hydrateAll();
+    hideDrawer();DP.module=DP.properties.length?'dashboard':'intranet';render();setStatus('Innlogget.');
   }catch(e){
     const msg=customerError(e,'Innlogging feilet. Sjekk e-post/passord, eller kontakt Driftspartner Nord.');
     if(out)out.textContent=msg;
