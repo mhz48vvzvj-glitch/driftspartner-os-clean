@@ -187,8 +187,9 @@ exports.handler = async (event) => {
     const propertyId = String(payload.property_id || "").trim();
     const accessRole = String(payload.access_role || "member").trim();
     const password = String(payload.password || "").trim() || randomPassword();
+    const canCreateWithoutProperty = new Set(["superadmin", "admin", "forvalter"]).has(role);
 
-    if (!email.includes("@") || !name || !propertyId) {
+    if (!email.includes("@") || !name || (!propertyId && !canCreateWithoutProperty)) {
       return json(400, { ok: false, message: "Mangler navn, e-post eller eiendom." });
     }
     if (!allowedRoles.has(role)) {
@@ -196,6 +197,9 @@ exports.handler = async (event) => {
     }
     if (callerRole !== "superadmin" && role === "superadmin") {
       return json(403, { ok: false, message: "Bare superadmin kan opprette eller endre superadmin-brukere." });
+    }
+    if (!propertyId && callerRole !== "superadmin") {
+      return json(403, { ok: false, message: "Bare superadmin kan opprette intern innlogging uten eiendom." });
     }
     const existingProfiles = await supabaseFetch(`/rest/v1/app_users?email=eq.${encodeURIComponent(email)}&select=id,role,email`, {
       serviceKey,
@@ -247,21 +251,23 @@ exports.handler = async (event) => {
     const appUser = appProfiles?.[0];
     if (!appUser?.id) throw new Error("Auth-bruker ble laget, men app_users-profil mangler.");
 
-    await restrictSinglePropertyAccess({ supabaseUrl, serviceKey, appUserId: appUser.id, propertyId, role });
+    if (propertyId) {
+      await restrictSinglePropertyAccess({ supabaseUrl, serviceKey, appUserId: appUser.id, propertyId, role });
 
-    await supabaseFetch("/rest/v1/property_access?on_conflict=property_id,user_id", {
-      method: "POST",
-      serviceKey,
-      supabaseUrl,
-      extraHeaders: {
-        Prefer: "resolution=merge-duplicates,return=minimal"
-      },
-      body: {
-        property_id: propertyId,
-        user_id: appUser.id,
-        access_role: accessRole
-      }
-    });
+      await supabaseFetch("/rest/v1/property_access?on_conflict=property_id,user_id", {
+        method: "POST",
+        serviceKey,
+        supabaseUrl,
+        extraHeaders: {
+          Prefer: "resolution=merge-duplicates,return=minimal"
+        },
+        body: {
+          property_id: propertyId,
+          user_id: appUser.id,
+          access_role: accessRole
+        }
+      });
+    }
 
     const emailResult = await sendWelcomeEmail({ name, email, role, password });
 
@@ -275,7 +281,7 @@ exports.handler = async (event) => {
         email,
         phone,
         role,
-        property_id: propertyId,
+        property_id: propertyId || null,
         access_role: accessRole
       },
       existing_auth_user: existingAuthUser,
