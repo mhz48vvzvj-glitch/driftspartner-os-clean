@@ -6,16 +6,17 @@
   const moneyRisk=dashboardMoneyRisk(),missingDocs=missingDocumentCount(docs);
   const boardDecisions=rfqs.filter(q=>String(q.status||'').toLowerCase().includes('utkast')).length+offers.length;
   const brain=typeof propertyBrainAnalysis==='function'?propertyBrainAnalysis():null;
-  const hasFinance=subscriptionHas('finance'),hasMarket=subscriptionHas('market'),hasBrain=subscriptionHas('brain'),hasWorkOrders=subscriptionHas('work_orders'),hasRfq=subscriptionHas('rfq'),hasAiDirector=subscriptionHas('ai_director');
+  const hasFinance=subscriptionHas('finance'),hasBrain=subscriptionHas('brain'),hasWorkOrders=subscriptionHas('work_orders'),hasRfq=subscriptionHas('rfq'),hasAiDirector=subscriptionHas('ai_director');
+  const isInternal=typeof canManageCustomers==='function'&&canManageCustomers();
   const heroActions=[
-    hasAiDirector?`<button class="action primary" onclick="runAiDirector('styrapport')">Lag styrerapport</button>`:'',
-    `<button class="action primary" onclick="showEmailFlow('all')">Masseutsending</button>`,
+    `<button class="action primary" onclick="openModule('cases')">Registrer avvik</button>`,
+    `<button class="action" onclick="openModule('documents')">Last opp dokument</button>`,
     `<button class="action" onclick="showEmailFlow('board')">Send til styret</button>`,
-    hasBrain?`<button class="action" onclick="openModule('brain')">Property Brain</button>`:'',
-    '<button class="action" onclick="hydrateAll().then(render)">Oppdater tall</button>'
+    hasAiDirector?`<button class="action" onclick="runAiDirector('styrapport')">Lag styrerapport</button>`:'',
+    '<button class="action" onclick="hydrateAll().then(render)">Oppdater</button>'
   ].filter(Boolean).join('');
   return `<div class="grid dashboard-page">
-    <div class="card s12 executive-hero"><div><small>Styrets oversikt</small><h2>${esc(currentProperty()?.name||'Valgt eiendom')}</h2><p>Live status fra valgt abonnement og eiendom. Start viser styre, avvik og FDV. Pro/Premium åpner flere drifts- og analysemoduler.</p></div><div class="executive-actions">${heroActions}</div></div>
+    <div class="card s12 executive-hero"><div><small>Styrets oversikt</small><h2>${esc(currentProperty()?.name||'Valgt eiendom')}</h2><p>Dette er det styret bør se først: saker som haster, dokumentasjon som mangler, økonomi og frister.</p></div><div class="executive-actions">${heroActions}</div></div>
     ${focusCard('Hva haster?',critical||openDevs,critical?'Kritiske avvik må behandles først':openDevs?'Åpne avvik bør fordeles og følges opp':'Ingen åpne avvik nå',critical?'bad':openDevs?'warn':'ok','cases')}
     ${hasFinance?focusCard('Hva koster penger?',money(moneyRisk.amount),moneyRisk.caption,moneyRisk.amount>0?'bad':'ok','finance'):''}
     ${focusCard('Hva mangler dokumentasjon?',missingDocs,missingDocs?'FDV, HMS, kontrakt eller styrepapir mangler':'Dokumentasjonen ser ryddig ut',missingDocs?'warn':'ok','documents')}
@@ -23,21 +24,15 @@
     <div class="card s12 dashboard-priority">${DashboardPriorityPanel({brain,critical,openDevs,openWos,moneyRisk,missingDocs,boardDecisions})}</div>
     ${hasFinance?`<div class="card s7 premium-finance-card">${DashboardFinanceChart()}</div>`:''}
     <div class="card s5 premium-deviation-card">${DashboardDeviationPie(devs)}</div>
-    <div class="card s8 dashboard-trend">${DashboardTrend30()}</div>
-    <div class="card s4 dashboard-subscription">${DashboardSubscriptionStatus()}</div>
+    <div class="card ${isInternal?'s8':'s12'} dashboard-trend">${DashboardTrend30()}</div>
+    ${isInternal?`<div class="card s4 dashboard-subscription">${DashboardSubscriptionStatus()}</div>`:''}
     <div class="card s6 dashboard-deadlines">${DashboardDeadlines()}</div>
     <div class="card s6 dashboard-controls">${DashboardControls()}</div>
-    ${dashboardMetric('Åpne avvik',openDevs,openDevs?'Må følges opp':'Ingen åpne avvik','info')}
-    ${dashboardMetric('Kritiske avvik',critical,critical?'Krever rask handling':'Ingen kritiske avvik',critical?'bad':'ok')}
-    ${hasWorkOrders?dashboardMetric('Arbeidsordre',openWos,openWos?'Pågående oppgaver':'Ingen åpne ordre',openWos?'warn':'ok'):''}
-    ${dashboardMetric('Dokumenter',docs.length,'Lagret på valgt eiendom','ok')}
-    ${hasRfq?dashboardMetric('Tilbud/RFQ',`${rfqs.length}/${offers.length}`,'Forespørsler og tilbud','info'):''}
-    ${hasFinance?dashboardMetric('Konto',money(f.bank_balance),'Registrert banksaldo','purple'):''}
-    <div class="card s12 dashboard-flow"><div class="dash-title"><div><h3>Saksløp</h3><p class="muted">Viser om eiendommen har en komplett driftssak fra avvik til rapport.</p></div><button class="action primary" onclick="openModule('cases')">Åpne saksløp</button></div>${ProductionFlowMini()}</div>
+    ${hasWorkOrders||hasRfq?`<div class="card s12 dashboard-flow"><div class="dash-title"><div><h3>Saksløp</h3><p class="muted">Følg saken fra avvik til dokumentasjon og rapport.</p></div><button class="action primary" onclick="openModule('cases')">Åpne sak</button></div>${ProductionFlowMini()}</div>`:''}
     ${hasAiDirector?`<div class="card s12 dashboard-ai">${AiDirectorCard()}</div>`:''}
     <div class="card s6 dashboard-list"><div class="dash-title"><h3>Siste avvik</h3><button class="action" onclick="openModule('cases')">Åpne avvik</button></div>${caseList(devs)}</div>
     <div class="card s6 dashboard-list"><div class="dash-title"><h3>Siste dokumenter</h3><button class="action" onclick="openModule('documents')">Åpne arkiv</button></div>${documentList(docs)}</div>
-    <div class="card s12 dashboard-activity">${DashboardActivityFeed()}</div>
+    ${isInternal?`<div class="card s12 dashboard-activity">${DashboardActivityFeed()}</div>`:''}
   </div>`;
 }
 function DashboardPriorityPanel(data){

@@ -2,8 +2,8 @@
   sb:{url:'https://oobljkqropvlcnbrcksh.supabase.co',key:'sb_publishable_4TpC7xmd2iDYPqOsM3CYNw_olG7vnVw'},
   session:null,user:null,properties:[],propertyId:'',suppliers:[],tab:'dashboard',module:'dashboard',cache:{},
   menus:[
-    ['dashboard','Dashboard'],['property','Eiendom'],['people','Beboere/styre'],['cases','Avvik/arbeid'],
-    ['documents','FDV/dokumenter'],['maintenance','Vedlikeholdsplan'],['finance','Økonomi'],['reports','Rapporter'],['market','Marked/tilbud'],['brain','Property Brain'],['integrations','Integrasjoner'],['admin','Kontroll'],['intranet','Internhåndbok']
+    ['dashboard','Oversikt'],['property','Eiendom'],['people','Styre og beboere'],['cases','Avvik og oppgaver'],
+    ['documents','Dokumenter'],['maintenance','Årshjul'],['finance','Økonomi'],['reports','Rapporter'],['market','Tilbud'],['brain','Risiko og AI'],['integrations','Integrasjoner'],['admin','Kontroll'],['intranet','Internhåndbok']
   ]
 };
 const ROLE_MENUS={
@@ -11,8 +11,8 @@ const ROLE_MENUS={
   admin:['dashboard','property','people','cases','documents','maintenance','finance','reports','market','brain','integrations','admin','intranet'],
   selger:['dashboard','property','people','cases','documents','maintenance','finance','reports','market','brain','integrations','intranet'],
   forvalter:['dashboard','property','people','cases','documents','maintenance','finance','reports','market','brain','integrations','admin'],
-  styreleder:['dashboard','property','people','cases','documents','maintenance','finance','reports','market','brain','integrations'],
-  styremedlem:['dashboard','people','cases','documents','maintenance','finance','reports','brain'],
+  styreleder:['dashboard','property','cases','documents','people','maintenance','finance','market','brain'],
+  styremedlem:['dashboard','cases','documents','people','maintenance','finance'],
   vaktmester:['dashboard','cases','documents'],
   beboer:['cases'],
   leverandor:['market']
@@ -203,7 +203,7 @@ function renderShell(){
   if(!canOpenModule(DP.module))DP.module=menus[0]?.[0]||'dashboard';
   document.getElementById('sideNav').innerHTML=menus.map(m=>`<button class="${DP.module===m[0]?'active':''}" onclick="openModule('${m[0]}')">${esc(m[1])}</button>`).join('')+`<button onclick="logout()">Logg ut</button>`;
   document.getElementById('userSelect').innerHTML=`<option>${esc(DP.user?.email||'Innlogget')}</option>`;
-  document.getElementById('propertyContext').innerHTML=DP.properties.length?`<div>${propSelect()}</div><button class="action" onclick="hydrateAll().then(render)">Hent live data</button>`:(canAccessIntranet()?'<div class="output">Intern bruker: åpne Internhåndbok i menyen.</div>':'<div class="output">Ingen eiendommer funnet for brukeren.</div>');
+  document.getElementById('propertyContext').innerHTML=DP.properties.length?`<div>${propSelect()}</div><button class="action" onclick="hydrateAll().then(render)">Oppdater</button>`:(canAccessIntranet()?'<div class="output">Intern bruker: åpne Internhåndbok i menyen.</div>':'<div class="output">Ingen eiendommer funnet for brukeren.</div>');
 }
 function openModule(id){
   if(!canOpenModule(id)){setStatus('Denne funksjonen er ikke tilgjengelig for valgt rolle eller pakke.','bad');return}
