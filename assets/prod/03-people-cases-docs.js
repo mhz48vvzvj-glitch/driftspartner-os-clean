@@ -321,12 +321,23 @@ async function saveWorkOrder(){
     if(!base.title)throw new Error('Fyll inn tittel.');
     const variants=[base,{property_id:base.property_id,title:base.title,description:base.description,due_date:base.due_date,status:base.status,deviation_id:base.deviation_id},{property_id:base.property_id,title:base.title,description:base.description,due_date:base.due_date,status:base.status}];
     let r,lastError=null;
-    for(const row of variants){r=id?await db().from('work_orders').update(row).eq('id',id).select().single():await db().from('work_orders').insert(row).select().single();if(!r.error)break;lastError=r.error;if(!isPeopleSchemaError(r.error))break}
+    for(const row of variants){
+      r=id?await db().from('work_orders').update(row).eq('id',id):await db().from('work_orders').insert(row);
+      if(!r.error)break;
+      lastError=r.error;
+      if(!isPeopleSchemaError(r.error))break;
+    }
     if(r?.error)throw lastError||r.error;
     if(base.deviation_id&&!id)await db().from('deviations').update({status:'Arbeidsordre opprettet'}).eq('id',base.deviation_id);
-    await insertActivity(id?'Arbeidsordre oppdatert':'Arbeidsordre opprettet','work_order',r.data.id);
+    await insertActivity(id?'Arbeidsordre oppdatert':'Arbeidsordre opprettet','work_order',id||base.title);
     await finishAction(id?'Arbeidsordren er oppdatert.':'Arbeidsordren er opprettet.','cases');
-  }catch(e){showDrawer('Arbeidsordre ble ikke lagret',`<div class=\"output\">${esc(customerError(e))}</div>`)}
+  }catch(e){
+    const raw=String(e?.message||e||'');
+    const msg=/row-level security|policy|permission|not authorized|42501/i.test(raw)
+      ? 'Brukeren mangler tilgang til å lagre arbeidsordre på denne eiendommen. Sjekk at brukeren har Pro/Premium-pakke og property_access til valgt eiendom.'
+      : customerError(e);
+    showDrawer('Arbeidsordre ble ikke lagret',`<div class=\"output\">${esc(msg)}</div>`);
+  }
 }
 
 function findCaseParts(deviationId=''){
@@ -377,7 +388,7 @@ function showFlowFdvStep(){try{const c=flowSelectedDeviation();flowPanel(`<secti
 function showFlowReportStep(){try{const c=flowSelectedDeviation();flowPanel(`<section class="flow-step-card"><small>Steg 7 av 7</small><h3>Sluttrapport / utført arbeid</h3>${flowCaseMini(c)}<p>Rapporten er styrets oppsummering av saken. Den bør kunne leses uten å kjenne hele historikken.</p><label>Hva er gjort?<textarea id="flowReportDone" rows="4" placeholder="Kort oppsummering av arbeidet."></textarea></label><label>Vurdering og avvik<textarea id="flowReportAssessment" rows="4" placeholder="Hva ble vurdert, og finnes det avvik eller risiko?"></textarea></label><label>Anbefaling og neste steg<textarea id="flowReportNext" rows="4" placeholder="Hva bør styret eller forvalter gjøre videre?"></textarea></label>${flowActions("flowReport()","Lagre sluttrapport","showCaseFlow(document.getElementById('flowDeviation')?.value)")}</section>`)}catch(e){flowDisabledStep('Velg avvik',e.message)}}
 async function flowCreateWorkOrder(){
   const out=document.getElementById('flowOut');
-  try{requireLive('lage arbeidsordre');const c=flowSelectedDeviation();if(c.workOrder)throw new Error('Arbeidsordre finnes allerede for denne saken.');const row={property_id:currentProperty().id,deviation_id:c.deviation.id,title:document.getElementById('flowWoTitle')?.value||c.deviation.title,description:document.getElementById('flowWoDesc')?.value||c.deviation.description||'',due_date:document.getElementById('flowWoDue')?.value||null,status:'Ny'};const r=await db().from('work_orders').insert(row).select().single();if(r.error)throw r.error;await db().from('deviations').update({status:'Arbeidsordre opprettet'}).eq('id',c.deviation.id);await insertActivity('Arbeidsordre laget fra avvik','work_order',r.data.id);await hydrateAll();out.textContent='Arbeidsordre opprettet.';showCaseFlow(c.deviation.id)}catch(e){if(out)setOutputError(out,e)}
+  try{requireLive('lage arbeidsordre');const c=flowSelectedDeviation();if(c.workOrder)throw new Error('Arbeidsordre finnes allerede for denne saken.');const row={property_id:currentProperty().id,deviation_id:c.deviation.id,title:document.getElementById('flowWoTitle')?.value||c.deviation.title,description:document.getElementById('flowWoDesc')?.value||c.deviation.description||'',due_date:document.getElementById('flowWoDue')?.value||null,status:'Ny'};const variants=[row,{property_id:row.property_id,title:row.title,description:row.description,due_date:row.due_date,status:row.status}];let r,lastError=null;for(const variant of variants){r=await db().from('work_orders').insert(variant);if(!r.error)break;lastError=r.error;if(!isPeopleSchemaError(r.error))break}if(r?.error)throw lastError||r.error;await db().from('deviations').update({status:'Arbeidsordre opprettet'}).eq('id',c.deviation.id);await insertActivity('Arbeidsordre laget fra avvik','work_order',row.title);await hydrateAll();out.textContent='Arbeidsordre opprettet.';showCaseFlow(c.deviation.id)}catch(e){if(out)setOutputError(out,e)}
 }
 async function flowCreateRfq(){
   const out=document.getElementById('flowOut');

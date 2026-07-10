@@ -1,4 +1,4 @@
-const INTERNAL_DOCS=[
+﻿const INTERNAL_DOCS=[
   {id:'employee-handbook',module:'HR',title:'Ansatthåndbok',version:'1.0',audience:['selger','salgssjef','admin'],requiresAck:true,body:'Retningslinjer for arbeidsforhold, opptreden, taushet, ferie, fravær, utstyr og intern kommunikasjon.'},
   {id:'sales-handbook',module:'Salg',title:'Salgshåndbok',version:'1.0',audience:['selger','salgssjef','admin'],requiresAck:true,body:'Slik selges Driftspartner OS: målgruppe, behovsavklaring, demo, tilbud, oppfølging og kundestart.'},
   {id:'phone-script',module:'Salg',title:'Telefonmanus',version:'1.0',audience:['selger','salgssjef'],requiresAck:true,body:'Kort manus for første kontakt, behovskartlegging og booking av demo.'},
@@ -7,7 +7,7 @@ const INTERNAL_DOCS=[
   {id:'crm-routines',module:'Salg',title:'CRM-rutiner',version:'1.0',audience:['selger','salgssjef'],requiresAck:true,body:'Alle leads skal logges med status, neste aktivitet, kontaktperson, pakkeinteresse og oppfølging.'},
   {id:'leader-handbook',module:'Ledelse',title:'Lederhåndbok',version:'1.0',audience:['salgssjef','admin'],requiresAck:true,body:'Rutiner for personaloppfølging, mål, prøvetid, avvik, godkjenninger og lederansvar.'},
   {id:'kpi-report',module:'Ledelse',title:'KPI-rapport',version:'1.0',audience:['salgssjef','admin'],requiresAck:false,body:'Ukentlig oppfølging av leads, bookede demoer, sendte tilbud, signerte avtaler, churn-risiko og support.'},
-  {id:'probation',module:'HR',title:'Pr·vetidsoppfølging',version:'1.0',audience:['salgssjef','admin'],requiresAck:false,body:'Plan for 30/60/90 dager, opplæring, mål, evaluering og dokumentert oppfølging.'},
+  {id:'probation',module:'HR',title:'Pråvetidsoppfølging',version:'1.0',audience:['salgssjef','admin'],requiresAck:false,body:'Plan for 30/60/90 dager, opplæring, mål, evaluering og dokumentert oppfølging.'},
   {id:'interview-guide',module:'HR',title:'Intervjuguide',version:'1.0',audience:['salgssjef','admin'],requiresAck:false,body:'Spårsmål, vurderingspunkter og sjekkliste for intervju av selger, support og forvalter.'},
   {id:'reference-check',module:'HR',title:'Referansesjekk',version:'1.0',audience:['salgssjef','admin'],requiresAck:false,body:'Mal for referansesamtale med samtykke, spårsmål og vurdering.'},
   {id:'powers',module:'Selskapsstyring',title:'Fullmakter',version:'1.0',audience:['admin'],requiresAck:true,body:'Hvem kan inngå avtaler, gi rabatter, godkjenne kostnader og signere på vegne av selskapet.'},
@@ -38,7 +38,7 @@ INTERNAL_DOCS.push(
   {id:'equipment',module:'IT og sikkerhet',title:'IT- og utstyrserklæring',version:'1.0',audience:['selger','salgssjef','admin'],requiresAck:true,file:'assets/internal-docs/it-og-utstyrserklaering.pdf',body:'Bekreftelse på mottatt utstyr og ansvar for bruk.'},
   {id:'home-office',module:'HR',title:'Hjemmekontoravtale',version:'1.0',audience:['selger','salgssjef','admin'],requiresAck:true,file:'assets/internal-docs/hjemmekontoravtale.pdf',body:'Avtale for arbeid fra hjemmekontor.'},
   {id:'recruitment-policy',module:'HR',title:'Rekrutteringspolicy',version:'1.0',audience:['salgssjef','admin'],requiresAck:true,file:'assets/internal-docs/rekrutteringspolicy.pdf',body:'Rutine og prinsipper for rekruttering.'},
-  {id:'delegation',module:'Selskapsstyring',title:'Delegasjonsreglement',version:'1.0',audience:['admin'],requiresAck:true,file:'assets/internal-docs/delegasjonsreglement.pdf',body:'Hvem har myndighet til å beslutte hva.'},
+  {id:'delegation',module:'Selskapsstyring',title:'Delegasjonsreglement',version:'1.0',audience:['admin'],requiresAck:true,file:'assets/internal-docs/delegasjonsreglement.pdf',body:'Hvem har myndighet til · beslutte hva.'},
   {id:'fullmakt',module:'Selskapsstyring',title:'Fullmaktsmatrise',version:'1.0',audience:['admin'],requiresAck:true,file:'assets/internal-docs/fullmaktsmatrise.pdf',body:'Fullmakter og beløpsgrenser.'},
   {id:'job-descriptions',module:'Ledelse',title:'Stillingsbeskrivelser',version:'1.0',audience:['salgssjef','admin'],requiresAck:false,file:'assets/internal-docs/stillingsbeskrivelser.pdf',body:'Roller og stillingsbeskrivelser i Driftspartner Nord.'},
   {id:'org-chart',module:'Ledelse',title:'Organisasjonskart',version:'1.0',audience:['selger','salgssjef','admin'],requiresAck:false,file:'assets/internal-docs/organisasjonskart.pdf',body:'Organisasjonskart for Driftspartner Nord.'},
@@ -60,14 +60,14 @@ const INTERNAL_TEMPLATES=[
   ['Offboarding','Ledelse','Sjekkliste for avslutning av arbeidsforhold.']
 ];
 const INTERNAL_FOLDERS=[
-  {name:'HR og rekruttering',module:'HR',access:'Admin og salgssjef',purpose:'Brukes for ansettelse, onboarding, prøvetid og oppfølging av ansatte.',workflow:['Tilbud om ansettelse sendes','Arbeidsavtale og taushet signeres','Onboarding-program startes','Pr·vetid fålges opp 30/60/90 dager'],docs:['Ansatthåndbok','Rekrutteringspolicy','Intervjuguide','Referansesjekk','Pr·vetidsoppfølging','Onboarding-program']},
-  {name:'Arbeidsavtaler',module:'Arbeidsavtaler',access:'Admin',purpose:'Samler avtaler som må signeres får eller ved oppstart.',workflow:['Velg riktig avtale','Kontroller rolle, provisjon og utstyr','Send til signering','Arkiver signert kvittering'],docs:['Arbeidsavtale','Arbeidsavtale - provisjonsbasert selger','Taushetserklæring','Hjemmekontoravtale','IT- og utstyrserklæring']},
+  {name:'HR og rekruttering',module:'HR',access:'Admin og salgssjef',purpose:'Brukes for ansettelse, onboarding, prøvetid og oppfølging av ansatte.',workflow:['Tilbud om ansettelse sendes','Arbeidsavtale og taushet signeres','Onboarding-program startes','Pråvetid fålges opp 30/60/90 dager'],docs:['Ansatthåndbok','Rekrutteringspolicy','Intervjuguide','Referansesjekk','Pråvetidsoppfølging','Onboarding-program']},
+  {name:'Arbeidsavtaler',module:'Arbeidsavtaler',access:'Admin',purpose:'Samler avtaler som må signeres før eller ved oppstart.',workflow:['Velg riktig avtale','Kontroller rolle, provisjon og utstyr','Send til signering','Arkiver signert kvittering'],docs:['Arbeidsavtale','Arbeidsavtale - provisjonsbasert selger','Taushetserklæring','Hjemmekontoravtale','IT- og utstyrserklæring']},
   {name:'Salgshåndbok',module:'Salg',access:'Selger, salgssjef og admin',purpose:'Gir selger en fast salgsprosess for Driftspartner OS.',workflow:['Finn kundeemne','Book demo','Velg demo-pakke Start/Pro/Premium','Send tilbud eller bestilling','Overlever til onboarding'],docs:['Salgshåndbok','Telefonmanus','Demoregler','Provisjonsavtale','CRM-rutiner']},
   {name:'Driftspartner OS-rutiner',module:'Driftspartner OS-drift',access:'Salgssjef og admin',purpose:'Rutiner for hvordan kunder settes opp og driftes i systemet.',workflow:['Opprett kunde og eiendom','Velg abonnement','Legg inn styre/beboere','Last opp FDV','Kjør lanseringskontroll'],docs:['Driftsrutiner for Driftspartner OS','Demomanus','Onboarding-program']},
   {name:'HMS og avvik',module:'HMS',access:'Alle interne roller',purpose:'Intern avviksmelding og oppfølging av HMS, sikkerhet og kvalitet.',workflow:['Meld avvik','Vurder alvorlighet','Tildel ansvarlig','Lukk med tiltak','Bruk læring i rutiner'],docs:['HMS-rutine','Etiske retningslinjer','Gave- og representasjonspolicy']},
   {name:'Økonomi og utlegg',module:'Økonomi',access:'Alle interne roller',purpose:'Rutiner for utlegg, reise, innkjøp og representasjon.',workflow:['Registrer formål','Legg ved kvittering','Send til godkjenning','Arkiver beslutning','Følg beløpsgrenser'],docs:['Utleggspolicy','Reisepolicy','Gave- og representasjonspolicy']},
   {name:'IT og sikkerhet',module:'IT og sikkerhet',access:'Alle interne roller',purpose:'Beskytter kundedata, innlogging, AI-bruk og interne systemer.',workflow:['Bruk MFA','Del aldri passord/API-nøkler','Bruk AI med kundedataregler','Meld sikkerhetsavvik straks'],docs:['IT- og sikkerhetspolicy','Passord- og MFA-policy','AI-policy','IT- og utstyrserklæring']},
-  {name:'Ledelse',module:'Ledelse',access:'Salgssjef og admin',purpose:'Oppfålging av ansatte, KPI, fullmakter, organisering og lederansvar.',workflow:['Følg KPI ukentlig','Hold prøvetidsmåter','Godkjenn avvik/utlegg','Dokumenter oppfølging','Bruk offboarding ved avslutning'],docs:['Lederhåndbok','KPI-rapport','Organisasjonskart','Stillingsbeskrivelser','Fullmaktsmatrise','Delegasjonsreglement']},
+  {name:'Ledelse',module:'Ledelse',access:'Salgssjef og admin',purpose:'Oppfålging av ansatte, KPI, fullmakter, organisering og lederansvar.',workflow:['Følg KPI ukentlig','Hold prøvetidsmøter','Godkjenn avvik/utlegg','Dokumenter oppfølging','Bruk offboarding ved avslutning'],docs:['Lederhåndbok','KPI-rapport','Organisasjonskart','Stillingsbeskrivelser','Fullmaktsmatrise','Delegasjonsreglement']},
   {name:'Maler og skjema',module:'Maler og skjema',access:'Alle interne roller etter behov',purpose:'Praktiske skjema som brukes i salg, HR, Økonomi og kvalitet.',workflow:['Velg riktig mal','Fyll ut alle felter','Send til godkjenning/signering','Arkiver kvittering'],docs:['Arbeidsavtale','Referansesjekk','Demomanus','Tilbudsmal','Avvik internt','Utlegg']}
 ];
 function formatDateTime(value){
@@ -117,7 +117,7 @@ function intranetAllDocs(){
 }
 function IntranetQualityPage(){
   if(typeof canAccessIntranet==='function'&&!canAccessIntranet()){
-    return `<div class="grid"><div class="card s12"><div class="empty-state"><strong>Ingen tilgang.</strong><span>Internh·ndbok vises bare for ansatte i Driftspartner Nord.</span></div></div></div>`;
+    return `<div class="grid"><div class="card s12"><div class="empty-state"><strong>Ingen tilgang.</strong><span>Internhåndbok vises bare for ansatte i Driftspartner Nord.</span></div></div></div>`;
   }
   if(!DP.cache.internalQualityTried){
     DP.cache.internalQualityTried=true;
@@ -128,7 +128,7 @@ function IntranetQualityPage(){
   const signed=docs.filter(d=>acks[d.id]).length;
   return `<div class="grid intranet-page">
     <div class="card s12 module-hero intranet-hero">
-      <div><small>Internt kvalitetssystem</small><h2>Internh·ndbok</h2><p>Dokumentbibliotek, maler, onboarding, avvik, signering og kvittering for ansatte. Denne siden vises ikke til kunder.</p></div>
+      <div><small>Internt kvalitetssystem</small><h2>Internhåndbok</h2><p>Dokumentbibliotek, maler, onboarding, avvik, signering og kvittering for ansatte. Denne siden vises ikke til kunder.</p></div>
       <div class="module-actions"><button class="action primary" onclick="showInternalDocumentForm()">Nytt dokument</button><button class="action" onclick="loadInternalQuality()">Oppdater</button><button class="action" onclick="showInternalDeviationForm()">Meld internt avvik</button></div>
     </div>
     <div class="card s3 intranet-kpi"><small>Din rolle</small><b>${esc(intranetRoleLabel(role))}</b><span>Tilgang styres internt.</span></div>
@@ -145,11 +145,11 @@ function IntranetQualityPage(){
 function InternalFolderContentPanel(docs){
   const role=intranetRole();
   const folders=INTERNAL_FOLDERS.filter(f=>role==='admin'||f.access.includes('Alle')||f.access.includes('Selger')||f.access.includes('Salgssjef'));
-  return `<div class="dash-title"><div><h3>Mappestruktur og rutiner</h3><p class="muted">Dette er hvordan internh·ndboken brukes i Driftspartner Nord.</p></div><button class="action" onclick="document.getElementById('internalDocList')?.scrollIntoView({behavior:'smooth'})">G· til dokumenter</button></div><div class="internal-folder-grid">${folders.map(f=>InternalFolderCard(f,docs)).join('')}</div>`;
+  return `<div class="dash-title"><div><h3>Mappestruktur og rutiner</h3><p class="muted">Dette er hvordan internhåndboken brukes i Driftspartner Nord.</p></div><button class="action" onclick="document.getElementById('internalDocList')?.scrollIntoView({behavior:'smooth'})">Gå til dokumenter</button></div><div class="internal-folder-grid">${folders.map(f=>InternalFolderCard(f,docs)).join('')}</div>`;
 }
 function InternalFolderCard(folder,docs){
   const available=folder.docs.filter(name=>docs.some(d=>String(d.title||'').toLowerCase().includes(name.toLowerCase().slice(0,12))||name.toLowerCase().includes(String(d.title||'').toLowerCase().slice(0,12))));
-  return `<section class="internal-folder-card"><div><small>${esc(folder.module)} · ${esc(folder.access)}</small><strong>${esc(folder.name)}</strong><p>${esc(folder.purpose)}</p></div><div class="internal-folder-flow">${folder.workflow.map((w,i)=>`<span><b>${i+1}</b>${esc(w)}</span>`).join('')}</div><div class="internal-folder-docs"><small>Dokumenter i mappen</small>${folder.docs.map(d=>`<button type="button" onclick="filterInternalDocs('${esc(folder.module)}')">${esc(d)}${available.includes(d)?'':' · legg inn'}</button>`).join('')}</div></section>`;
+  return `<section class="internal-folder-card"><div><small>${esc(folder.module)}  · ${esc(folder.access)}</small><strong>${esc(folder.name)}</strong><p>${esc(folder.purpose)}</p></div><div class="internal-folder-flow">${folder.workflow.map((w,i)=>`<span><b>${i+1}</b>${esc(w)}</span>`).join('')}</div><div class="internal-folder-docs"><small>Dokumenter i mappen</small>${folder.docs.map(d=>`<button type="button" onclick="filterInternalDocs('${esc(folder.module)}')">${esc(d)}${available.includes(d)?'':' · legg inn'}</button>`).join('')}</div></section>`;
 }
 function InternalHandbookPanel(docs,acks){
   const modules=['Selskapsstyring','HR','Arbeidsavtaler','Salg','Driftspartner OS-drift','HMS','Økonomi','IT og sikkerhet','Ledelse','Maler og skjema'];
@@ -161,7 +161,7 @@ function InternalDocumentCard(doc,ack){
   return `<section class="internal-doc" data-module="${esc(doc.module)}" data-search="${esc((doc.title+' '+doc.module+' '+doc.body).toLowerCase())}">
     <div class="document-head"><div><small>${esc(doc.module)} · v${esc(doc.version)}</small><strong>${esc(doc.title)}</strong><p>${esc(doc.body)}</p></div><span class="badge ${ack?'ok':doc.requiresAck?'warn':'info'}">${ack?'Kvittert':doc.requiresAck?'Må signeres':'Info'}</span></div>
     <div class="module-actions"><button class="action" onclick="showInternalDocument('${esc(doc.id)}')">Detaljer</button>${doc.file?`<button class="action" onclick="openInternalPdf('${esc(doc.file)}')">Åpne PDF</button>`:''}${doc.requiresAck?`<button class="action primary" onclick="ackInternalDocument('${esc(doc.id)}')">${ack?'Signer på nytt':'Jeg har lest og forstått'}</button>`:''}</div>
-    ${ack?`<small class="muted">Signert av ${esc(ack.signature_name||ack.email||DP.user?.email)} · ${esc(formatDateTime(ack.acknowledged_at||ack.time))}</small>`:''}
+    ${ack?`<small class="muted">Signert av ${esc(ack.signature_name||ack.email||DP.user?.email)}  · ${esc(formatDateTime(ack.acknowledged_at||ack.time))}</small>`:''}
   </section>`;
 }
 function EmployeePortalPanel(docs,acks){
@@ -181,7 +181,7 @@ function LeaderPortalPanel(){
   if(!['admin','salgssjef'].includes(role))return `<div class="empty-state"><strong>Lederportal</strong><span>Lederoppfølging vises for salgssjef og admin.</span></div>`;
   const rows=[
     ['Mine ansatte','Oversikt over ansatte, roller og oppfølging.'],
-    ['Pr·vetidsoppfølging','30/60/90-dagers sjekkliste.'],
+    ['Pråvetidsoppfølging','30/60/90-dagers sjekkliste.'],
     ['Medarbeidersamtaler','Samtalepunkter og historikk.'],
     ['KPI','Demoer, tilbud, salg, aktivitet og oppfølging.'],
     ['Godkjenninger','Dokumenter, utlegg og endringer.'],
@@ -191,19 +191,19 @@ function LeaderPortalPanel(){
   return `<div class="dash-title"><div><h3>Lederportal</h3><p class="muted">Oppfålging av ansatte, KPI og godkjenninger.</p></div><button class="action" onclick="showLeaderFollowupForm()">Ny oppfølging</button></div><div class="intranet-list">${rows.map(r=>`<section><strong>${esc(r[0])}</strong><span>${esc(r[1])}</span></section>`).join('')}</div>`;
 }
 function InternalTemplatesPanel(){
-  return `<div class="dash-title"><div><h3>Malbibliotek</h3><p class="muted">Skjema og maler for intern bruk.</p></div><button class="action" onclick="showTemplateForm()">Ny mal</button></div><div class="internal-template-grid">${INTERNAL_TEMPLATES.map(t=>`<section><small>${esc(t[1])}</small><strong>${esc(t[0])}</strong><span>${esc(t[2])}</span><button class="action" onclick="showNotice('Malen Åpnes i dokumentbiblioteket n·r fil er lastet opp.','ok')">Åpne</button></section>`).join('')}</div>`;
+  return `<div class="dash-title"><div><h3>Malbibliotek</h3><p class="muted">Skjema og maler for intern bruk.</p></div><button class="action" onclick="showTemplateForm()">Ny mal</button></div><div class="internal-template-grid">${INTERNAL_TEMPLATES.map(t=>`<section><small>${esc(t[1])}</small><strong>${esc(t[0])}</strong><span>${esc(t[2])}</span><button class="action" onclick="showNotice('Malen Åpnes i dokumentbiblioteket når fil er lastet opp.','ok')">Åpne</button></section>`).join('')}</div>`;
 }
 function InternalOnboardingPanel(){
   const tasks=[
-    ['Les ansatth·ndbok','Signeres får oppstart'],
-    ['Les IT- og sikkerhetsregler','Signeres får tilgang gis'],
+    ['Les ansatthåndbok','Signeres før oppstart'],
+    ['Les IT- og sikkerhetsregler','Signeres før tilgang gis'],
     ['Gjennomfør produktdemo','Start, Pro og Premium'],
-    ['Les salgsh·ndbok','Gjelder selger og salgssjef'],
+    ['Les salgshåndbok','Gjelder selger og salgssjef'],
     ['Sett opp e-post og kalender','Intern rutine'],
     ['Gjennomgå CRM-rutine','Lead og oppfølging'],
     ['Avklar provisjon/bonus','Dokumenteres av leder']
   ];
-  return `<div class="dash-title"><div><h3>Onboarding-sjekkliste</h3><p class="muted">Oppgaver som ansatte skal gjennom får de jobber med kunder.</p></div><button class="action primary" onclick="showNotice('Onboarding er registrert som intern rutine.','ok')">Start onboarding</button></div><div class="internal-onboarding">${tasks.map((t,i)=>`<section><b>${i+1}</b><div><strong>${esc(t[0])}</strong><span>${esc(t[1])}</span></div></section>`).join('')}</div>`;
+  return `<div class="dash-title"><div><h3>Onboarding-sjekkliste</h3><p class="muted">Oppgaver som ansatte skal gjennom før de jobber med kunder.</p></div><button class="action primary" onclick="showNotice('Onboarding er registrert som intern rutine.','ok')">Start onboarding</button></div><div class="internal-onboarding">${tasks.map((t,i)=>`<section><b>${i+1}</b><div><strong>${esc(t[0])}</strong><span>${esc(t[1])}</span></div></section>`).join('')}</div>`;
 }
 function findInternalDoc(id){return intranetAllDocs().find(d=>String(d.id)===String(id))}
 function showInternalDocument(id){
@@ -218,21 +218,21 @@ function openInternalPdf(file){
 }
 async function loadInternalQuality(){
   try{
-    if(!DP.session)throw new Error('Logg inn fårst.');
+    if(!DP.session)throw new Error('Logg inn først.');
     const userId=DP.user?.id||null;
     const docs=await db().from('internal_documents').select('*').eq('status','Aktiv').order('module').order('title');
     if(!docs.error)DP.cache.internalDocs=docs.data||[];
     const q=await db().from('internal_document_acknowledgements').select('*').or(`email.eq.${DP.user.email},user_id.eq.${userId||'00000000-0000-0000-0000-000000000000'}`).order('acknowledged_at',{ascending:false});
     if(q.error)throw q.error;
     DP.cache.internalAcks=q.data||[];
-    showNotice('Internh·ndbok oppdatert.','ok');
+    showNotice('Internhåndbok oppdatert.','ok');
     render();
-  }catch(e){showNotice('Kjør supabase-intranet-quality-v1.sql får live kvitteringer brukes.','warn')}
+  }catch(e){showNotice('Kjør supabase-intranet-quality-v1.sql før live kvitteringer brukes.','warn')}
 }
 async function ackInternalDocument(id){
   const doc=findInternalDoc(id);
   if(!doc)return;
-  const signature=prompt('Skriv navnet ditt for å signere at du har lest og forstått:',DP.user?.name||DP.user?.email||'');
+  const signature=prompt('Skriv navnet ditt for · signere at du har lest og forstått:',DP.user?.name||DP.user?.email||'');
   if(!signature)return;
   const ack={document_key:id,document_title:doc.title,version:doc.version,email:DP.user?.email||'',signature_name:signature,acknowledged_at:new Date().toISOString()};
   try{
@@ -277,7 +277,7 @@ async function sendInternalAckEmail(doc,ack){
       message,
       kind:'general',
       property:'internhandbok',
-      from_name:'Driftspartner OS Internh·ndbok'
+      from_name:'Driftspartner OS Internhåndbok'
     })
   });
   return readJsonResponse(res,'Kvittering ble lagret, men e-postkvitteringen kunne ikke bekreftes.');
@@ -305,7 +305,7 @@ async function saveInternalDeviation(){
     if(r.error)throw r.error;
     await insertActivity(`Internt avvik: ${title}`,'internal_deviation',r.data.id);
     finishAction('Internt avvik sendt.','intranet');
-  }catch(e){setOutputError(out,e,'Internt avvik kunne ikke lagres. Kjør supabase-intranet-quality-v1.sql fårst.')}
+  }catch(e){setOutputError(out,e,'Internt avvik kunne ikke lagres. Kjør supabase-intranet-quality-v1.sql først.')}
 }
 function showInternalDocumentForm(){
   showDrawer('Nytt internt dokument',`<div class="form-grid two"><label>Modul<select id="internalDocModule"><option>HR</option><option>Salg</option><option>Driftspartner OS-drift</option><option>HMS</option><option>Økonomi</option><option>IT og sikkerhet</option><option>Ledelse</option><option>Maler og skjema</option></select></label><label>Versjon<input id="internalDocVersion" value="1.0"></label><label class="span-2">Tittel<input id="internalDocTitle"></label><label>Målgruppe<select id="internalDocAudience"><option value="all">Alle ansatte</option><option value="sales">Selger og salgssjef</option><option value="leaders">Leder og admin</option></select></label><label>Signering<select id="internalDocAck"><option value="true">Krever kvittering</option><option value="false">Kun informasjon</option></select></label><label class="span-2">Innhold<textarea id="internalDocBody"></textarea></label></div><button class="action primary" onclick="saveInternalDocument()">Lagre dokument</button><div id="internalDocOut" class="output">Klar.</div>`);
@@ -325,10 +325,12 @@ async function saveInternalDocument(){
     if(r.error)throw r.error;
     await insertActivity(`Internt dokument lagret: ${title}`,'internal_document',r.data.id);
     finishAction('Internt dokument lagret.','intranet');
-  }catch(e){setOutputError(out,e,'Dokumentet kunne ikke lagres. Kjør supabase-intranet-quality-v1.sql fårst.')}
+  }catch(e){setOutputError(out,e,'Dokumentet kunne ikke lagres. Kjør supabase-intranet-quality-v1.sql først.')}
 }
-function showLeaderFollowupForm(){showDrawer('Ny lederoppfølging','<div class="form-grid two"><label>Ansatt<input placeholder="Navn"></label><label>Type<select><option>Pr·vetid</option><option>Medarbeidersamtale</option><option>KPI</option><option>Advarsel</option><option>Offboarding</option></select></label><label class="span-2">Notat<textarea></textarea></label></div><button class="action primary" onclick="showNotice(\'Oppfålging lagret som intern rutine.\',\'ok\');hideDrawer()">Lagre</button>')}
+function showLeaderFollowupForm(){showDrawer('Ny lederoppfølging','<div class="form-grid two"><label>Ansatt<input placeholder="Navn"></label><label>Type<select><option>Pråvetid</option><option>Medarbeidersamtale</option><option>KPI</option><option>Advarsel</option><option>Offboarding</option></select></label><label class="span-2">Notat<textarea></textarea></label></div><button class="action primary" onclick="showNotice(\'Oppfålging lagret som intern rutine.\',\'ok\');hideDrawer()">Lagre</button>')}
 function showTemplateForm(){showDrawer('Ny mal','<div class="form-grid two"><label>Navn<input></label><label>Område<select><option>HR</option><option>Salg</option><option>HMS</option><option>Økonomi</option></select></label><label class="span-2">Beskrivelse<textarea></textarea></label></div><button class="action primary" onclick="showNotice(\'Mal registrert.\',\'ok\');hideDrawer()">Lagre</button>')}
+
+
 
 
 

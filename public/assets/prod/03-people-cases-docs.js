@@ -224,6 +224,7 @@ function CasesPage(){
   const waiting=devs.filter(d=>/venter|leverandør|leverandor|arbeidsordre/i.test(String(d.status||''))).length;
   return `<div class="grid cases-page premium-cases">
     <div class="card s12 module-hero cases-hero"><div><small>${hasWorkOrders?'Avvik og arbeidsordre':'Avvik'}</small><h2>Driftssaker for ${esc(currentProperty()?.name||'valgt eiendom')}</h2><p>${hasWorkOrders?'Registrer avvik, fordel ansvar, sett frister og følg saken videre.':'Registrer avvik og følg opp saker på valgt eiendom.'}</p></div><div class="module-actions"><button class="action primary" onclick="showDeviationForm()">Nytt avvik</button>${workOrderAction}<button class="action" onclick="showEmailFlow('deviation')">Send e-post</button>${caseFlowAction}</div></div>
+    <div class="card s12 simple-flow-card">${CasesSimpleFlow(hasWorkOrders,hasRfq)}</div>
     ${caseSummaryCard('Åpne avvik',devs.filter(open).length,'Avvik som må behandles','showDeviationForm()','info')}
     ${caseSummaryCard('Kritisk/høy',critical,'Bør prioriteres først','openCaseFilter("critical")','bad')}
     ${hasWorkOrders?caseSummaryCard('Arbeidsordre',wos.filter(open).length,'Pågående oppgaver','showWorkOrderForm()','warn'):''}
@@ -233,6 +234,15 @@ function CasesPage(){
     <div class="card s6 case-section"><div class="dash-title"><div><h3>Avvik</h3><p class="muted">Registrerte avvik med kategori, prioritet og status.</p></div><button class="action primary" onclick="showDeviationForm()">Nytt avvik</button></div>${caseCards(devs,'deviation')}</div>
     ${hasWorkOrders?`<div class="card s6 case-section"><div class="dash-title"><div><h3>Arbeidsordre</h3><p class="muted">Oppgaver som kan sendes til vaktmester, styre eller leverandør.</p></div><button class="action primary" onclick="showWorkOrderForm()">Ny arbeidsordre</button></div>${caseCards(wos,'work_order')}</div>`:`<div class="card s6 case-section"><h3>Arbeidsordre</h3><div class="empty-state"><strong>Arbeidsordre er Pro-funksjon.</strong><span>Start-pakken kan registrere og følge avvik. Oppgrader til Pro for arbeidsordre og frister.</span></div></div>`}
   </div>`;
+}
+function CasesSimpleFlow(hasWorkOrders=true,hasRfq=true){
+  const steps=[
+    {n:'1',title:'Registrer sak',text:'Legg inn tittel, kategori, prioritet og bilde/tekst.',action:'Nytt avvik',open:'showDeviationForm()',enabled:true},
+    {n:'2',title:'Fordel ansvar',text:'Sett ansvarlig, frist og hvem som skal ha e-post.',action:'Lag arbeidsordre',open:'showWorkOrderForm()',enabled:hasWorkOrders},
+    {n:'3',title:'Dokumenter',text:'Last opp rapport, bilder, FDV eller kontrakt når arbeid er gjort.',action:'Last opp dokument',open:'showDocForm()',enabled:true},
+    {n:'4',title:'Beslutning',text:'Ved behov: tilbud, styregodkjenning og signering.',action:'Fullt saksløp',open:'showCaseFlow()',enabled:hasRfq}
+  ];
+  return `<div class="dash-title"><div><h3>Enkel saksgang</h3><p class="muted">Bruk denne rekkefølgen når noe må følges opp på eiendommen.</p></div></div><div class="simple-flow-steps">${steps.map(s=>`<button class="${s.enabled?'':'disabled'}" onclick="${s.enabled?esc(s.open):''}"><span>${esc(s.n)}</span><strong>${esc(s.title)}</strong><small>${esc(s.text)}</small><b>${esc(s.enabled?s.action:'Ikke i pakken')}</b></button>`).join('')}</div>`;
 }
 function caseSummaryCard(label,value,caption,action,type='info'){
   return `<button class="card s3 case-summary ${type}" onclick="${action}"><small>${esc(label)}</small><strong>${esc(value)}</strong><span>${esc(caption)}</span></button>`;
@@ -311,12 +321,23 @@ async function saveWorkOrder(){
     if(!base.title)throw new Error('Fyll inn tittel.');
     const variants=[base,{property_id:base.property_id,title:base.title,description:base.description,due_date:base.due_date,status:base.status,deviation_id:base.deviation_id},{property_id:base.property_id,title:base.title,description:base.description,due_date:base.due_date,status:base.status}];
     let r,lastError=null;
-    for(const row of variants){r=id?await db().from('work_orders').update(row).eq('id',id).select().single():await db().from('work_orders').insert(row).select().single();if(!r.error)break;lastError=r.error;if(!isPeopleSchemaError(r.error))break}
+    for(const row of variants){
+      r=id?await db().from('work_orders').update(row).eq('id',id):await db().from('work_orders').insert(row);
+      if(!r.error)break;
+      lastError=r.error;
+      if(!isPeopleSchemaError(r.error))break;
+    }
     if(r?.error)throw lastError||r.error;
     if(base.deviation_id&&!id)await db().from('deviations').update({status:'Arbeidsordre opprettet'}).eq('id',base.deviation_id);
-    await insertActivity(id?'Arbeidsordre oppdatert':'Arbeidsordre opprettet','work_order',r.data.id);
+    await insertActivity(id?'Arbeidsordre oppdatert':'Arbeidsordre opprettet','work_order',id||base.title);
     await finishAction(id?'Arbeidsordren er oppdatert.':'Arbeidsordren er opprettet.','cases');
-  }catch(e){showDrawer('Arbeidsordre ble ikke lagret',`<div class=\"output\">${esc(customerError(e))}</div>`)}
+  }catch(e){
+    const raw=String(e?.message||e||'');
+    const msg=/row-level security|policy|permission|not authorized|42501/i.test(raw)
+      ? 'Brukeren mangler tilgang til å lagre arbeidsordre på denne eiendommen. Sjekk at brukeren har Pro/Premium-pakke og property_access til valgt eiendom.'
+      : customerError(e);
+    showDrawer('Arbeidsordre ble ikke lagret',`<div class=\"output\">${esc(msg)}</div>`);
+  }
 }
 
 function findCaseParts(deviationId=''){
@@ -367,7 +388,7 @@ function showFlowFdvStep(){try{const c=flowSelectedDeviation();flowPanel(`<secti
 function showFlowReportStep(){try{const c=flowSelectedDeviation();flowPanel(`<section class="flow-step-card"><small>Steg 7 av 7</small><h3>Sluttrapport / utført arbeid</h3>${flowCaseMini(c)}<p>Rapporten er styrets oppsummering av saken. Den bør kunne leses uten å kjenne hele historikken.</p><label>Hva er gjort?<textarea id="flowReportDone" rows="4" placeholder="Kort oppsummering av arbeidet."></textarea></label><label>Vurdering og avvik<textarea id="flowReportAssessment" rows="4" placeholder="Hva ble vurdert, og finnes det avvik eller risiko?"></textarea></label><label>Anbefaling og neste steg<textarea id="flowReportNext" rows="4" placeholder="Hva bør styret eller forvalter gjøre videre?"></textarea></label>${flowActions("flowReport()","Lagre sluttrapport","showCaseFlow(document.getElementById('flowDeviation')?.value)")}</section>`)}catch(e){flowDisabledStep('Velg avvik',e.message)}}
 async function flowCreateWorkOrder(){
   const out=document.getElementById('flowOut');
-  try{requireLive('lage arbeidsordre');const c=flowSelectedDeviation();if(c.workOrder)throw new Error('Arbeidsordre finnes allerede for denne saken.');const row={property_id:currentProperty().id,deviation_id:c.deviation.id,title:document.getElementById('flowWoTitle')?.value||c.deviation.title,description:document.getElementById('flowWoDesc')?.value||c.deviation.description||'',due_date:document.getElementById('flowWoDue')?.value||null,status:'Ny'};const r=await db().from('work_orders').insert(row).select().single();if(r.error)throw r.error;await db().from('deviations').update({status:'Arbeidsordre opprettet'}).eq('id',c.deviation.id);await insertActivity('Arbeidsordre laget fra avvik','work_order',r.data.id);await hydrateAll();out.textContent='Arbeidsordre opprettet.';showCaseFlow(c.deviation.id)}catch(e){if(out)setOutputError(out,e)}
+  try{requireLive('lage arbeidsordre');const c=flowSelectedDeviation();if(c.workOrder)throw new Error('Arbeidsordre finnes allerede for denne saken.');const row={property_id:currentProperty().id,deviation_id:c.deviation.id,title:document.getElementById('flowWoTitle')?.value||c.deviation.title,description:document.getElementById('flowWoDesc')?.value||c.deviation.description||'',due_date:document.getElementById('flowWoDue')?.value||null,status:'Ny'};const variants=[row,{property_id:row.property_id,title:row.title,description:row.description,due_date:row.due_date,status:row.status}];let r,lastError=null;for(const variant of variants){r=await db().from('work_orders').insert(variant);if(!r.error)break;lastError=r.error;if(!isPeopleSchemaError(r.error))break}if(r?.error)throw lastError||r.error;await db().from('deviations').update({status:'Arbeidsordre opprettet'}).eq('id',c.deviation.id);await insertActivity('Arbeidsordre laget fra avvik','work_order',row.title);await hydrateAll();out.textContent='Arbeidsordre opprettet.';showCaseFlow(c.deviation.id)}catch(e){if(out)setOutputError(out,e)}
 }
 async function flowCreateRfq(){
   const out=document.getElementById('flowOut');
@@ -655,6 +676,7 @@ function DocumentsPage(){
   const stats=cats.map(c=>`<button class="doc-filter ${active===c?'active':''}" onclick="DP.docCat='${esc(c)}';render()"><span>${esc(c)}</span><b>${c==='Alle'?docs.length:byCat(c)}</b></button>`).join('');
   return `<div class="grid documents-page premium-documents">
     <div class="card s12 module-hero documents-hero"><div><small>FDV og dokumentarkiv</small><h2>Dokumentasjon for ${esc(currentProperty()?.name||'valgt eiendom')}</h2><p>FDV, HMS, tegninger, kontrakter, styrepapirer, bilder og tilbud lagres på valgt eiendom og kan knyttes til bygg eller sak.</p></div><div class="module-actions"><button class="action primary" onclick="showDocForm()">Last opp dokument</button><button class="action" onclick="showScanDocumentForm()">Skann dokument</button><button class="action" onclick="showStandaloneContractForm()">Lag kontrakt</button><button class="action" onclick="showSignatureRequestForm('Kontrakt')">Send til signering</button><button class="action" onclick="showEmailFlow('contract')">Send e-post</button>${brainAction}</div></div>
+    <div class="card s12 simple-flow-card">${DocumentsSimpleFlow(missing,expiring)}</div>
     ${docSummaryCard('Dokumenter',docs.length,'Lagret på eiendommen','showDocForm()','info')}
     ${docSummaryCard('Dokumentasjonsgrad',`${required.length-missing.length}/${required.length}`,missing.length?'Mangler nøkkeldokumenter':'Nøkkeldokumenter finnes',documentGradeAction,missing.length?'warn':'ok')}
     ${docSummaryCard('Utløper snart',expiring.length,'Kontroller, avtaler og frister','showExpiringDocuments()','warn')}
@@ -664,6 +686,16 @@ function DocumentsPage(){
     <div class="card s12 document-filters">${stats}</div>
     <div class="card s12"><div class="dash-title"><div><h3>${esc(active==='Alle'?'Alle dokumenter':active)}</h3><p class="muted">Åpne, versjoner, detaljvis eller slett dokumenter fra valgt eiendom.</p></div><button class="action primary" onclick="showDocForm()">Last opp</button></div>${documentCards(filtered)}</div>
   </div>`;
+}
+function DocumentsSimpleFlow(missing=[],expiring=[]){
+  const firstMissing=missing[0];
+  const steps=[
+    {title:'Last opp nøkkeldokument',text:firstMissing?`Mangler først: ${firstMissing}`:'Nøkkeldokumentene ser ok ut.',action:firstMissing?'Last opp':'Åpne arkiv',open:'showDocForm()'},
+    {title:'Sett kategori',text:'Velg FDV, HMS, tegning, kontrakt eller styrepapir, så blir arkivet ryddig.',action:'Last opp dokument',open:'showDocForm()'},
+    {title:'Legg inn frist',text:expiring.length?'Se dokumenter som snart utløper.':'Bruk utløpsdato på garantier, service og kontroller.',action:expiring.length?'Se frister':'Legg til frist',open:expiring.length?'showExpiringDocuments()':'showDocForm()'},
+    {title:'Signer ved behov',text:'Kontrakter og styrevedtak kan sendes til intern signering.',action:'Ny signering',open:"showSignatureRequestForm('Kontrakt')"}
+  ];
+  return `<div class="dash-title"><div><h3>Dokumentflyt</h3><p class="muted">Slik bygger styret et ryddig og komplett arkiv.</p></div></div><div class="simple-flow-steps">${steps.map((s,i)=>`<button onclick="${esc(s.open)}"><span>${i+1}</span><strong>${esc(s.title)}</strong><small>${esc(s.text)}</small><b>${esc(s.action)}</b></button>`).join('')}</div>`;
 }
 function docSummaryCard(label,value,caption,action,type='info'){
   return `<button class="card s3 doc-summary ${type}" onclick="${action}"><small>${esc(label)}</small><strong>${esc(value)}</strong><span>${esc(caption)}</span></button>`;
