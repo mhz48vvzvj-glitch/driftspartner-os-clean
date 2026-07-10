@@ -843,6 +843,38 @@ body:not(.public-mode) td,body:not(.public-mode) th{word-break:break-word}
 .offer-recommend b{display:block;color:#fff;font-size:30px;font-variant-numeric:tabular-nums}
 .offer-recommend span{display:inline-flex;align-self:flex-start;border-radius:999px;background:#123c2a;color:#35d071;padding:6px 10px;font-weight:900;font-size:12px}
 .offer-recommend p{color:#aab8cc;line-height:1.45;margin:0}
+.premium-offer-recommend{border:1px solid #254263;border-radius:16px;background:radial-gradient(circle at top right,rgba(45,114,255,.18),transparent 58%),#081220;padding:14px}
+.offer-card-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.offer-card-metrics div{border:1px solid #1f2d44;border-radius:14px;background:#0b1422;padding:10px;min-width:0}
+.offer-card-metrics small{display:block;color:#8ea0b8;font-size:11px;text-transform:uppercase;letter-spacing:.06em;font-weight:900;margin:0 0 4px}
+.offer-card-metrics b{display:block;color:#fff;font-size:18px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.offer-analysis-card{background:radial-gradient(circle at top left,rgba(75,45,143,.22),transparent 46%),linear-gradient(180deg,#101b2d,#07111f)}
+.offer-ai-panel{display:grid;gap:16px}
+.offer-ai-summary{display:grid;grid-template-columns:1.1fr .9fr;gap:18px;border:1px solid #263a59;border-radius:18px;background:linear-gradient(135deg,rgba(45,114,255,.18),rgba(53,208,113,.08)),#081220;padding:18px}
+.offer-ai-main{position:relative;display:grid;gap:8px;align-content:start;padding-right:110px;min-height:118px}
+.offer-ai-main small{color:#8eb6ff;text-transform:uppercase;letter-spacing:.08em;font-weight:950}
+.offer-ai-main h3{margin:0;color:#fff;font-size:24px;line-height:1.18}
+.offer-ai-main p{margin:0;color:#aab8cc;line-height:1.45}
+.offer-ai-score{position:absolute;right:0;top:0;width:92px;height:92px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(#35d071 78%,#24344e 0);box-shadow:0 20px 48px rgba(53,208,113,.14),inset 0 0 0 1px rgba(255,255,255,.08)}
+.offer-ai-score:before{content:"";position:absolute;inset:12px;border-radius:50%;background:#07111f}
+.offer-ai-score strong,.offer-ai-score span{position:relative;z-index:1;text-align:center}
+.offer-ai-score strong{display:block;color:#fff;font-size:28px;line-height:1;font-variant-numeric:tabular-nums}
+.offer-ai-score span{display:block;color:#8ea0b8;font-size:10px;text-transform:uppercase;font-weight:950;letter-spacing:.08em;margin-top:32px;position:absolute}
+.offer-ai-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.offer-ai-facts div{border:1px solid rgba(255,255,255,.08);border-radius:14px;background:rgba(5,11,20,.54);padding:12px;min-width:0}
+.offer-ai-facts span{display:block;color:#8ea0b8;font-size:11px;text-transform:uppercase;letter-spacing:.06em;font-weight:900;margin-bottom:5px}
+.offer-ai-facts b{display:block;color:#fff;font-size:16px;line-height:1.3;overflow-wrap:anywhere}
+.offer-analysis-table{display:grid;gap:8px}
+.offer-analysis-head,.offer-analysis-row{display:grid;grid-template-columns:1.4fr .8fr .55fr .7fr 1.1fr;gap:10px;align-items:center}
+.offer-analysis-head{color:#8ea0b8;font-size:12px;text-transform:uppercase;letter-spacing:.06em;font-weight:950;padding:0 12px}
+.offer-analysis-row{border:1px solid #223149;border-radius:16px;background:#081220;padding:12px}
+.offer-analysis-row.best{border-color:#35d071;box-shadow:0 14px 38px rgba(53,208,113,.10)}
+.offer-analysis-row strong{display:block;color:#fff;line-height:1.25;overflow-wrap:anywhere}
+.offer-analysis-row small{display:block;color:#9aa8bc;line-height:1.35;margin-top:3px;overflow-wrap:anywhere}
+.offer-analysis-row b{color:#fff;font-variant-numeric:tabular-nums}
+.offer-analysis-row>div:last-child{display:flex;gap:8px;align-items:center;justify-content:space-between;min-width:0}
+.offer-analysis-row>div:last-child span{color:#cbd5e1;line-height:1.35}
+.score-pill{display:inline-grid;place-items:center;min-width:44px;height:34px;border-radius:999px;background:#123c2a;color:#35d071;font-weight:950;font-variant-numeric:tabular-nums}
 .choice-list{border:1px solid #1f2d44;border-radius:12px;background:#081220;padding:10px;display:grid;gap:8px;max-height:180px;overflow:auto}
 .check-row{display:flex;align-items:center;gap:8px;color:#dce6f5;font-weight:800;font-size:13px}
 .check-row input{width:auto}
@@ -1068,6 +1100,12 @@ body:not(.public-mode) td,body:not(.public-mode) th{word-break:break-word}
   .finance-module-label{white-space:normal}
   .budget-line-head{display:grid}
   .market-record-head{display:grid}
+  .offer-ai-summary,.offer-analysis-head,.offer-analysis-row{grid-template-columns:1fr}
+  .offer-ai-main{padding-right:0;padding-bottom:98px}
+  .offer-ai-score{top:auto;left:0;right:auto;bottom:0}
+  .offer-ai-facts,.offer-card-metrics{grid-template-columns:1fr}
+  .offer-analysis-head{display:none}
+  .offer-analysis-row>div:last-child{display:grid;justify-content:stretch}
   .finance-summary-strip,.finance-summary-strip.premium,.premium-pie-wrap,.finance-bar-row,.brain-metrics,.brain-actions,.brain-area-grid{grid-template-columns:1fr}
   .premium-finance-svg{height:230px;min-height:210px}
   .finance-bar-value{text-align:left}

@@ -22,7 +22,7 @@ function financeMetric(label,value,caption,type='info'){
 }
 function projectFinanceList(projects){
   const rows=projects||[];
-  if(!rows.length)return '<div class="empty-state"><strong>Ingen prosjekter registrert.</strong><span>Legg inn prosjekt for · følge budsjett, faktisk kostnad og status.</span><button class="action primary" onclick="showProjectForm()">Nytt prosjekt</button></div>';
+  if(!rows.length)return '<div class="empty-state"><strong>Ingen prosjekter registrert.</strong><span>Legg inn prosjekt for å følge budsjett, faktisk kostnad og status.</span><button class="action primary" onclick="showProjectForm()">Nytt prosjekt</button></div>';
   return `<div class="project-list">${rows.map(p=>{
     const name=p.name||p.title||'Uten prosjektnavn';
     const budget=Number(p.budget||p.budget_amount||0),actual=Number(p.actual_cost||p.actual_amount||0),variance=actual-budget;
@@ -156,7 +156,7 @@ function financeBudgetChart(lines,projects){
     return {id:l.id,label:`${base}${suffix}`,budget:Number(l.budget_amount||l.budget||0),actual:Number(l.actual_amount||l.actual||0),type:'budget'};
   });
   if(projects?.length)rows.push({label:'Prosjekter',budget:projects.reduce((s,p)=>s+Number(p.budget||p.budget_amount||0),0),actual:projects.reduce((s,p)=>s+Number(p.actual_cost||p.actual_amount||0),0),type:'project'});
-  if(!rows.length)return '<div class="empty-state"><strong>Ingen Økonomilinjer registrert.</strong><span>Legg inn første budsjettlinje for · få graf og styrerapport.</span><button class="action primary" onclick="showBudgetForm()">Ny budsjettlinje</button></div>';
+  if(!rows.length)return '<div class="empty-state"><strong>Ingen Økonomilinjer registrert.</strong><span>Legg inn første budsjettlinje for å få graf og styrerapport.</span><button class="action primary" onclick="showBudgetForm()">Ny budsjettlinje</button></div>';
   const max=Math.max(1,...rows.flatMap(r=>[r.budget,r.actual]));
   return `<div class="finance-module-legend"><span><i class="budget"></i>Budsjett</span><span><i class="actual"></i>Faktisk</span><span><i class="over"></i>Over budsjett</span></div><div class="finance-module-bars">${rows.map(r=>{
     const actualClass=r.actual>r.budget?'actual over':'actual';
@@ -164,7 +164,7 @@ function financeBudgetChart(lines,projects){
   }).join('')}</div>`;
 }
 function budgetLineCards(lines){
-  if(!lines.length)return '<div class="empty-state"><strong>Ingen budsjettlinjer.</strong><span>Legg inn drift, vedlikehold, forsikring eller prosjekt for · få et komplett Økonomibilde.</span><button class="action primary" onclick="showBudgetForm()">Ny budsjettlinje</button></div>';
+  if(!lines.length)return '<div class="empty-state"><strong>Ingen budsjettlinjer.</strong><span>Legg inn drift, vedlikehold, forsikring eller prosjekt for å få et komplett Økonomibilde.</span><button class="action primary" onclick="showBudgetForm()">Ny budsjettlinje</button></div>';
   return `<div class="budget-card-list">${lines.map(l=>{
     const budget=Number(l.budget_amount||l.budget||0),actual=Number(l.actual_amount||l.actual||0),variance=actual-budget;
     return `<section class="budget-line-card ${variance>0?'bad':'ok'}"><div class="budget-line-head"><div><strong>${esc(budgetCategoryValue(l))}</strong><small>${esc(l.notes||'Ingen notat')}</small></div><span class="soft-pill ${variance>0?'bad':'ok'}">${variance>0?'Over budsjett':'Innenfor'}</span></div><div class="project-numbers"><div><small>Budsjett</small><b>${money(budget)}</b></div><div><small>Faktisk</small><b>${money(actual)}</b></div><div><small>Avvik</small><b>${financeVarianceMoney(variance)}</b></div></div><div class="row-actions"><button class="action" onclick="showBudgetForm('${esc(l.id)}')">Endre</button><button class="action red" onclick="deleteRow('budget_lines','${esc(l.id)}')">Slett</button></div></section>`;
@@ -183,7 +183,7 @@ function supplierCards(){const rows=DP.suppliers||[];if(!rows.length)return '<di
 function rfqCards(rows){if(!rows.length)return '<div class="empty-state"><strong>Ingen forespørsler.</strong><span>Lag en tilbudsforespørsel når en arbeidsordre skal prises.</span><button class="action primary" onclick="showRfqForm()">Ny forespørsel</button></div>';return `<div class="stack-list">${rows.map(q=>`<section class="mini-record"><div><strong>${esc(q.title||'Uten tittel')}</strong><small>${esc(q.deadline||'Ingen frist')}  · ${esc(q.status||'Utkast')}</small></div><button class="action red" onclick="deleteRow('quote_requests','${esc(q.id)}')">Slett</button></section>`).join('')}</div>`}
 function offerCards(rows){if(!rows.length)return '<div class="empty-state"><strong>Ingen tilbud mottatt.</strong><span>Last opp PDF og pris fra leverandør når tilbud kommer inn.</span><button class="action primary" onclick="showOfferForm()">Last opp tilbud</button></div>';return `<div class="stack-list">${rows.map(o=>`<section class="mini-record"><div><strong>${esc(o.suppliers?.name||'Leverandør')}</strong><small>${money(o.price)}  · ${esc(o.status||'Mottatt')}</small></div><button class="action red" onclick="deleteRow('offers','${esc(o.id)}')">Slett</button></section>`).join('')}</div>`}
 function supplierTable(){return supplierCards()}
-function showSupplierForm(){showDrawer('Ny leverandør',`<label>Org.nr</label><div class="lookup-row"><input id="supOrgNo" placeholder="9 siffer"><button class="action" onclick="lookupBrregSupplier()">Hent fra Brånnåysund</button></div><label>Firma</label><input id="supName"><label>E-post</label><input id="supEmail"><label>Fagområde</label><input id="supTrade"><label>Adresse</label><input id="supAddress"><div id="supLookupOut" class="output">Skriv org.nr og hent firmainfo automatisk.</div><button class="action primary" onclick="saveSupplier()">Lagre leverandør</button>`)}
+function showSupplierForm(){showDrawer('Ny leverandør',`<label>Org.nr</label><div class="lookup-row"><input id="supOrgNo" placeholder="9 siffer"><button class="action" onclick="lookupBrregSupplier()">Hent fra Brønnøysund</button></div><label>Firma</label><input id="supName"><label>E-post</label><input id="supEmail"><label>Fagområde</label><input id="supTrade"><label>Adresse</label><input id="supAddress"><div id="supLookupOut" class="output">Skriv org.nr og hent firmainfo automatisk.</div><button class="action primary" onclick="saveSupplier()">Lagre leverandør</button>`)}
 function orgDigits(value){return String(value||'').replace(/\D/g,'').slice(0,9)}
 function brregAddress(entity){const a=entity?.forretningsadresse||entity?.postadresse||{};return [...(a.adresse||[]),[a.postnummer,a.poststed].filter(Boolean).join(' ')].filter(Boolean).join(', ')}
 function brregForm(entity){return entity?.organisasjonsform?.beskrivelse||entity?.organisasjonsform?.kode||''}
@@ -193,13 +193,13 @@ async function lookupBrregOrg(orgNo){
   const digits=orgDigits(orgNo);
   if(digits.length!==9)throw new Error('Org.nr må ha 9 siffer.');
   const res=await fetch(`https://data.brreg.no/enhetsregisteret/api/enheter/${digits}`,{headers:{accept:'application/json'}});
-  if(res.status===404)throw new Error('Fant ikke org.nr i Brånnåysund.');
-  if(!res.ok)throw new Error('Kunne ikke hente firmainfo fra Brånnåysund akkurat nå.');
+  if(res.status===404)throw new Error('Fant ikke org.nr i Brønnøysund.');
+  if(!res.ok)throw new Error('Kunne ikke hente firmainfo fra Brønnøysund akkurat nå.');
   return await res.json();
 }
 async function lookupBrregSupplier(){
   try{
-    setFieldText('supLookupOut','Henter firmainfo fra Brånnåysund...');
+    setFieldText('supLookupOut','Henter firmainfo fra Brønnøysund...');
     const entity=await lookupBrregOrg(document.getElementById('supOrgNo')?.value);
     const address=brregAddress(entity);
     setFieldValue('supOrgNo',entity.organisasjonsnummer||orgDigits(document.getElementById('supOrgNo')?.value));
@@ -261,9 +261,9 @@ function offerRecommendation(best,offers){
   const diff=avg?Math.round((1-Number(best.price||0)/avg)*100):0;
   return `<div class="offer-recommend"><strong>${esc(supplierName(best.supplier_id)||best.suppliers?.name||'Leverandør')}</strong><b>${money(best.price)}</b><span>${diff>0?`${diff}% lavere enn snittet`:'Laveste registrerte pris'}</span><p>${esc(best.reservations||'Ingen forbehold registrert.')}</p><div class="row-actions"><button class="action primary" onclick="markOfferSelected('${esc(best.id)}')">Marker valgt</button><button class="action" onclick="showOfferForm()">Last opp mer</button></div></div>`;
 }
-function supplierTradeList(){return ['Tak og fasade','VVS / rårlegger','Elektro','Brann og sikkerhet','HMS / SHA','Heis','Ventilasjon','Uteområde / grånt','Snårydding / vinterdrift','Renhold','Bygg / tåmrer','Maler / overflate','Lås / adgang','Skadedyr','Forsikring','Regnskap / Økonomi','Juridisk','Forvaltning','IT / system','Annet']}
+function supplierTradeList(){return ['Tak og fasade','VVS / rørlegger','Elektro','Brann og sikkerhet','HMS / SHA','Heis','Ventilasjon','Uteområde / grønt','Snørydding / vinterdrift','Renhold','Bygg / tømrer','Maler / overflate','Lås / adgang','Skadedyr','Forsikring','Regnskap / økonomi','Juridisk','Forvaltning','IT / system','Annet']}
 function supplierTradeOptions(selected='Tak og fasade'){const current=String(selected||'Tak og fasade');const all=supplierTradeList().includes(current)?supplierTradeList():[current,...supplierTradeList()];return all.map(x=>`<option value="${esc(x)}" ${x===current?'selected':''}>${esc(x)}</option>`).join('')}
-function supplierTradeFromText(text=''){const v=String(text||'').toLowerCase();if(/rår|ror|vvs|sanitår|sanitaer/.test(v))return 'VVS / rårlegger';if(/elektro|elektr/.test(v))return 'Elektro';if(/brann|sikkerhet|alarm/.test(v))return 'Brann og sikkerhet';if(/hms|sha/.test(v))return 'HMS / SHA';if(/heis/.test(v))return 'Heis';if(/ventilasjon|inneklima/.test(v))return 'Ventilasjon';if(/snå|sno|vinter/.test(v))return 'Snårydding / vinterdrift';if(/renhold|vask/.test(v))return 'Renhold';if(/bygg|tåmrer|tomrer|entreprenår|entreprenor/.test(v))return 'Bygg / tåmrer';if(/maler|overflate/.test(v))return 'Maler / overflate';if(/lås|las|adgang/.test(v))return 'Lås / adgang';if(/skadedyr/.test(v))return 'Skadedyr';if(/forsikring/.test(v))return 'Forsikring';if(/regnskap|Økonomi|okonomi/.test(v))return 'Regnskap / Økonomi';if(/juridisk|advokat/.test(v))return 'Juridisk';if(/forvalt/.test(v))return 'Forvaltning';if(/it|system|data/.test(v))return 'IT / system';if(/tak|fasade/.test(v))return 'Tak og fasade';return 'Annet'}
+function supplierTradeFromText(text=''){const v=String(text||'').toLowerCase();if(/rør|ror|vvs|sanitær|sanitaer/.test(v))return 'VVS / rørlegger';if(/elektro|elektr/.test(v))return 'Elektro';if(/brann|sikkerhet|alarm/.test(v))return 'Brann og sikkerhet';if(/hms|sha/.test(v))return 'HMS / SHA';if(/heis/.test(v))return 'Heis';if(/ventilasjon|inneklima/.test(v))return 'Ventilasjon';if(/snø|sno|vinter/.test(v))return 'Snørydding / vinterdrift';if(/renhold|vask/.test(v))return 'Renhold';if(/bygg|tømrer|tomrer|entreprenør|entreprenor/.test(v))return 'Bygg / tømrer';if(/maler|overflate/.test(v))return 'Maler / overflate';if(/lås|las|adgang/.test(v))return 'Lås / adgang';if(/skadedyr/.test(v))return 'Skadedyr';if(/forsikring/.test(v))return 'Forsikring';if(/regnskap|økonomi|okonomi/.test(v))return 'Regnskap / økonomi';if(/juridisk|advokat/.test(v))return 'Juridisk';if(/forvalt/.test(v))return 'Forvaltning';if(/it|system|data/.test(v))return 'IT / system';if(/tak|fasade/.test(v))return 'Tak og fasade';return 'Annet'}
 function supplierCards(){const rows=DP.suppliers||[],hasRfq=typeof subscriptionHas==='function'?subscriptionHas('rfq'):true;if(!rows.length)return '<div class="empty-state"><strong>Ingen leverandører registrert.</strong><span>Legg inn leverandører med e-post før tilbudsforespørsel sendes.</span><button class="action primary" onclick="showSupplierForm()">Ny leverandør</button></div>';return `<div class="market-card-list">${rows.map(s=>`<section class="market-record supplier-record"><div><strong>${esc(s.name||'Leverandør')}</strong><small>${esc(s.trade||'Fagområde ikke satt')}</small></div><div class="market-record-meta"><span>${esc(s.email||'Mangler e-post')}</span>${s.status?`<span>${esc(s.status)}</span>`:''}</div><div class="row-actions">${hasRfq?`<button class="action" onclick="showRfqForm()">Lag RFQ</button>`:''}<button class="action red" onclick="deleteRow('suppliers','${esc(s.id)}')">Slett</button></div></section>`).join('')}</div>`}
 function rfqCards(rows){if(!rows.length)return '<div class="empty-state"><strong>Ingen forespørsler.</strong><span>Lag en tilbudsforespørsel når en arbeidsordre skal prises.</span><button class="action primary" onclick="showRfqForm()">Ny forespørsel</button></div>';return `<div class="market-card-list">${rows.map(q=>{const status=q.status||'Utkast';return `<section class="market-record rfq-record"><div class="market-record-head"><div><strong>${esc(q.title||'Uten tittel')}</strong><small>${esc(q.description||'Ingen beskrivelse')}</small></div><span class="soft-pill ${/sendt|aktiv|publisert/i.test(status)?'ok':'warn'}">${esc(status)}</span></div><div class="market-record-meta"><span>Frist: ${esc(q.deadline||'Ikke satt')}</span>${q.work_order_id?'<span>Knyttet til arbeidsordre</span>':''}</div><div class="row-actions"><button class="action" onclick="markRfqSent('${esc(q.id)}')">Marker sendt</button><button class="action" onclick="showOfferForm()">Registrer tilbud</button><button class="action red" onclick="deleteRow('quote_requests','${esc(q.id)}')">Slett</button></div></section>`}).join('')}</div>`}
 function offerCards(rows){if(!rows.length)return '<div class="empty-state"><strong>Ingen tilbud mottatt.</strong><span>Last opp PDF og pris fra leverandør når tilbud kommer inn.</span><button class="action primary" onclick="showOfferForm()">Last opp tilbud</button></div>';const sorted=[...rows].sort((a,b)=>Number(a.price||0)-Number(b.price||0));return `<div class="market-card-list">${sorted.map((o,i)=>{const supplier=supplierName(o.supplier_id)||o.suppliers?.name||'Leverandør';return `<section class="market-record offer-record ${i===0?'best':''}"><div class="market-record-head"><div><strong>${esc(supplier)}</strong><small>${esc(o.reservations||'Ingen forbehold registrert')}</small></div><span class="soft-pill ${i===0?'ok':'info'}">${i===0?'Laveste pris':esc(o.status||'Mottatt')}</span></div><div class="offer-price">${money(o.price)}</div><div class="row-actions"><button class="action primary" onclick="markOfferSelected('${esc(o.id)}')">Velg</button><button class="action" onclick="showSignatureRequestForm('Tilbudsgodkjenning','offer','${esc(o.id)}','Tilbud - ${esc(supplier)}')">Send til signering</button><button class="action red" onclick="deleteRow('offers','${esc(o.id)}')">Slett</button></div></section>`}).join('')}</div>`}
@@ -273,7 +273,7 @@ function showOfferForm(){if(typeof subscriptionHas==='function'&&!subscriptionHa
 async function markRfqSent(id){try{if(typeof subscriptionHas==='function'&&!subscriptionHas('rfq'))throw new Error('RFQ krever Premium.');requireLive('oppdatere tilbudsforespørsel');const r=await db().from('quote_requests').update({status:'Sendt'}).eq('id',id).select().single();if(r.error)throw r.error;await insertActivity('Tilbudsforespørsel markert sendt','quote_request',id);await finishAction('Tilbudsforespørselen er markert som sendt.','market')}catch(e){showDrawer('Kunne ikke oppdatere forespørsel',`<div class="output">${esc(customerError(e))}</div>`)}}
 async function markOfferSelected(id){try{if(typeof subscriptionHas==='function'&&!subscriptionHas('rfq'))throw new Error('Tilbudsvurdering krever Premium.');requireLive('velge tilbud');const r=await db().from('offers').update({status:'Valgt'}).eq('id',id).select().single();if(r.error)throw r.error;await insertActivity('Tilbud valgt','offer',id);await finishAction('Tilbudet er markert som valgt.','market')}catch(e){showDrawer('Kunne ikke velge tilbud',`<div class="output">${esc(customerError(e))}</div>`)}}
 
-function AdminPage(){return `<div class="grid admin-page"><div class="card s12">${LaunchControlPage()}</div><div class="card s12 module-hero"><div><small>Kundeoppsett</small><h2>Ny kunde</h2><p>Opprett kunde, eiendom, styre, beboere, leverandører, FDV-mapper, Økonomi og brukere i ån kontrollert flyt.</p></div><div class="module-actions"><button class="action primary" onclick="showNewCustomerWizard()">Start onboarding</button></div></div><div class="card s6"><h3>Driftskontroll</h3><p class="muted">Sjekker at appen kjører på ren produksjonspakke og at valgt eiendom er klar.</p><button class="action primary" onclick="runCleanCheck()">Kjør kontroll</button><div id="adminOut" class="output"></div></div><div class="card s6"><h3>Rolle- og tilgangstest</h3>${roleAccessPanel()}</div><div class="card s12"><h3>Aktivitet</h3>${activityCards()}</div></div>`}
+function AdminPage(){return `<div class="grid admin-page"><div class="card s12">${LaunchControlPage()}</div><div class="card s12 module-hero"><div><small>Kundeoppsett</small><h2>Ny kunde</h2><p>Opprett kunde, eiendom, styre, beboere, leverandører, FDV-mapper, Økonomi og brukere i én kontrollert flyt.</p></div><div class="module-actions"><button class="action primary" onclick="showNewCustomerWizard()">Start onboarding</button></div></div><div class="card s6"><h3>Driftskontroll</h3><p class="muted">Sjekker at appen kjører på ren produksjonspakke og at valgt eiendom er klar.</p><button class="action primary" onclick="runCleanCheck()">Kjør kontroll</button><div id="adminOut" class="output"></div></div><div class="card s6"><h3>Rolle- og tilgangstest</h3>${roleAccessPanel()}</div><div class="card s12"><h3>Aktivitet</h3>${activityCards()}</div></div>`}
 function activityCards(){const rows=(DP.cache.activity||[]).slice(0,12);if(!rows.length)return '<div class="empty-state"><strong>Ingen aktivitet registrert.</strong><span>Når brukere oppretter, endrer eller sender noe, vises historikken her.</span></div>';return `<div class="stack-list">${rows.map(a=>`<section class="mini-record"><div><strong>${esc(a.action||'Hendelse')}</strong><small>${esc([a.entity_type,a.created_at].filter(Boolean).join(' · '))}</small></div></section>`).join('')}</div>`}
 function launchStatus(label,ok,warnText='',okText='Klar'){
   const type=ok===true?'ok':ok==='warn'?'warn':'bad';
@@ -290,7 +290,7 @@ function launchAdvice(label,ok){
     'Arbeidsordre':'Lag arbeidsordre fra avvik.',
     'Tilbud/RFQ':'Opprett tilbudsforespørsel og registrer minst ett tilbud.',
     'Dokumentarkiv':'Last opp eller generer minst ett dokument på eiendommen.',
-    'Økonomi':'Legg inn konto/reservefond og minst ån budsjettlinje.',
+    'Økonomi':'Legg inn konto/reservefond og minst én budsjettlinje.',
     'Styre/beboere':'Legg inn styremedlem og beboer/kontaktperson.',
     'Leverandører':'Legg inn leverandør med e-post.',
     'Aktivitetslogg':'Utfør en lagring slik at hendelse logges.',
@@ -391,10 +391,10 @@ function launchChecks(){
     {label:'E-post',ok:!!emailTested,warn:!emailTested,group:'Kommunikasjon',action:'Send en test fra live-siden før kundepilot.'}
   ];
   if(hasWorkOrders)checks.splice(4,0,{label:'Arbeidsordre',ok:wos.length>0,group:'Drift',action:'Lag arbeidsordre fra et avvik.'});
-  if(hasFinance)checks.splice(checks.findIndex(c=>c.label==='Styre/beboere'),0,{label:'Økonomi',ok:finance.length>0&&budget.length>0,warn:finance.length>0,group:'Økonomi',action:finance.length>0?'Legg inn minst ån budsjettlinje.':'Legg inn konto/reservefond og budsjett.'});
+  if(hasFinance)checks.splice(checks.findIndex(c=>c.label==='Styre/beboere'),0,{label:'Økonomi',ok:finance.length>0&&budget.length>0,warn:finance.length>0,group:'Økonomi',action:finance.length>0?'Legg inn minst én budsjettlinje.':'Legg inn konto/reservefond og budsjett.'});
   if(hasRfq)checks.splice(checks.findIndex(c=>c.label==='Økonomi'||c.label==='Styre/beboere'),0,{label:'Tilbud/RFQ',ok:rfqs.length>0&&offers.length>0,warn:rfqs.length>0,group:'Innkjøp',action:rfqs.length>0?'Registrer minst ett tilbud/PDF.':'Lag tilbudsforespørsel og registrer tilbud.'});
     const completeFlow=devs.length>0&&wos.length>0&&docs.length>0;
-  checks.push({label:'Salgsdemo-flyt',ok:completeFlow,warn:devs.length>0&&wos.length>0,group:'Salg',action:'Vis ån komplett flyt: avvik â†’ arbeidsordre â†’ dokumentasjon â†’ rapport.'});
+  checks.push({label:'Salgsdemo-flyt',ok:completeFlow,warn:devs.length>0&&wos.length>0,group:'Salg',action:'Vis én komplett flyt: avvik → arbeidsordre → dokumentasjon → rapport.'});
   if(hasFinance||hasWorkOrders)checks.push({label:'Pro-demo',ok:wos.length>0&&finance.length>0&&budget.length>0,group:'Salg',action:'Pro-demo bør vise arbeidsordre, Økonomi, vedlikeholdsplan og rapport.'});
   if(hasRfq)checks.push({label:'Premium-demo',ok:rfqs.length>0&&offers.length>0,group:'Salg',action:'Premium-demo bør vise Property Brain, RFQ/tilbud og AI-vurdering.'});
 
@@ -451,17 +451,17 @@ function AdminPage(){
 }
 function DemoUserPanel(){
   if(typeof canManageCustomers==='function'&&!canManageCustomers())return '';
-  return `<div class="demo-user-panel"><div class="dash-title"><div><h3>Demo-brukere</h3><p class="muted">Lag testbrukere for Start, Pro og Premium uten · gi tilgang til ekte kundedata.</p></div><button class="action primary" onclick="showDemoUserWizard()">Ny demo-bruker</button></div><div class="demo-package-strip"><section><b>Start-demo</b><span>FDV, avvik og styre.</span></section><section><b>Pro-demo</b><span>årshjul, arbeidsordre, Økonomi og rapport.</span></section><section><b>Premium-demo</b><span>Property Brain, RFQ/tilbud og AI-vurdering.</span></section></div><div id="demoUserOut" class="output">Demo-brukeren før bare tilgang til demo-eiendommen som opprettes her.</div></div>`;
+  return `<div class="demo-user-panel"><div class="dash-title"><div><h3>Demo-brukere</h3><p class="muted">Lag testbrukere for Start, Pro og Premium uten å gi tilgang til ekte kundedata.</p></div><button class="action primary" onclick="showDemoUserWizard()">Ny demo-bruker</button></div><div class="demo-package-strip"><section><b>Start-demo</b><span>FDV, avvik og styre.</span></section><section><b>Pro-demo</b><span>årshjul, arbeidsordre, Økonomi og rapport.</span></section><section><b>Premium-demo</b><span>Property Brain, RFQ/tilbud og AI-vurdering.</span></section></div><div id="demoUserOut" class="output">Demo-brukeren får bare tilgang til demo-eiendommen som opprettes her.</div></div>`;
 }
 function showDemoUserWizard(){
   if(typeof canManageCustomers==='function'&&!canManageCustomers()){showDrawer('Ingen tilgang','<div class="output">Bare intern admin kan lage demo-brukere.</div>');return}
   const stamp=Date.now().toString().slice(-6);
   const roleOptions=(typeof canManageSuperadmin==='function'&&canManageSuperadmin())?'<option value="styreleder" selected>Styreleder</option><option value="styremedlem">Styremedlem</option><option value="forvalter">Forvalter</option><option value="beboer">Beboer</option><option value="vaktmester">Vaktmester</option><option value="leverandor">Leverandør</option>':'<option value="styreleder" selected>Styreleder</option><option value="styremedlem">Styremedlem</option><option value="beboer">Beboer</option><option value="vaktmester">Vaktmester</option><option value="leverandor">Leverandør</option>';
-  showDrawer('Ny demo-bruker',`<div class="form-grid two"><label>Pakke<select id="demoPlan"><option value="start">Start - grunnpakke</option><option value="pro" selected>Pro - operativ drift</option><option value="premium">Premium - AI og tilbud</option></select></label><label>Rolle<select id="demoRole">${roleOptions}</select></label><label>Navn<input id="demoName" value="Demo Styreleder ${stamp}"></label><label>E-post<input id="demoEmail" placeholder="demo@kundedomene.no"></label><label>Telefon<input id="demoPhone" value=""></label><label>Midlertidig passord<input id="demoPassword" value="Demo${stamp}!"></label><label class="span-2">Demo-eiendom<input id="demoPropertyName" value="Demo Borettslag ${stamp}"></label><label class="span-2 check-row"><input id="demoSeedData" type="checkbox" checked> Legg inn enkle eksempeldata for valgt pakke</label></div><div class="validation-box"><strong>Viktig</strong><span>Bruk en e-postadresse du kan motta innloggingsmail på. Testbrukeren før bare tilgang til demo-eiendommen.</span></div><button class="action primary" onclick="createDemoUser()">Opprett demo-bruker</button><div id="createDemoOut" class="output">Klar.</div>`);
+  showDrawer('Ny demo-bruker',`<div class="form-grid two"><label>Pakke<select id="demoPlan"><option value="start">Start - grunnpakke</option><option value="pro" selected>Pro - operativ drift</option><option value="premium">Premium - AI og tilbud</option></select></label><label>Rolle<select id="demoRole">${roleOptions}</select></label><label>Navn<input id="demoName" value="Demo Styreleder ${stamp}"></label><label>E-post<input id="demoEmail" placeholder="demo@kundedomene.no"></label><label>Telefon<input id="demoPhone" value=""></label><label>Midlertidig passord<input id="demoPassword" value="Demo${stamp}!"></label><label class="span-2">Demo-eiendom<input id="demoPropertyName" value="Demo Borettslag ${stamp}"></label><label class="span-2 check-row"><input id="demoSeedData" type="checkbox" checked> Legg inn enkle eksempeldata for valgt pakke</label></div><div class="validation-box"><strong>Viktig</strong><span>Bruk en e-postadresse du kan motta innloggingsmail på. Testbrukeren får bare tilgang til demo-eiendommen.</span></div><button class="action primary" onclick="createDemoUser()">Opprett demo-bruker</button><div id="createDemoOut" class="output">Klar.</div>`);
 }
 function showInternalLoginForm(){
   if(!(typeof canManageSuperadmin==='function'&&canManageSuperadmin())){showDrawer('Ingen tilgang','<div class="output">Bare superadmin kan opprette intern innlogging uten eiendom.</div>');return}
-  showDrawer('Intern innlogging',`<div class="validation-box"><strong>Kun intern bruker</strong><span>Bruk denne for salgsjef, admin eller forvalter uten · knytte brukeren til en kunde/eiendom. Finnes brukeren fra får, oppdateres rollen og passordet.</span></div><div class="form-grid two"><label>Navn<input id="internalName" placeholder="Salgsjef"></label><label>E-post<input id="internalEmail" type="email" placeholder="salgsjef@driftspartnernord.no"></label><label>Telefon<input id="internalPhone" placeholder="Valgfritt"></label><label>Rolle<select id="internalRole"><option value="selger" selected>Selger</option><option value="admin">Admin / salgsjef</option><option value="forvalter">Forvalter</option><option value="superadmin">Superadmin</option></select></label><label>Midlertidig passord<input id="internalPassword" type="password" placeholder="La stå tomt for automatisk passord"></label></div><div class="module-actions"><button class="action primary" onclick="createInternalLogin()">Opprett/oppdater og send e-post</button><button class="action" onclick="testCreateUserFunction()">Test bruker-tjeneste</button></div><div id="internalLoginOut" class="output">Klar.</div>`);
+  showDrawer('Intern innlogging',`<div class="validation-box"><strong>Kun intern bruker</strong><span>Bruk denne for salgsjef, admin eller forvalter uten å knytte brukeren til en kunde/eiendom. Finnes brukeren fra før, oppdateres rollen og passordet.</span></div><div class="form-grid two"><label>Navn<input id="internalName" placeholder="Salgsjef"></label><label>E-post<input id="internalEmail" type="email" placeholder="salgsjef@driftspartnernord.no"></label><label>Telefon<input id="internalPhone" placeholder="Valgfritt"></label><label>Rolle<select id="internalRole"><option value="selger" selected>Selger</option><option value="admin">Admin / salgsjef</option><option value="forvalter">Forvalter</option><option value="superadmin">Superadmin</option></select></label><label>Midlertidig passord<input id="internalPassword" type="password" placeholder="La stå tomt for automatisk passord"></label></div><div class="module-actions"><button class="action primary" onclick="createInternalLogin()">Opprett/oppdater og send e-post</button><button class="action" onclick="testCreateUserFunction()">Test bruker-tjeneste</button></div><div id="internalLoginOut" class="output">Klar.</div>`);
 }
 async function testCreateUserFunction(){
   const out=document.getElementById('internalLoginOut');
@@ -603,7 +603,7 @@ function SuperadminOpsPage(){
     ${opsMetric('Feilede handlinger',failures,failures?'Må følges opp':'Ingen loggede feil','bad')}
     ${opsMetric('Uten abonnement',noSub,'Kunder som mangler pakke','warn')}
   </div><div class="ops-two-col"><div>${opsChecklist('Backup og eksport',[
-    {ok:true,text:'Daglig backup skal våre aktiv i Supabase'},
+    {ok:true,text:'Daglig backup skal være aktiv i Supabase'},
     {ok:docs.length>0,warn:true,text:'Kontroller dokumentarkiv per kunde'},
     {ok:false,warn:true,text:'Månedlig test av gjenoppretting må inn i rutinen'},
     {ok:false,warn:true,text:'Eksport per kunde ved avslutning må standardiseres'}
@@ -972,10 +972,10 @@ function integrationItems(){
   return [
     {name:'Supabase',status:'Aktiv',type:'ok',area:'Database, innlogging og dokumentarkiv',detail:'Live kundedata, tilgang per eiendom og dokumentarkiv.',button:'Test live data',action:'hydrateAll().then(render)'},
     {name:'Resend',status:'Aktiv',type:'ok',area:'E-post',detail:'Brukes til demoforespørsler, bestilling, varsler og systemmeldinger.',button:'Åpne e-posttest',action:"location.href='mail-test.html'"},
-    {name:'OpenAI',status:'Aktiv når kvote er tilgjengelig',type:'warn',area:'AI Director og Property Brain',detail:'Gir anbefalinger fra live data. Krever aktiv API-kvote for · svare.',button:'Test AI',action:'testAiIntegration()'},
-    {name:'Brånnåysundregistrene',status:'Klar for onboarding',type:'ok',area:'Kunde og leverandører',detail:'Org.nr-oppslag kan fylle inn firmanavn og adresse ved opprettelse.',button:canCustomerSetup?'Ny kunde':'Klar',action:canCustomerSetup?'showNewCustomerWizard()':"showIntegrationInfo('Brånnåysundregistrene')"},
+    {name:'OpenAI',status:'Aktiv når kvote er tilgjengelig',type:'warn',area:'AI Director og Property Brain',detail:'Gir anbefalinger fra live data. Krever aktiv API-kvote for å svare.',button:'Test AI',action:'testAiIntegration()'},
+    {name:'Brønnøysundregistrene',status:'Klar for onboarding',type:'ok',area:'Kunde og leverandører',detail:'Org.nr-oppslag kan fylle inn firmanavn og adresse ved opprettelse.',button:canCustomerSetup?'Ny kunde':'Klar',action:canCustomerSetup?'showNewCustomerWizard()':"showIntegrationInfo('Brønnøysundregistrene')"},
     {name:'Kundeavsender / svar til',status:'Aktiv enkel løsning',type:'ok',area:'E-post',detail:'E-post sendes via Driftspartner, men vises med kundens/styrets navn og svar går til kunden.',button:'Send e-post',action:"showEmailFlow('all')"},
-    {name:'Microsoft 365 / Outlook light',status:'V1 klar',type:'ok',area:'E-post, kalender og styremoter',detail:'Moteinnkalling med kalenderfil, kalenderlenker og svar-til kunde/styre uten Microsoft-admin.',button:'Ny møteinnkalling',action:"showOutlookLightForm('board')"},
+    {name:'Microsoft 365 / Outlook light',status:'V1 klar',type:'ok',area:'E-post, kalender og styremøter',detail:'Møteinnkalling med kalenderfil, kalenderlenker og svar-til kunde/styre uten Microsoft-admin.',button:'Ny møteinnkalling',action:"showOutlookLightForm('board')"},
     {name:'Intern signatur',status:'Aktiv',type:'ok',area:'Kontrakter og vedtak',detail:'Sender signeringsforespørsler på e-post og logger navn, e-post og tidspunkt når noe sendes eller markeres signert.',button:'Ny signering',action:"showSignatureRequestForm('Kontrakt')"},
     {name:'Tripletex',status:'Planlagt',type:'info',area:'Regnskap',detail:'Aktuell for faktura, prosjektkostnader, budsjett og rapportering.',button:'Se anbefaling',action:"showIntegrationInfo('Tripletex')"},
     {name:'PowerOffice Go',status:'Planlagt',type:'info',area:'Regnskap',detail:'Alternativ regnskapsintegrasjon for borettslag, sameier og forvaltere.',button:'Se anbefaling',action:"showIntegrationInfo('PowerOffice Go')"},
@@ -987,7 +987,7 @@ function IntegrationsPage(){
   if(typeof canManageCustomers==='function'&&!canManageCustomers())return `<div class="grid"><div class="card s12"><div class="empty-state"><strong>Ikke tilgjengelig.</strong><span>Integrasjoner administreres av Driftspartner Nord.</span></div></div></div>`;
   const items=integrationItems(),active=items.filter(i=>i.type==='ok').length,next=items.filter(i=>i.type==='warn').length,planned=items.filter(i=>i.type==='info').length;
   const customerButton=(typeof canManageCustomers==='function'&&canManageCustomers())?`<button class="action" onclick="showNewCustomerWizard()">Ny kunde</button>`:'';
-  return `<div class="grid integrations-page"><div class="card s12 module-hero integration-hero"><div><small>Integrasjoner</small><h2>Koble Driftspartner OS til verktåyene kundene bruker</h2><p>Her samles e-post, AI, regnskap, signering, offentlige data og kalender. Målet er mindre manuelt arbeid og mer live informasjon på valgt eiendom.</p></div><div class="module-actions"><button class="action primary" onclick="showEmailFlow('all')">Send som kunde/styre</button><button class="action" onclick="showOutlookLightForm('board')">Ny møteinnkalling</button><button class="action" onclick="testAiIntegration()">Test AI</button><button class="action" onclick="location.href='mail-test.html'">Test e-post</button>${customerButton}</div></div><div class="card s12 integration-summary"><section><small>Aktive</small><b>${active}</b><span>Koblinger i bruk nå</span></section><section><small>Anbefalt neste</small><b>${next}</b><span>Gir raskest kundeverdi</span></section><section><small>Planlagt</small><b>${planned}</b><span>Regnskap og bank</span></section><section><small>Prioritet</small><b>Signaturstyring</b><span>Navn, rolle og tidspunkt logges</span></section></div><div class="card s12">${SignaturePanel()}</div><div class="card s8"><div class="dash-title"><div><h3>Integrasjonsstatus</h3><p class="muted">Bare koblinger som faktisk er klare bør merkes som aktive.</p></div></div><div class="integration-card-grid">${items.map(integrationCard).join('')}</div></div><div class="card s4 integration-stack"><h3>Anbefalt rekkefølge</h3>${integrationRoadmap()}<div class="integration-note"><strong>V1 for salg</strong><span>Start med Brånnåysund, kundeavsender/svar-til, intern signaturstyring og ån regnskapskobling. Outlook kan komme senere som premium-integrasjon.</span></div></div></div>`;
+  return `<div class="grid integrations-page"><div class="card s12 module-hero integration-hero"><div><small>Integrasjoner</small><h2>Koble Driftspartner OS til verktøyene kundene bruker</h2><p>Her samles e-post, AI, regnskap, signering, offentlige data og kalender. Målet er mindre manuelt arbeid og mer live informasjon på valgt eiendom.</p></div><div class="module-actions"><button class="action primary" onclick="showEmailFlow('all')">Send som kunde/styre</button><button class="action" onclick="showOutlookLightForm('board')">Ny møteinnkalling</button><button class="action" onclick="testAiIntegration()">Test AI</button><button class="action" onclick="location.href='mail-test.html'">Test e-post</button>${customerButton}</div></div><div class="card s12 integration-summary"><section><small>Aktive</small><b>${active}</b><span>Koblinger i bruk nå</span></section><section><small>Anbefalt neste</small><b>${next}</b><span>Gir raskest kundeverdi</span></section><section><small>Planlagt</small><b>${planned}</b><span>Regnskap og bank</span></section><section><small>Prioritet</small><b>Signaturstyring</b><span>Navn, rolle og tidspunkt logges</span></section></div><div class="card s12">${SignaturePanel()}</div><div class="card s8"><div class="dash-title"><div><h3>Integrasjonsstatus</h3><p class="muted">Bare koblinger som faktisk er klare bør merkes som aktive.</p></div></div><div class="integration-card-grid">${items.map(integrationCard).join('')}</div></div><div class="card s4 integration-stack"><h3>Anbefalt rekkefølge</h3>${integrationRoadmap()}<div class="integration-note"><strong>V1 for salg</strong><span>Start med Brønnøysund, kundeavsender/svar-til, intern signaturstyring og én regnskapskobling. Outlook kan komme senere som premium-integrasjon.</span></div></div></div>`;
 }
 function integrationCard(item){
   const label=item.type==='ok'?'Aktiv':item.type==='warn'?'Neste steg':'Planlagt';
@@ -995,7 +995,7 @@ function integrationCard(item){
 }
 function integrationRoadmap(){
   return `<ol class="integration-roadmap">${[
-    ['Brånnåysund','Org.nr-oppslag i kunde, eiendom og leverandør.'],
+    ['Brønnøysund','Org.nr-oppslag i kunde, eiendom og leverandør.'],
     ['Microsoft 365 / Outlook','Møteinnkalling, kalender, e-post og styredokumenter.'],
     ['Intern signatur','Navn, e-post og tidspunkt for kontrakter, styrevedtak og tilbudsgodkjenning.'],
     ['Tripletex / PowerOffice / Fiken','Budsjett, faktura, prosjektkost og rapport.'],
@@ -1062,7 +1062,7 @@ function showOutlookLightForm(kind='board'){
 function meetingPayload(){
   const title=document.getElementById('meetingTitle')?.value.trim()||'Møte',location=document.getElementById('meetingLocation')?.value.trim()||'',start=document.getElementById('meetingStart')?.value,end=document.getElementById('meetingEnd')?.value,description=document.getElementById('meetingBody')?.value.trim()||'';
   if(!start||!end)throw new Error('Velg start og slutt for møtet.');
-  if(new Date(end)<=new Date(start))throw new Error('Sluttid må våre etter starttid.');
+  if(new Date(end)<=new Date(start))throw new Error('Sluttid må være etter starttid.');
   const checked=[...document.querySelectorAll('.meetingRecipient:checked')].map(x=>({email:x.value,label:x.dataset.label||x.value}));
   const extra=parseMailAddresses(document.getElementById('meetingExtra')?.value).map(email=>({email,label:email}));
   const attendees=[...checked,...extra].filter((r,i,a)=>a.findIndex(x=>x.email.toLowerCase()===r.email.toLowerCase())===i);
@@ -1149,7 +1149,7 @@ function emailPayloadFromForm(kind='general',caseId=''){
   const to=[...new Set([...checked,...extra].map(x=>String(x).trim()).filter(x=>x.includes('@')))];
   const subject=document.getElementById('emailSubject')?.value.trim()||'Melding fra Driftspartner OS';
   const message=document.getElementById('emailBody')?.value.trim()||'';
-  if(!to.length)throw new Error('Velg minst ån mottaker eller skriv inn en e-postadresse.');
+  if(!to.length)throw new Error('Velg minst én mottaker eller skriv inn en e-postadresse.');
   if(!message)throw new Error('Skriv en melding før du sender.');
   const fromName=document.getElementById('emailFromName')?.value.trim()||`Styret i ${currentProperty()?.name||'eiendommen'}`;
   const replyTo=document.getElementById('emailReplyTo')?.value.trim()||DP.user?.email||'';
@@ -1206,15 +1206,15 @@ function subscriptionPlans(){
 function selectedSubscriptionPlan(){return subscriptionPlans().find(p=>p.id===(DP.onboardingSubscription||'pro'))||subscriptionPlans()[1]}
 function renderSubscriptionCards(){
   const selected=selectedSubscriptionPlan().id;
-  return `<div class="subscription-grid">${subscriptionPlans().map(p=>`<button type="button" class="subscription-card ${p.id===selected?'selected':''}" onclick="selectOnboardingSubscription('${p.id}')"><span>${esc(p.name)}</span><strong>${money(p.firstYear)}</strong><small>Fårste år · faktureres årlig</small><em>år 2: ${money(p.yearTwo)} for 12 mnd</em><p>${esc(p.unit)}</p><p class="fit">Passer for ${esc(p.fit)}</p><ul>${p.items.map(i=>`<li>${esc(i)}</li>`).join('')}</ul></button>`).join('')}</div><input id="obSubscriptionPlan" type="hidden" value="${esc(selected)}"><div id="obSubscriptionSummary" class="output">${subscriptionSummaryText()}</div>`;
+  return `<div class="subscription-grid">${subscriptionPlans().map(p=>`<button type="button" class="subscription-card ${p.id===selected?'selected':''}" onclick="selectOnboardingSubscription('${p.id}')"><span>${esc(p.name)}</span><strong>${money(p.firstYear)}</strong><small>Første år · faktureres årlig</small><em>år 2: ${money(p.yearTwo)} for 12 mnd</em><p>${esc(p.unit)}</p><p class="fit">Passer for ${esc(p.fit)}</p><ul>${p.items.map(i=>`<li>${esc(i)}</li>`).join('')}</ul></button>`).join('')}</div><input id="obSubscriptionPlan" type="hidden" value="${esc(selected)}"><div id="obSubscriptionSummary" class="output">${subscriptionSummaryText()}</div>`;
 }
-function subscriptionSummaryText(){const p=selectedSubscriptionPlan();return `${p.name} valgt. Fårste år: ${money(p.firstYear)}. år 2 faktureres for 12 måneder: ${money(p.yearTwo)}. Endelig avtale bekreftes skriftlig før oppstart.`}
+function subscriptionSummaryText(){const p=selectedSubscriptionPlan();return `${p.name} valgt. Første år: ${money(p.firstYear)}. år 2 faktureres for 12 måneder: ${money(p.yearTwo)}. Endelig avtale bekreftes skriftlig før oppstart.`}
 function selectOnboardingSubscription(id){DP.onboardingSubscription=id;const wrap=document.getElementById('obSubscriptionWrap');if(wrap)wrap.innerHTML=renderSubscriptionCards()}
 
 function showNewCustomerWizard(){
   if(typeof canManageCustomers==='function'&&!canManageCustomers()){showDrawer('Ingen tilgang','<div class="empty-state"><strong>Ny kunde kan bare opprettes av intern admin.</strong><span>Kontakt Driftspartner Nord hvis kunden trenger ny eiendom eller ny konto.</span></div>');return}
   ensureOnboardingDraft();
-  showDrawer('Ny kunde - onboarding',`<div class="onboarding-flow premium-onboarding"><div class="ops-budget-summary"><div><small>1</small><b>Kunde</b></div><div><small>2</small><b>Eiendom</b></div><div><small>3</small><b>Styre/beboere</b></div><div><small>4</small><b>Leverandører</b></div><div><small>5</small><b>FDV/Økonomi</b></div><div><small>6</small><b>Abonnement</b></div><div><small>7</small><b>Brukere</b></div></div><section class="onboarding-required-box"><div><strong>Minimum for · opprette kunde</strong><span>Disse feltene må våre fylt ut før systemet lagrer kunden.</span></div><ul><li>Kundenavn</li><li>Eiendomsnavn</li><li>Adresse</li><li>Type eiendom</li><li>Antall enheter</li><li>Minst ån styreleder med e-post</li><li>Abonnement</li></ul></section><h3>Kunde</h3><div class="onboarding-entry-grid two"><label>Kundenavn <span class="required-pill">Må fylles ut</span><input id="obCustomerName" data-required="Kundenavn" placeholder="Nytt Borettslag"></label><label>Org.nr <span class="optional-pill">Kan vente</span><div class="lookup-row"><input id="obOrgNo" placeholder="9 siffer"><button class="action" onclick="lookupBrregCustomer()">Hent</button></div></label></div><div id="obBrregOut" class="output">Bruk org.nr-oppslag for · fylle kunde og adresse fra Brånnåysund.</div><h3>Eiendom</h3><label>Eiendomsnavn <span class="required-pill">Må fylles ut</span></label><input id="obPropertyName" data-required="Eiendomsnavn"><label>Adresse <span class="required-pill">Må fylles ut</span></label><input id="obAddress" data-required="Adresse"><div class="split"><div><label>Type <span class="required-pill">Må fylles ut</span></label><input id="obType" data-required="Type eiendom" placeholder="Borettslag / sameie"></div><div><label>Antall enheter <span class="required-pill">Må fylles ut</span></label><input id="obUnits" data-required="Antall enheter" type="number" min="1"></div></div><div class="split"><div><label>Gnr <span class="optional-pill">Kan vente</span></label><input id="obGnr"></div><div><label>Bnr <span class="optional-pill">Kan vente</span></label><input id="obBnr"></div></div><label>Teknisk sammendrag <span class="optional-pill">Kan vente</span></label><textarea id="obTech"></textarea><section class="onboarding-section"><div><h3>Styre <span class="required-pill">Minst ån styreleder</span></h3><p class="muted">Legg inn ett styremedlem om gangen. For oppstart må minst ån styreleder ha e-post.</p></div><div class="onboarding-entry-grid"><label>Navn<input id="obBoardName" placeholder="Kari Nordmann"></label><label>Rolle<select id="obBoardRole"><option>Styreleder</option><option>Nestleder</option><option>Styremedlem</option><option>Vara</option></select></label><label>E-post<input id="obBoardEmail" type="email" placeholder="kari@kunde.no"></label><label>Telefon<input id="obBoardPhone" placeholder="90000000"></label></div><section class="inline-option"><label><input id="obBoardCreateLogin" type="checkbox" checked> Opprett innlogging og send e-post</label><small>Styreleder før styreledertilgang. Styremedlem, nestleder og vara før styremedlemtilgang.</small><label>Midlertidig passord</label><input id="obBoardPassword" placeholder="La stå tomt for automatisk passord"></section><button class="action" onclick="addOnboardingBoard()">Legg til styremedlem</button><div id="obBoardList" class="stack-list"></div></section><section class="onboarding-section"><div><h3>Beboere <span class="optional-pill">Kan fylles senere</span></h3><p class="muted">Legg inn ån beboer eller enhet om gangen.</p></div><div class="onboarding-entry-grid"><label>Navn<input id="obResidentName" placeholder="Ola Nordmann"></label><label>Enhet/rolle<input id="obResidentUnit" placeholder="A-101 / Beboer"></label><label>E-post<input id="obResidentEmail" type="email"></label><label>Telefon<input id="obResidentPhone"></label></div><section class="inline-option"><label><input id="obResidentCreateLogin" type="checkbox" checked> Opprett innlogging og send e-post</label><small>Beboeren før bare beboertilgang til valgt eiendom.</small><label>Midlertidig passord</label><input id="obResidentPassword" placeholder="La stå tomt for automatisk passord"></section><button class="action" onclick="addOnboardingResident()">Legg til beboer</button><div id="obResidentList" class="stack-list"></div></section><section class="onboarding-section"><div><h3>Leverandører <span class="optional-pill">Kan fylles senere</span></h3><p class="muted">Legg inn ån leverandør om gangen.</p></div><div class="onboarding-entry-grid"><label>Org.nr<input id="obSupplierOrgNo" placeholder="9 siffer"></label><label>Firma<input id="obSupplierName" placeholder="Nord Tak AS"></label><label>E-post<input id="obSupplierEmail" type="email" placeholder="post@nordtak.no"></label><label>Fagområde<select id="obSupplierTrade">${supplierTradeOptions()}</select></label></div><button class="action" onclick="lookupBrregOnboardingSupplier()">Hent leverandør</button><button class="action" onclick="addOnboardingSupplier()">Legg til leverandør</button><div id="obSupplierLookupOut" class="output">Org.nr-oppslag kan fylle firmanavn automatisk.</div><div id="obSupplierList" class="stack-list"></div></section><h3>FDV-mapper <span class="recommended-pill">Anbefalt</span></h3><textarea id="obFolders" rows="3">Bygg\nVVS\nElektro\nBrann\nVentilasjon\nTak\nFasade\nHeis\nHMS\nForsikring\nGarantier\nTegninger\nKontrakter\nServiceavtaler</textarea><h3>Økonomi <span class="recommended-pill">Anbefalt</span></h3><div class="split"><div><label>Bank/konto</label><input id="obBank" type="number" value="0"></div><div><label>Reservefond</label><input id="obReserve" type="number" value="0"></div></div><label>Prosjektmidler</label><input id="obProjectFunds" type="number" value="0"><section class="onboarding-section subscription-section"><div><h3>Abonnement <span class="required-pill">Må velges</span></h3><p class="muted">Velg pakken kunden skal starte på. Fårste år har introduksjonspris, år 2 faktureres for 12 måneder.</p></div><div id="obSubscriptionWrap">${renderSubscriptionCards()}</div></section><section class="onboarding-section"><div><h3>Inviter brukere <span class="recommended-pill">Anbefalt</span></h3><p class="muted">Brukeren før e-post med innlogging og midlertidig passord når kunden opprettes.</p></div><div class="onboarding-entry-grid"><label>Navn<input id="obUserName"></label><label>E-post<input id="obUserEmail" type="email"></label><label>Rolle<select id="obUserRole"><option value="styreleder">Styreleder</option><option value="styremedlem">Styremedlem</option><option value="forvalter">Forvalter</option><option value="beboer">Beboer</option><option value="vaktmester">Vaktmester</option><option value="leverandor">Leverandør</option></select></label><label>Telefon<input id="obUserPhone"></label></div><label>Midlertidig passord</label><input id="obUserPassword" placeholder="Start1234!"><button class="action" onclick="addOnboardingUser()">Legg til bruker</button><div id="obUserList" class="stack-list"></div></section><button class="action primary" onclick="runNewCustomerOnboarding()">Opprett kunde</button><div id="obOut" class="output">Klar. Fyll ut feltene merket "Må fylles ut", legg til styreleder og trykk Opprett kunde.</div></div>`);
+  showDrawer('Ny kunde - onboarding',`<div class="onboarding-flow premium-onboarding"><div class="ops-budget-summary"><div><small>1</small><b>Kunde</b></div><div><small>2</small><b>Eiendom</b></div><div><small>3</small><b>Styre/beboere</b></div><div><small>4</small><b>Leverandører</b></div><div><small>5</small><b>FDV/Økonomi</b></div><div><small>6</small><b>Abonnement</b></div><div><small>7</small><b>Brukere</b></div></div><section class="onboarding-required-box"><div><strong>Minimum for å opprette kunde</strong><span>Disse feltene må være fylt ut før systemet lagrer kunden.</span></div><ul><li>Kundenavn</li><li>Eiendomsnavn</li><li>Adresse</li><li>Type eiendom</li><li>Antall enheter</li><li>Minst én styreleder med e-post</li><li>Abonnement</li></ul></section><h3>Kunde</h3><div class="onboarding-entry-grid two"><label>Kundenavn <span class="required-pill">Må fylles ut</span><input id="obCustomerName" data-required="Kundenavn" placeholder="Nytt Borettslag"></label><label>Org.nr <span class="optional-pill">Kan vente</span><div class="lookup-row"><input id="obOrgNo" placeholder="9 siffer"><button class="action" onclick="lookupBrregCustomer()">Hent</button></div></label></div><div id="obBrregOut" class="output">Bruk org.nr-oppslag for å fylle kunde og adresse fra Brønnøysund.</div><h3>Eiendom</h3><label>Eiendomsnavn <span class="required-pill">Må fylles ut</span></label><input id="obPropertyName" data-required="Eiendomsnavn"><label>Adresse <span class="required-pill">Må fylles ut</span></label><input id="obAddress" data-required="Adresse"><div class="split"><div><label>Type <span class="required-pill">Må fylles ut</span></label><input id="obType" data-required="Type eiendom" placeholder="Borettslag / sameie"></div><div><label>Antall enheter <span class="required-pill">Må fylles ut</span></label><input id="obUnits" data-required="Antall enheter" type="number" min="1"></div></div><div class="split"><div><label>Gnr <span class="optional-pill">Kan vente</span></label><input id="obGnr"></div><div><label>Bnr <span class="optional-pill">Kan vente</span></label><input id="obBnr"></div></div><label>Teknisk sammendrag <span class="optional-pill">Kan vente</span></label><textarea id="obTech"></textarea><section class="onboarding-section"><div><h3>Styre <span class="required-pill">Minst én styreleder</span></h3><p class="muted">Legg inn ett styremedlem om gangen. For oppstart må minst én styreleder ha e-post.</p></div><div class="onboarding-entry-grid"><label>Navn<input id="obBoardName" placeholder="Kari Nordmann"></label><label>Rolle<select id="obBoardRole"><option>Styreleder</option><option>Nestleder</option><option>Styremedlem</option><option>Vara</option></select></label><label>E-post<input id="obBoardEmail" type="email" placeholder="kari@kunde.no"></label><label>Telefon<input id="obBoardPhone" placeholder="90000000"></label></div><section class="inline-option"><label><input id="obBoardCreateLogin" type="checkbox" checked> Opprett innlogging og send e-post</label><small>Styreleder får styreledertilgang. Styremedlem, nestleder og vara får styremedlemtilgang.</small><label>Midlertidig passord</label><input id="obBoardPassword" placeholder="La stå tomt for automatisk passord"></section><button class="action" onclick="addOnboardingBoard()">Legg til styremedlem</button><div id="obBoardList" class="stack-list"></div></section><section class="onboarding-section"><div><h3>Beboere <span class="optional-pill">Kan fylles senere</span></h3><p class="muted">Legg inn én beboer eller enhet om gangen.</p></div><div class="onboarding-entry-grid"><label>Navn<input id="obResidentName" placeholder="Ola Nordmann"></label><label>Enhet/rolle<input id="obResidentUnit" placeholder="A-101 / Beboer"></label><label>E-post<input id="obResidentEmail" type="email"></label><label>Telefon<input id="obResidentPhone"></label></div><section class="inline-option"><label><input id="obResidentCreateLogin" type="checkbox" checked> Opprett innlogging og send e-post</label><small>Beboeren får bare beboertilgang til valgt eiendom.</small><label>Midlertidig passord</label><input id="obResidentPassword" placeholder="La stå tomt for automatisk passord"></section><button class="action" onclick="addOnboardingResident()">Legg til beboer</button><div id="obResidentList" class="stack-list"></div></section><section class="onboarding-section"><div><h3>Leverandører <span class="optional-pill">Kan fylles senere</span></h3><p class="muted">Legg inn én leverandør om gangen.</p></div><div class="onboarding-entry-grid"><label>Org.nr<input id="obSupplierOrgNo" placeholder="9 siffer"></label><label>Firma<input id="obSupplierName" placeholder="Nord Tak AS"></label><label>E-post<input id="obSupplierEmail" type="email" placeholder="post@nordtak.no"></label><label>Fagområde<select id="obSupplierTrade">${supplierTradeOptions()}</select></label></div><button class="action" onclick="lookupBrregOnboardingSupplier()">Hent leverandør</button><button class="action" onclick="addOnboardingSupplier()">Legg til leverandør</button><div id="obSupplierLookupOut" class="output">Org.nr-oppslag kan fylle firmanavn automatisk.</div><div id="obSupplierList" class="stack-list"></div></section><h3>FDV-mapper <span class="recommended-pill">Anbefalt</span></h3><textarea id="obFolders" rows="3">Bygg\nVVS\nElektro\nBrann\nVentilasjon\nTak\nFasade\nHeis\nHMS\nForsikring\nGarantier\nTegninger\nKontrakter\nServiceavtaler</textarea><h3>Økonomi <span class="recommended-pill">Anbefalt</span></h3><div class="split"><div><label>Bank/konto</label><input id="obBank" type="number" value="0"></div><div><label>Reservefond</label><input id="obReserve" type="number" value="0"></div></div><label>Prosjektmidler</label><input id="obProjectFunds" type="number" value="0"><section class="onboarding-section subscription-section"><div><h3>Abonnement <span class="required-pill">Må velges</span></h3><p class="muted">Velg pakken kunden skal starte på. Første år har introduksjonspris, år 2 faktureres for 12 måneder.</p></div><div id="obSubscriptionWrap">${renderSubscriptionCards()}</div></section><section class="onboarding-section"><div><h3>Inviter brukere <span class="recommended-pill">Anbefalt</span></h3><p class="muted">Brukeren får e-post med innlogging og midlertidig passord når kunden opprettes.</p></div><div class="onboarding-entry-grid"><label>Navn<input id="obUserName"></label><label>E-post<input id="obUserEmail" type="email"></label><label>Rolle<select id="obUserRole"><option value="styreleder">Styreleder</option><option value="styremedlem">Styremedlem</option><option value="forvalter">Forvalter</option><option value="beboer">Beboer</option><option value="vaktmester">Vaktmester</option><option value="leverandor">Leverandør</option></select></label><label>Telefon<input id="obUserPhone"></label></div><label>Midlertidig passord</label><input id="obUserPassword" placeholder="Start1234!"><button class="action" onclick="addOnboardingUser()">Legg til bruker</button><div id="obUserList" class="stack-list"></div></section><button class="action primary" onclick="runNewCustomerOnboarding()">Opprett kunde</button><div id="obOut" class="output">Klar. Fyll ut feltene merket "Må fylles ut", legg til styreleder og trykk Opprett kunde.</div></div>`);
   setTimeout(renderOnboardingDraftLists,0);
 }
 function ensureOnboardingDraft(){DP.onboardingDraft=DP.onboardingDraft||{board:[],residents:[],suppliers:[],users:[]};return DP.onboardingDraft}
@@ -1237,7 +1237,7 @@ function assertOnboardingLimit(kind,label,add=1){
 }
 async function lookupBrregCustomer(){
   try{
-    setFieldText('obBrregOut','Henter kundeinformasjon fra Brånnåysund...');
+    setFieldText('obBrregOut','Henter kundeinformasjon fra Brønnøysund...');
     const entity=await lookupBrregOrg(obVal('obOrgNo'));
     const address=brregAddress(entity),form=brregForm(entity);
     setFieldValue('obOrgNo',entity.organisasjonsnummer||orgDigits(obVal('obOrgNo')));
@@ -1250,7 +1250,7 @@ async function lookupBrregCustomer(){
 }
 async function lookupBrregOnboardingSupplier(){
   try{
-    setFieldText('obSupplierLookupOut','Henter leverandør fra Brånnåysund...');
+    setFieldText('obSupplierLookupOut','Henter leverandør fra Brønnøysund...');
     const entity=await lookupBrregOrg(obVal('obSupplierOrgNo'));
     const address=brregAddress(entity);
     setFieldValue('obSupplierOrgNo',entity.organisasjonsnummer||orgDigits(obVal('obSupplierOrgNo')));
@@ -1317,12 +1317,12 @@ function validateNewCustomerOnboarding(){
   ];
   required.forEach(([id,label])=>{if(!obVal(id)){missing.push(label);ids.push(id)}});
   const units=Number(obVal('obUnits')||0);
-  if(obVal('obUnits')&&(!Number.isFinite(units)||units<1)){missing.push('Antall enheter må våre minst 1');ids.push('obUnits')}
+  if(obVal('obUnits')&&(!Number.isFinite(units)||units<1)){missing.push('Antall enheter må være minst 1');ids.push('obUnits')}
   const unitLimit=onboardingPlanLimit('units');
   if(unitLimit>0&&units>unitLimit){missing.push(`${selectedSubscriptionPlan().name} inkluderer opptil ${unitLimit} enheter`);ids.push('obUnits')}
   const hasBoardLead=draft.board.some(x=>/styreleder|leder/i.test(String(x.role||''))&&String(x.email||'').includes('@'));
   const inlineBoardLead=/styreleder|leder/i.test(obVal('obBoardRole'))&&obVal('obBoardName')&&obVal('obBoardEmail').includes('@');
-  if(!hasBoardLead&&!inlineBoardLead)missing.push('Legg til minst ån styreleder med e-post');
+  if(!hasBoardLead&&!inlineBoardLead)missing.push('Legg til minst én styreleder med e-post');
   if(!selectedSubscriptionPlan()?.id)missing.push('Velg abonnement');
   return {ok:!missing.length,missing,ids};
 }
@@ -1493,7 +1493,7 @@ async function runNewCustomerOnboarding(){
     await finishAction(`Kunden er opprettet. ${log.join(' · ')}`,'property');
   }catch(e){
     const message=onboardingAdminError(e,step);
-    if(out)out.innerHTML=`<div class="validation-box"><strong>Onboarding stoppet</strong><p>${esc(message)}</p><span>Kunde eller eiendom kan allerede våre delvis opprettet. Sjekk Eiendom-listen før du prøver på nytt.</span></div>`;
+    if(out)out.innerHTML=`<div class="validation-box"><strong>Onboarding stoppet</strong><p>${esc(message)}</p><span>Kunde eller eiendom kan allerede være delvis opprettet. Sjekk Eiendom-listen før du prøver på nytt.</span></div>`;
     console.error('Onboarding failed at',step,e);
   }
 }
@@ -1564,6 +1564,130 @@ function MarketSimpleFlow(suppliers,rfqs,offers){
   ];
   return `<div class="dash-title"><div><h3>Tilbudsflyt</h3><p class="muted">Fire steg fra behov til dokumentert valg.</p></div></div><div class="simple-flow-steps">${steps.map((s,i)=>`<button class="${s.ok?'ok':'warn'}" onclick="${esc(s.open)}"><span>${i+1}</span><strong>${esc(s.title)}</strong><small>${esc(s.text)}</small><b>${esc(s.action)}</b></button>`).join('')}</div>`;
 }
+
+// Premium offer analysis and cleaner procurement UX.
+function offerNumericPrice(offer){return Number(offer?.price||offer?.amount||offer?.total||0)||0}
+function offerSupplierLabel(offer){return supplierName(offer?.supplier_id)||offer?.suppliers?.name||offer?.supplier_name||'Leverandør'}
+function offerReservationText(offer){return String(offer?.reservations||offer?.terms||offer?.notes||'').trim()}
+function offerRiskLevel(offer,all=[]){
+  const text=offerReservationText(offer).toLowerCase(),price=offerNumericPrice(offer);
+  const prices=all.map(offerNumericPrice).filter(Boolean),avg=prices.length?prices.reduce((a,b)=>a+b,0)/prices.length:0;
+  let risk=0,reasons=[];
+  if(!price){risk+=30;reasons.push('mangler pris')}
+  if(text.match(/forbehold|ukjent|ikke inkludert|timepris|avklares|tillegg/)){risk+=25;reasons.push('forbehold må avklares')}
+  if(text.length<8){risk+=10;reasons.push('lite dokumentert forbehold')}
+  if(avg&&price>avg*1.2){risk+=18;reasons.push('over snittpris')}
+  if(/valgt|godkjent/i.test(offer?.status||'')){risk=Math.max(0,risk-12)}
+  const level=risk>=45?'Høy':risk>=22?'Middels':'Lav';
+  return {risk,level,reasons};
+}
+function offerAiScore(offer,all=[]){
+  const prices=all.map(offerNumericPrice).filter(Boolean),price=offerNumericPrice(offer),min=prices.length?Math.min(...prices):0,avg=prices.length?prices.reduce((a,b)=>a+b,0)/prices.length:0;
+  const risk=offerRiskLevel(offer,all);
+  let score=70;
+  if(price&&min&&price===min)score+=14;
+  else if(price&&avg&&price<=avg)score+=7;
+  else if(price&&avg&&price>avg*1.2)score-=14;
+  if(!price)score-=24;
+  if(risk.level==='Høy')score-=18;
+  if(risk.level==='Middels')score-=8;
+  if(/valgt|godkjent/i.test(offer?.status||''))score+=6;
+  return Math.max(0,Math.min(100,Math.round(score)));
+}
+function offerAnalysisRows(offers=[]){
+  return offers.map(o=>({offer:o,supplier:offerSupplierLabel(o),price:offerNumericPrice(o),score:offerAiScore(o,offers),risk:offerRiskLevel(o,offers)})).sort((a,b)=>b.score-a.score||a.price-b.price);
+}
+function offerAiSummary(offers=[]){
+  const rows=offerAnalysisRows(offers),best=rows[0],prices=rows.map(r=>r.price).filter(Boolean),avg=prices.length?prices.reduce((a,b)=>a+b,0)/prices.length:0;
+  if(!offers.length)return `<div class="empty-state"><strong>Ingen tilbud å analysere.</strong><span>Last opp minst ett tilbud med pris, PDF og forbehold før styret vurderer leverandør.</span><button class="action primary" onclick="showOfferForm()">Last opp tilbud</button></div>`;
+  const decision=offers.length<2?'Hent minst ett tilbud til før endelig valg.':'Styret kan vurdere anbefalt leverandør, men må kontrollere forbehold før godkjenning.';
+  return `<section class="offer-ai-summary">
+    <div class="offer-ai-main">
+      <small>AI-vurdering V1</small>
+      <h3>${esc(best?.supplier||'Leverandør')} anbefales foreløpig</h3>
+      <p>Basert på pris, forbehold, status og sammenligning med andre registrerte tilbud.</p>
+      <div class="offer-ai-score"><strong>${best?.score||0}</strong><span>score</span></div>
+    </div>
+    <div class="offer-ai-facts">
+      <div><span>Tilbud</span><b>${offers.length}</b></div>
+      <div><span>Snittpris</span><b>${money(avg)}</b></div>
+      <div><span>Risiko</span><b>${esc(best?.risk?.level||'Ikke vurdert')}</b></div>
+      <div><span>Neste steg</span><b>${esc(decision)}</b></div>
+    </div>
+  </section>`;
+}
+function offerAnalysisPanel(offers=[]){
+  const rows=offerAnalysisRows(offers);
+  if(!rows.length)return offerAiSummary(offers);
+  return `<div id="offerAiAnalysis" class="offer-ai-panel">
+    ${offerAiSummary(offers)}
+    <div class="offer-analysis-table">
+      <div class="offer-analysis-head"><span>Leverandør</span><span>Pris</span><span>Score</span><span>Risiko</span><span>Anbefaling</span></div>
+      ${rows.map((r,i)=>{
+        const advice=i===0?'Beste helhet nå':r.risk.level==='Høy'?'Avklar forbehold':'Kan vurderes';
+        const reasons=r.risk.reasons.length?r.risk.reasons.join(', '):'ingen store forbehold funnet';
+        return `<section class="offer-analysis-row ${i===0?'best':''}">
+          <div><strong>${esc(r.supplier)}</strong><small>${esc(reasons)}</small></div>
+          <div><b>${money(r.price)}</b></div>
+          <div><span class="score-pill">${r.score}</span></div>
+          <div><span class="soft-pill ${r.risk.level==='Høy'?'bad':r.risk.level==='Middels'?'warn':'ok'}">${esc(r.risk.level)}</span></div>
+          <div><span>${esc(advice)}</span><button class="action ${i===0?'primary':''}" onclick="markOfferSelected('${esc(r.offer.id)}')">${i===0?'Velg tilbud':'Velg'}</button></div>
+        </section>`;
+      }).join('')}
+    </div>
+    <div class="flow-note">AI-vurderingen er veiledende. Styret bør alltid kontrollere forbehold, leveranse, garanti og dokumentasjon før endelig valg.</div>
+  </div>`;
+}
+function scrollToOfferAnalysis(){
+  const el=document.getElementById('offerAiAnalysis');
+  if(el)el.scrollIntoView({behavior:'smooth',block:'start'});
+}
+function offerRecommendation(best,offers){
+  const rows=offerAnalysisRows(offers),row=rows.find(r=>r.offer.id===best?.id)||rows[0];
+  if(!row)return '<div class="empty-state"><strong>Ingen tilbud å vurdere.</strong><span>Last opp tilbud først.</span></div>';
+  return `<div class="offer-recommend premium-offer-recommend">
+    <strong>${esc(row.supplier)}</strong>
+    <b>${money(row.price)}</b>
+    <span>${row.score} poeng · ${esc(row.risk.level)} risiko</span>
+    <p>${esc(offerReservationText(row.offer)||'Ingen forbehold registrert.')}</p>
+    <div class="row-actions"><button class="action primary" onclick="markOfferSelected('${esc(row.offer.id)}')">Velg tilbud</button><button class="action" onclick="scrollToOfferAnalysis()">Se AI-analyse</button></div>
+  </div>`;
+}
+function offerCards(rows){
+  if(!rows.length)return '<div class="empty-state"><strong>Ingen tilbud mottatt.</strong><span>Last opp PDF, pris og forbehold fra leverandør når tilbud kommer inn.</span><button class="action primary" onclick="showOfferForm()">Last opp tilbud</button></div>';
+  const analysed=offerAnalysisRows(rows);
+  return `<div class="market-card-list">${analysed.map((r,i)=>`<section class="market-record offer-record ${i===0?'best':''}">
+    <div class="market-record-head"><div><strong>${esc(r.supplier)}</strong><small>${esc(offerReservationText(r.offer)||'Ingen forbehold registrert')}</small></div><span class="soft-pill ${i===0?'ok':'info'}">${i===0?'Anbefalt':esc(r.offer.status||'Mottatt')}</span></div>
+    <div class="offer-card-metrics"><div><small>Pris</small><b>${money(r.price)}</b></div><div><small>Score</small><b>${r.score}</b></div><div><small>Risiko</small><b>${esc(r.risk.level)}</b></div></div>
+    <div class="row-actions"><button class="action primary" onclick="markOfferSelected('${esc(r.offer.id)}')">Velg</button><button class="action" onclick="showSignatureRequestForm('Tilbudsgodkjenning','offer','${esc(r.offer.id)}','Tilbud - ${esc(r.supplier)}')">Send til signering</button><button class="action red" onclick="deleteRow('offers','${esc(r.offer.id)}')">Slett</button></div>
+  </section>`).join('')}</div>`;
+}
+function MarketPage(){
+  const rfqs=DP.cache.quote_requests||[],offers=DP.cache.offers||[],suppliers=DP.suppliers||[];
+  const hasRfq=typeof subscriptionHas==='function'?subscriptionHas('rfq'):true;
+  if(!hasRfq)return SupplierRegisterPage(suppliers);
+  const sent=rfqs.filter(r=>/sendt|aktiv|publisert/i.test(r.status||'')).length,totalOfferValue=offers.reduce((s,o)=>s+Number(o.price||0),0);
+  const best=offerAnalysisRows(offers)[0]?.offer;
+  return `<div class="grid market-page premium-market-page">
+    <div class="card s12 module-hero market-hero"><div><small>Tilbud og leverandører</small><h2>Innkjøp for ${esc(currentProperty()?.name||'valgt eiendom')}</h2><p>En ryddig innkjøpsflyt med leverandører, forespørsel, tilbud, AI-vurdering og dokumentert beslutning.</p></div><div class="module-actions"><button class="action primary" onclick="showRfqForm()">Lag tilbudsforespørsel</button><button class="action" onclick="showSupplierForm()">Registrer leverandør</button><button class="action" onclick="showOfferForm()">Last opp tilbud</button><button class="action" onclick="scrollToOfferAnalysis()">Kjør AI-vurdering</button></div></div>
+    <div class="card s12 simple-flow-card">${MarketSimpleFlow(suppliers,rfqs,offers)}</div>
+    <div class="card s12 market-pipeline premium-market-metrics">
+      <div><small>Leverandører</small><b>${suppliers.length}</b><span>Firma med e-post</span></div>
+      <div><small>Forespørsler</small><b>${rfqs.length}</b><span>RFQ på eiendommen</span></div>
+      <div><small>Sendt/aktiv</small><b>${sent}</b><span>Krever oppfølging</span></div>
+      <div><small>Tilbud</small><b>${offers.length}</b><span>Mottatte tilbud</span></div>
+      <div><small>Tilbudsverdi</small><b>${money(totalOfferValue)}</b><span>Samlet registrert verdi</span></div>
+    </div>
+    <div class="card s8 market-flow-card"><div class="dash-title"><div><h3>Innkjøpsstatus</h3><p class="muted">Viser om prosessen er klar for vurdering og styrebeslutning.</p></div><button class="action" onclick="showRfqForm()">Ny RFQ</button></div>${procurementFlow(rfqs,offers,suppliers)}</div>
+    <div class="card s4 market-recommendation"><h3>Beste registrerte tilbud</h3>${best?offerRecommendation(best,offers):'<div class="empty-state"><strong>Ingen tilbud å vurdere.</strong><span>Last opp minst ett tilbud med pris og PDF.</span><button class="action primary" onclick="showOfferForm()">Last opp tilbud</button></div>'}</div>
+    <div class="card s12 offer-analysis-card"><div class="dash-title"><div><h3>AI tilbudsanalyse</h3><p class="muted">Sammenligner pris, forbehold, risiko og anbefaling for styret.</p></div><button class="action" onclick="showOfferForm()">Last opp mer</button></div>${offerAnalysisPanel(offers)}</div>
+    <div class="card s4"><div class="dash-title"><h3>Leverandører</h3><button class="action" onclick="showSupplierForm()">Ny</button></div>${supplierCards()}</div>
+    <div class="card s4"><div class="dash-title"><h3>Forespørsler</h3><button class="action" onclick="showRfqForm()">Ny</button></div>${rfqCards(rfqs)}</div>
+    <div class="card s4"><div class="dash-title"><h3>Tilbud</h3><button class="action" onclick="showOfferForm()">Last opp</button></div>${offerCards(offers)}</div>
+  </div>`;
+}
+
+
 
 
 
