@@ -1995,3 +1995,161 @@ body:not(.public-mode) tr td:last-child{
 @media(max-width:800px){.internal-folder-grid{grid-template-columns:1fr}}
 @media(max-width:700px){.internal-doc .document-head{display:grid}.internal-onboarding{grid-template-columns:1fr}}
 
+
+/* Compact customer UI pass - styre og brukere */
+body:not(.public-mode) .app{
+  grid-template-columns:214px minmax(0,1fr);
+}
+body:not(.public-mode) .side{
+  padding:14px 10px;
+}
+body:not(.public-mode) .brand{
+  font-size:15px;
+  padding-left:36px;
+}
+body:not(.public-mode) .brand:before{
+  width:28px;
+  height:28px;
+}
+body:not(.public-mode) .user{
+  margin-bottom:12px;
+  padding-left:36px;
+}
+body:not(.public-mode) .side button{
+  height:36px;
+  padding:8px 10px;
+  font-size:13px;
+  margin:2px 0;
+}
+body:not(.public-mode) .main{
+  padding:0 18px 20px;
+}
+body:not(.public-mode) .context{
+  margin:0 -18px 16px;
+  padding:8px 18px;
+  grid-template-columns:220px minmax(220px,1fr) auto auto 150px;
+  gap:10px;
+}
+body:not(.public-mode) .context select,
+body:not(.public-mode) .context input{
+  height:38px;
+  font-size:13px;
+}
+body:not(.public-mode) .grid{
+  gap:12px;
+}
+body:not(.public-mode) .card{
+  border-radius:11px;
+  padding:14px;
+  box-shadow:0 12px 34px rgba(0,0,0,.18);
+}
+body:not(.public-mode) .executive-hero,
+body:not(.public-mode) .module-hero,
+body:not(.public-mode) .integration-hero{
+  padding:16px 18px;
+  min-height:auto;
+}
+body:not(.public-mode) .executive-hero h2,
+body:not(.public-mode) .module-hero h2{
+  font-size:24px;
+  margin:3px 0 6px;
+}
+body:not(.public-mode) .executive-hero p,
+body:not(.public-mode) .module-hero p{
+  max-width:760px;
+  font-size:14px;
+  line-height:1.45;
+}
+body:not(.public-mode) .executive-actions,
+body:not(.public-mode) .module-actions{
+  gap:6px;
+}
+body:not(.public-mode) .action{
+  padding:8px 10px;
+  border-radius:8px;
+  font-size:13px;
+  margin:3px 4px 3px 0;
+}
+body:not(.public-mode) .dashboard-page .executive-card,
+body:not(.public-mode) .dashboard-priority-grid section,
+body:not(.public-mode) .dashboard-priority-grid button{
+  min-height:92px;
+  padding:13px;
+}
+body:not(.public-mode) .dashboard-page .executive-card strong,
+body:not(.public-mode) .dashboard-priority-grid strong{
+  font-size:24px;
+  line-height:1.05;
+}
+body:not(.public-mode) .dashboard-page .executive-card span,
+body:not(.public-mode) .dashboard-priority-grid span,
+body:not(.public-mode) .dashboard-priority-grid p{
+  font-size:12px;
+  line-height:1.35;
+}
+body:not(.public-mode) .dash-title{
+  margin-bottom:10px;
+  gap:10px;
+}
+body:not(.public-mode) .dash-title h3{
+  font-size:15px;
+}
+body:not(.public-mode) .premium-finance-card,
+body:not(.public-mode) .premium-deviation-card,
+body:not(.public-mode) .dashboard-trend,
+body:not(.public-mode) .dashboard-deadlines,
+body:not(.public-mode) .dashboard-controls{
+  min-height:auto;
+}
+body:not(.public-mode) .finance-report-card,
+body:not(.public-mode) .premium-finance-chart{
+  gap:12px;
+}
+body:not(.public-mode) .finance-report-metrics{
+  grid-template-columns:repeat(5,minmax(0,1fr));
+  gap:10px;
+}
+body:not(.public-mode) .finance-report-metrics section{
+  grid-template-columns:42px minmax(0,1fr);
+  padding:14px 12px;
+}
+body:not(.public-mode) .finance-report-metrics b{
+  font-size:22px;
+}
+body:not(.public-mode) .finance-bar-chart{
+  max-height:300px;
+}
+body:not(.public-mode) table th,
+body:not(.public-mode) table td{
+  padding:8px;
+  font-size:13px;
+}
+body:not(.public-mode) input,
+body:not(.public-mode) textarea,
+body:not(.public-mode) select{
+  padding:9px 10px;
+  font-size:14px;
+  border-radius:9px;
+}
+body:not(.public-mode) textarea{
+  min-height:82px;
+}
+@media(min-width:1280px){
+  body:not(.public-mode) #content{
+    max-width:1380px;
+    margin:0 auto;
+  }
+}
+@media(max-width:900px){
+  body:not(.public-mode) .app{
+    grid-template-columns:1fr;
+  }
+  body:not(.public-mode) .main{
+    padding:0 12px 18px;
+  }
+  body:not(.public-mode) .context{
+    margin:0 -12px 14px;
+    padding:10px 12px;
+    grid-template-columns:1fr;
+  }
+}
