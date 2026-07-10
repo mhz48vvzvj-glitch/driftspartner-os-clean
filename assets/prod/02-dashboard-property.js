@@ -179,9 +179,53 @@ async function requestPropertySubscription(plan){
 function DashboardTrend30(){
   const series=dashboardTrendSeries();
   const max=Math.max(1,...series.map(d=>d.total));
-  const points=series.map((d,i)=>`${Math.round((i/(series.length-1))*100)},${Math.round(100-(d.total/max)*82)}`).join(' ');
-  const last=series[series.length-1]?.total||0,prev=series.slice(-8,-1).reduce((s,d)=>s+d.total,0);
-  return `<div class="dash-title"><div><h3>Siste 30 dager</h3><p class="muted">Trend fra avvik, arbeidsordre, dokumenter og aktivitet.</p></div><span class="badge info">${last} i dag</span></div><div class="trend-chart"><svg viewBox="0 0 100 100" preserveAspectRatio="none"><polyline points="${points}" fill="none" stroke="#2d72ff" stroke-width="3" vector-effect="non-scaling-stroke"/><polyline points="${points} 100,100 0,100" fill="rgba(45,114,255,.10)" stroke="none"/></svg></div><div class="trend-legend">${[['Avvik','devs'],['Arbeid','wos'],['Dokumenter','docs'],['Aktivitet','activity']].map(([label,key])=>`<span><i></i>${esc(label)}: ${series.reduce((s,d)=>s+d[key],0)}</span>`).join('')}<b>${prev} siste uke</b></div>`;
+  const total30=series.reduce((s,d)=>s+d.total,0);
+  const last=series[series.length-1]?.total||0;
+  const week=series.slice(-7).reduce((s,d)=>s+d.total,0);
+  const prevWeek=series.slice(-14,-7).reduce((s,d)=>s+d.total,0);
+  const top=series.reduce((best,d)=>d.total>best.total?d:best,series[0]||{total:0,date:new Date()});
+  const trendPoints=series.map((d,i)=>{
+    const start=Math.max(0,i-2),window=series.slice(start,i+1);
+    const avg=window.reduce((s,r)=>s+r.total,0)/window.length;
+    return `${(8+(i*84/(series.length-1))).toFixed(2)},${(88-(avg/max)*68).toFixed(2)}`;
+  }).join(' ');
+  const keys=[
+    ['devs','Avvik','trend-dev'],
+    ['wos','Arbeid','trend-work'],
+    ['docs','Dokumenter','trend-doc'],
+    ['activity','Aktivitet','trend-log']
+  ];
+  const bars=series.map((d,i)=>{
+    const x=7.5+(i*84/series.length),w=Math.max(1.15,64/series.length);
+    let y=88;
+    return keys.map(([key,,cls])=>{
+      const h=(d[key]/max)*68;
+      y-=h;
+      return h>0.7?`<rect class="${cls}" x="${x.toFixed(2)}" y="${y.toFixed(2)}" width="${w.toFixed(2)}" height="${h.toFixed(2)}" rx=".9"></rect>`:'';
+    }).join('');
+  }).join('');
+  const grid=[0,.25,.5,.75,1].map(t=>`<line x1="7" y1="${(88-t*68).toFixed(2)}" x2="94" y2="${(88-t*68).toFixed(2)}" class="trend-grid"></line>`).join('');
+  const labelDate=(d)=>d?.date?d.date.toLocaleDateString('nb-NO',{day:'numeric',month:'short'}):'-';
+  const totals=keys.map(([key,label,cls])=>`<span><i class="${cls}"></i>${esc(label)}: ${series.reduce((s,d)=>s+d[key],0)}</span>`).join('');
+  const weekText=week===prevWeek?'samme som uken før':week>prevWeek?`${week-prevWeek} mer enn uken før`:`${prevWeek-week} færre enn uken før`;
+  return `<div class="dash-title"><div><h3>Siste 30 dager</h3><p class="muted">Live trend fra avvik, arbeidsordre, dokumenter og aktivitet.</p></div><span class="badge info">${total30} totalt</span></div>
+  <div class="trend-summary">
+    <section><small>I dag</small><b>${last}</b></section>
+    <section><small>Siste 7 dager</small><b>${week}</b></section>
+    <section><small>Toppdag</small><b>${top.total}</b><em>${esc(labelDate(top))}</em></section>
+    <section><small>Utvikling</small><b>${esc(weekText)}</b></section>
+  </div>
+  <div class="trend-chart premium-trend-chart">
+    <svg viewBox="0 0 100 100" preserveAspectRatio="none" role="img" aria-label="Siste 30 dager fordelt på avvik, arbeidsordre, dokumenter og aktivitet">
+      ${grid}
+      ${bars}
+      <polyline points="${trendPoints}" fill="none" class="trend-line" vector-effect="non-scaling-stroke"></polyline>
+      <line x1="7" y1="88" x2="94" y2="88" class="trend-base"></line>
+    </svg>
+    ${total30===0?'<div class="trend-empty-note"><strong>Ingen aktivitet registrert siste 30 dager.</strong><span>Når saker, dokumenter eller e-post logges, fylles grafen automatisk.</span></div>':''}
+  </div>
+  <div class="trend-labels"><span>${esc(labelDate(series[0]))}</span><span>${esc(labelDate(series[14]))}</span><span>${esc(labelDate(series[29]))}</span></div>
+  <div class="trend-legend">${totals}<b>${week} siste uke</b></div>`;
 }
 function dashboardTrendSeries(){
   const today=new Date();today.setHours(0,0,0,0);
