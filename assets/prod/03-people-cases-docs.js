@@ -224,6 +224,7 @@ function CasesPage(){
   const waiting=devs.filter(d=>/venter|leverandør|leverandor|arbeidsordre/i.test(String(d.status||''))).length;
   return `<div class="grid cases-page premium-cases">
     <div class="card s12 module-hero cases-hero"><div><small>${hasWorkOrders?'Avvik og arbeidsordre':'Avvik'}</small><h2>Driftssaker for ${esc(currentProperty()?.name||'valgt eiendom')}</h2><p>${hasWorkOrders?'Registrer avvik, fordel ansvar, sett frister og følg saken videre.':'Registrer avvik og følg opp saker på valgt eiendom.'}</p></div><div class="module-actions"><button class="action primary" onclick="showDeviationForm()">Nytt avvik</button>${workOrderAction}<button class="action" onclick="showEmailFlow('deviation')">Send e-post</button>${caseFlowAction}</div></div>
+    <div class="card s12 simple-flow-card">${CasesSimpleFlow(hasWorkOrders,hasRfq)}</div>
     ${caseSummaryCard('Åpne avvik',devs.filter(open).length,'Avvik som må behandles','showDeviationForm()','info')}
     ${caseSummaryCard('Kritisk/høy',critical,'Bør prioriteres først','openCaseFilter("critical")','bad')}
     ${hasWorkOrders?caseSummaryCard('Arbeidsordre',wos.filter(open).length,'Pågående oppgaver','showWorkOrderForm()','warn'):''}
@@ -233,6 +234,15 @@ function CasesPage(){
     <div class="card s6 case-section"><div class="dash-title"><div><h3>Avvik</h3><p class="muted">Registrerte avvik med kategori, prioritet og status.</p></div><button class="action primary" onclick="showDeviationForm()">Nytt avvik</button></div>${caseCards(devs,'deviation')}</div>
     ${hasWorkOrders?`<div class="card s6 case-section"><div class="dash-title"><div><h3>Arbeidsordre</h3><p class="muted">Oppgaver som kan sendes til vaktmester, styre eller leverandør.</p></div><button class="action primary" onclick="showWorkOrderForm()">Ny arbeidsordre</button></div>${caseCards(wos,'work_order')}</div>`:`<div class="card s6 case-section"><h3>Arbeidsordre</h3><div class="empty-state"><strong>Arbeidsordre er Pro-funksjon.</strong><span>Start-pakken kan registrere og følge avvik. Oppgrader til Pro for arbeidsordre og frister.</span></div></div>`}
   </div>`;
+}
+function CasesSimpleFlow(hasWorkOrders=true,hasRfq=true){
+  const steps=[
+    {n:'1',title:'Registrer sak',text:'Legg inn tittel, kategori, prioritet og bilde/tekst.',action:'Nytt avvik',open:'showDeviationForm()',enabled:true},
+    {n:'2',title:'Fordel ansvar',text:'Sett ansvarlig, frist og hvem som skal ha e-post.',action:'Lag arbeidsordre',open:'showWorkOrderForm()',enabled:hasWorkOrders},
+    {n:'3',title:'Dokumenter',text:'Last opp rapport, bilder, FDV eller kontrakt når arbeid er gjort.',action:'Last opp dokument',open:'showDocForm()',enabled:true},
+    {n:'4',title:'Beslutning',text:'Ved behov: tilbud, styregodkjenning og signering.',action:'Fullt saksløp',open:'showCaseFlow()',enabled:hasRfq}
+  ];
+  return `<div class="dash-title"><div><h3>Enkel saksgang</h3><p class="muted">Bruk denne rekkefølgen når noe må følges opp på eiendommen.</p></div></div><div class="simple-flow-steps">${steps.map(s=>`<button class="${s.enabled?'':'disabled'}" onclick="${s.enabled?esc(s.open):''}"><span>${esc(s.n)}</span><strong>${esc(s.title)}</strong><small>${esc(s.text)}</small><b>${esc(s.enabled?s.action:'Ikke i pakken')}</b></button>`).join('')}</div>`;
 }
 function caseSummaryCard(label,value,caption,action,type='info'){
   return `<button class="card s3 case-summary ${type}" onclick="${action}"><small>${esc(label)}</small><strong>${esc(value)}</strong><span>${esc(caption)}</span></button>`;
@@ -655,6 +665,7 @@ function DocumentsPage(){
   const stats=cats.map(c=>`<button class="doc-filter ${active===c?'active':''}" onclick="DP.docCat='${esc(c)}';render()"><span>${esc(c)}</span><b>${c==='Alle'?docs.length:byCat(c)}</b></button>`).join('');
   return `<div class="grid documents-page premium-documents">
     <div class="card s12 module-hero documents-hero"><div><small>FDV og dokumentarkiv</small><h2>Dokumentasjon for ${esc(currentProperty()?.name||'valgt eiendom')}</h2><p>FDV, HMS, tegninger, kontrakter, styrepapirer, bilder og tilbud lagres på valgt eiendom og kan knyttes til bygg eller sak.</p></div><div class="module-actions"><button class="action primary" onclick="showDocForm()">Last opp dokument</button><button class="action" onclick="showScanDocumentForm()">Skann dokument</button><button class="action" onclick="showStandaloneContractForm()">Lag kontrakt</button><button class="action" onclick="showSignatureRequestForm('Kontrakt')">Send til signering</button><button class="action" onclick="showEmailFlow('contract')">Send e-post</button>${brainAction}</div></div>
+    <div class="card s12 simple-flow-card">${DocumentsSimpleFlow(missing,expiring)}</div>
     ${docSummaryCard('Dokumenter',docs.length,'Lagret på eiendommen','showDocForm()','info')}
     ${docSummaryCard('Dokumentasjonsgrad',`${required.length-missing.length}/${required.length}`,missing.length?'Mangler nøkkeldokumenter':'Nøkkeldokumenter finnes',documentGradeAction,missing.length?'warn':'ok')}
     ${docSummaryCard('Utløper snart',expiring.length,'Kontroller, avtaler og frister','showExpiringDocuments()','warn')}
@@ -664,6 +675,16 @@ function DocumentsPage(){
     <div class="card s12 document-filters">${stats}</div>
     <div class="card s12"><div class="dash-title"><div><h3>${esc(active==='Alle'?'Alle dokumenter':active)}</h3><p class="muted">Åpne, versjoner, detaljvis eller slett dokumenter fra valgt eiendom.</p></div><button class="action primary" onclick="showDocForm()">Last opp</button></div>${documentCards(filtered)}</div>
   </div>`;
+}
+function DocumentsSimpleFlow(missing=[],expiring=[]){
+  const firstMissing=missing[0];
+  const steps=[
+    {title:'Last opp nøkkeldokument',text:firstMissing?`Mangler først: ${firstMissing}`:'Nøkkeldokumentene ser ok ut.',action:firstMissing?'Last opp':'Åpne arkiv',open:'showDocForm()'},
+    {title:'Sett kategori',text:'Velg FDV, HMS, tegning, kontrakt eller styrepapir, så blir arkivet ryddig.',action:'Last opp dokument',open:'showDocForm()'},
+    {title:'Legg inn frist',text:expiring.length?'Se dokumenter som snart utløper.':'Bruk utløpsdato på garantier, service og kontroller.',action:expiring.length?'Se frister':'Legg til frist',open:expiring.length?'showExpiringDocuments()':'showDocForm()'},
+    {title:'Signer ved behov',text:'Kontrakter og styrevedtak kan sendes til intern signering.',action:'Ny signering',open:"showSignatureRequestForm('Kontrakt')"}
+  ];
+  return `<div class="dash-title"><div><h3>Dokumentflyt</h3><p class="muted">Slik bygger styret et ryddig og komplett arkiv.</p></div></div><div class="simple-flow-steps">${steps.map((s,i)=>`<button onclick="${esc(s.open)}"><span>${i+1}</span><strong>${esc(s.title)}</strong><small>${esc(s.text)}</small><b>${esc(s.action)}</b></button>`).join('')}</div>`;
 }
 function docSummaryCard(label,value,caption,action,type='info'){
   return `<button class="card s3 doc-summary ${type}" onclick="${action}"><small>${esc(label)}</small><strong>${esc(value)}</strong><span>${esc(caption)}</span></button>`;

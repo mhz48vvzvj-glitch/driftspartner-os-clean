@@ -2178,3 +2178,20 @@ body:not(.public-mode) textarea{
   .premium-trend-chart{height:220px}
   .trend-legend b{width:100%;margin-left:0}
 }
+
+/* Customer flow simplification */
+.user-flow-panel,.simple-flow-card{background:linear-gradient(135deg,rgba(13,28,50,.98),rgba(7,15,28,.98));border-color:rgba(93,141,255,.28)}
+.user-flow-grid,.simple-flow-steps{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+.simple-flow-steps{grid-template-columns:repeat(4,minmax(0,1fr))}
+.user-flow-card,.simple-flow-steps button{position:relative;min-width:0;text-align:left;border:1px solid rgba(126,148,184,.16);border-radius:14px;background:linear-gradient(180deg,rgba(12,24,42,.96),rgba(8,18,32,.92));color:#e7eefb;padding:14px 14px 13px;cursor:pointer;display:grid;gap:7px;min-height:142px;overflow:hidden}
+.user-flow-card:before,.simple-flow-steps button:before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 88% 0,rgba(45,114,255,.18),transparent 42%);pointer-events:none}
+.user-flow-card:hover,.simple-flow-steps button:hover{border-color:#2d72ff;transform:translateY(-1px)}
+.user-flow-card span,.simple-flow-steps button span{width:30px;height:30px;border-radius:10px;background:#102a58;color:#9cc5ff;display:grid;place-items:center;font-weight:950;font-size:13px}
+.simple-flow-steps button.ok span{background:#123c2a;color:#35d071}
+.simple-flow-steps button.warn span{background:#3b2d08;color:#f8b51d}
+.simple-flow-steps button.disabled{opacity:.55;cursor:not-allowed}
+.user-flow-card strong,.simple-flow-steps button strong{color:#fff;font-size:15px;line-height:1.2}
+.user-flow-card small,.simple-flow-steps button small{color:#a9b8cc;line-height:1.35}
+.user-flow-card b,.simple-flow-steps button b{align-self:end;color:#dce8ff;font-size:12px;border-top:1px solid rgba(126,148,184,.12);padding-top:8px}
+@media(max-width:1200px){.user-flow-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.simple-flow-steps{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:700px){.user-flow-grid,.simple-flow-steps{grid-template-columns:1fr}.user-flow-card,.simple-flow-steps button{min-height:auto}}

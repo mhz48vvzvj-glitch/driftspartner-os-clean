@@ -1502,5 +1502,68 @@ async function runNewCustomerOnboarding(){
 
 
 
+// Customer-friendly finance view override.
+function FinancePage(){
+  const f=(DP.cache.finance||[])[0]||{},lines=DP.cache.budget_lines||[],projects=DP.cache.projects||[],t=financeTotals();
+  const varianceType=t.variance>0?'bad':'ok';
+  const projectType=t.projectVariance>0?'warn':'info';
+  return `<div class="grid finance-page">
+    <div class="card s12 module-hero finance-hero"><div><small>Økonomi</small><h2>Økonomisk oversikt for ${esc(currentProperty()?.name||'valgt eiendom')}</h2><p>Oppdater konto, budsjett, faktiske kostnader og prosjektøkonomi før styremøte eller rapport.</p></div><div class="module-actions"><button class="action primary" onclick="showFinanceForm()">Konto og fond</button><button class="action" onclick="showBudgetForm()">Ny budsjettlinje</button><button class="action" onclick="showActualCostForm()">Registrer kostnad</button><button class="action" onclick="showProjectForm()">Nytt prosjekt</button><button class="action" onclick="saveBoardFinanceReport()">Lag styrerapport</button></div></div>
+    <div class="card s12 simple-flow-card">${FinanceSimpleFlow(t,lines,projects)}</div>
+    ${financeMetric('Bank/konto',money(f.bank_balance),'Tilgjengelig saldo','ok')}
+    ${financeMetric('Reservefond',money(f.reserved_funds),'Avsatt reserve','info')}
+    ${financeMetric('Budsjett',money(t.budget),'Totalt budsjettert','purple')}
+    ${financeMetric('Faktisk kostnad',money(t.actual),t.variance>0?'Over budsjett':'Innenfor budsjett',varianceType)}
+    ${financeMetric('Budsjettavvik',financeVarianceMoney(t.variance),t.variance>0?'Merforbruk':'Handlingsrom',varianceType)}
+    ${financeMetric('Prosjektøkonomi',`${money(t.projectActual)} / ${money(t.projectBudget)}`,t.projectVariance>0?'Prosjekt over budsjett':'Prosjektstatus',projectType)}
+    <div class="card s7"><h3>Budsjett og faktiske kostnader</h3>${financeBudgetSummary(t)}${table(['Kategori','Budsjett','Faktisk','Handlingsrom / merforbruk','Notat','Handling'],lines.map(l=>{const variance=Number(l.actual_amount||l.actual||0)-Number(l.budget_amount||l.budget||0);return `<tr><td>${esc(budgetCategoryValue(l))}</td><td>${money(l.budget_amount||l.budget)}</td><td>${money(l.actual_amount||l.actual)}</td><td>${financeVarianceMoney(variance)}</td><td>${esc(l.notes||'-')}</td><td><div class="row-actions"><button class="action" onclick="showBudgetForm('${esc(l.id)}')">Endre</button><button class="action red" onclick="deleteRow('budget_lines','${esc(l.id)}')">Slett</button></div></td></tr>`}))}</div>
+    <div class="card s5"><div class="dash-title"><h3>Prosjektøkonomi</h3><button class="action" onclick="showProjectForm()">Nytt prosjekt</button></div>${projectFinanceList(projects)}</div>
+    <div class="card s12"><h3>Rapport til styret</h3>${financeReportPreview()}</div>
+  </div>`;
+}
+function FinanceSimpleFlow(t,lines,projects){
+  const steps=[
+    {title:'Konto og fond',text:'Legg inn bank/konto, reservefond og prosjektmidler.',action:'Oppdater konto',open:'showFinanceForm()',ok:true},
+    {title:'Budsjett',text:lines.length?'Budsjettlinjer er registrert.':'Legg inn minst én budsjettlinje for drift, vedlikehold eller energi.',action:'Ny budsjettlinje',open:'showBudgetForm()',ok:lines.length>0},
+    {title:'Faktisk kostnad',text:t.actual?'Faktiske kostnader er registrert.':'Registrer kostnader når faktura eller utlegg kommer.',action:'Registrer kostnad',open:'showActualCostForm()',ok:t.actual>0},
+    {title:'Styrerapport',text:'Lag rapport når tallene er klare for styret.',action:'Lag rapport',open:'saveBoardFinanceReport()',ok:true}
+  ];
+  return `<div class="dash-title"><div><h3>Økonomiflyt</h3><p class="muted">Bruk denne rekkefølgen for enkel og forståelig økonomirapportering.</p></div></div><div class="simple-flow-steps">${steps.map((s,i)=>`<button class="${s.ok?'ok':'warn'}" onclick="${esc(s.open)}"><span>${i+1}</span><strong>${esc(s.title)}</strong><small>${esc(s.text)}</small><b>${esc(s.action)}</b></button>`).join('')}</div>`;
+}
+
+function MarketPage(){
+  const rfqs=DP.cache.quote_requests||[],offers=DP.cache.offers||[],suppliers=DP.suppliers||[];
+  const hasRfq=typeof subscriptionHas==='function'?subscriptionHas('rfq'):true;
+  if(!hasRfq)return SupplierRegisterPage(suppliers);
+  const sent=rfqs.filter(r=>/sendt|aktiv|publisert/i.test(r.status||'')).length,totalOfferValue=offers.reduce((s,o)=>s+Number(o.price||0),0);
+  const best=offers.filter(o=>Number(o.price||0)>0).sort((a,b)=>Number(a.price||0)-Number(b.price||0))[0];
+  return `<div class="grid market-page premium-market-page">
+    <div class="card s12 module-hero market-hero"><div><small>Tilbud og leverandører</small><h2>Innkjøp for ${esc(currentProperty()?.name||'valgt eiendom')}</h2><p>Bruk én ryddig flyt: registrer leverandører, send forespørsel, last opp tilbud og dokumenter beslutningen.</p></div><div class="module-actions"><button class="action primary" onclick="showRfqForm()">Lag tilbudsforespørsel</button><button class="action" onclick="showSupplierForm()">Registrer leverandør</button><button class="action" onclick="showOfferForm()">Last opp tilbud</button><button class="action" onclick="showEmailFlow('quote')">Send RFQ e-post</button></div></div>
+    <div class="card s12 simple-flow-card">${MarketSimpleFlow(suppliers,rfqs,offers)}</div>
+    <div class="card s12 market-pipeline premium-market-metrics">
+      <div><small>Leverandører</small><b>${suppliers.length}</b><span>Firma med e-post</span></div>
+      <div><small>Forespørsler</small><b>${rfqs.length}</b><span>RFQ på eiendommen</span></div>
+      <div><small>Sendt/aktiv</small><b>${sent}</b><span>Krever oppfølging</span></div>
+      <div><small>Tilbud</small><b>${offers.length}</b><span>Mottatte tilbud</span></div>
+      <div><small>Tilbudsverdi</small><b>${money(totalOfferValue)}</b><span>Samlet registrert verdi</span></div>
+    </div>
+    <div class="card s8 market-flow-card"><div class="dash-title"><div><h3>Innkjøpsstatus</h3><p class="muted">Viser om prosessen er klar for vurdering og styrebeslutning.</p></div><button class="action" onclick="showRfqForm()">Ny RFQ</button></div>${procurementFlow(rfqs,offers,suppliers)}</div>
+    <div class="card s4 market-recommendation"><h3>Beste registrerte tilbud</h3>${best?offerRecommendation(best,offers):'<div class="empty-state"><strong>Ingen tilbud å vurdere.</strong><span>Last opp minst ett tilbud med pris og PDF.</span><button class="action primary" onclick="showOfferForm()">Last opp tilbud</button></div>'}</div>
+    <div class="card s4"><div class="dash-title"><h3>Leverandører</h3><button class="action" onclick="showSupplierForm()">Ny</button></div>${supplierCards()}</div>
+    <div class="card s4"><div class="dash-title"><h3>Forespørsler</h3><button class="action" onclick="showRfqForm()">Ny</button></div>${rfqCards(rfqs)}</div>
+    <div class="card s4"><div class="dash-title"><h3>Tilbud</h3><button class="action" onclick="showOfferForm()">Last opp</button></div>${offerCards(offers)}</div>
+  </div>`;
+}
+function MarketSimpleFlow(suppliers,rfqs,offers){
+  const chosen=offers.some(o=>/valgt|godkjent/i.test(o.status||''));
+  const steps=[
+    {title:'Leverandører',text:suppliers.length?'Leverandører er registrert.':'Legg inn firma med e-post før forespørsel sendes.',action:'Registrer',open:'showSupplierForm()',ok:suppliers.length>0},
+    {title:'Forespørsel',text:rfqs.length?'Tilbudsforespørsel finnes.':'Beskriv arbeid, frist og hva leverandøren skal prise.',action:'Lag RFQ',open:'showRfqForm()',ok:rfqs.length>0},
+    {title:'Tilbud',text:offers.length?'Tilbud er mottatt.':'Last opp pris, PDF og forbehold når tilbud kommer inn.',action:'Last opp',open:'showOfferForm()',ok:offers.length>0},
+    {title:'Beslutning',text:chosen?'Leverandør er valgt.':'Velg leverandør og send ved behov til signering.',action:chosen?'Se tilbud':'Velg/signér',open:offers.length?'showOfferForm()':'showRfqForm()',ok:chosen}
+  ];
+  return `<div class="dash-title"><div><h3>Tilbudsflyt</h3><p class="muted">Fire steg fra behov til dokumentert valg.</p></div></div><div class="simple-flow-steps">${steps.map((s,i)=>`<button class="${s.ok?'ok':'warn'}" onclick="${esc(s.open)}"><span>${i+1}</span><strong>${esc(s.title)}</strong><small>${esc(s.text)}</small><b>${esc(s.action)}</b></button>`).join('')}</div>`;
+}
+
 
 

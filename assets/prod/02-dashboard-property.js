@@ -17,6 +17,7 @@
   ].filter(Boolean).join('');
   return `<div class="grid dashboard-page">
     <div class="card s12 executive-hero"><div><small>Styrets oversikt</small><h2>${esc(currentProperty()?.name||'Valgt eiendom')}</h2><p>Dette er det styret bør se først: saker som haster, dokumentasjon som mangler, økonomi og frister.</p></div><div class="executive-actions">${heroActions}</div></div>
+    <div class="card s12 user-flow-panel">${DashboardUserFlowPanel()}</div>
     ${focusCard('Hva haster?',critical||openDevs,critical?'Kritiske avvik må behandles først':openDevs?'Åpne avvik bør fordeles og følges opp':'Ingen åpne avvik nå',critical?'bad':openDevs?'warn':'ok','cases')}
     ${hasFinance?focusCard('Hva koster penger?',money(moneyRisk.amount),moneyRisk.caption,moneyRisk.amount>0?'bad':'ok','finance'):''}
     ${focusCard('Hva mangler dokumentasjon?',missingDocs,missingDocs?'FDV, HMS, kontrakt eller styrepapir mangler':'Dokumentasjonen ser ryddig ut',missingDocs?'warn':'ok','documents')}
@@ -34,6 +35,16 @@
     <div class="card s6 dashboard-list"><div class="dash-title"><h3>Siste dokumenter</h3><button class="action" onclick="openModule('documents')">Åpne arkiv</button></div>${documentList(docs)}</div>
     ${isInternal?`<div class="card s12 dashboard-activity">${DashboardActivityFeed()}</div>`:''}
   </div>`;
+}
+function DashboardUserFlowPanel(){
+  const flows=[
+    {title:'Ny driftssak',text:'Start med avvik, fordel ansvar og følg saken til den er ferdig.',action:'Registrer avvik',open:"showDeviationForm()",show:true},
+    {title:'Dokumentasjon',text:'Last opp FDV, HMS, tegning, kontrakt eller styrepapir på riktig eiendom.',action:'Last opp dokument',open:"showDocForm()",show:true},
+    {title:'Styremøte',text:'Lag agenda, vedtak og oppgaver som arkiveres og kan signeres.',action:'Nytt styremøte',open:"showBoardMeetingForm()",show:typeof showBoardMeetingForm==='function'},
+    {title:'Økonomi',text:'Oppdater konto, budsjett og faktiske kostnader før styrerapport.',action:'Åpne økonomi',open:"openModule('finance')",show:subscriptionHas('finance')},
+    {title:'Tilbud',text:'Send forespørsel, registrer tilbud og dokumenter valgt leverandør.',action:'Lag RFQ',open:"showRfqForm()",show:subscriptionHas('rfq')}
+  ].filter(f=>f.show);
+  return `<div class="dash-title"><div><h3>Hva vil du gjøre?</h3><p class="muted">Velg arbeidsflyt. Systemet åpner riktig sted og viser neste steg.</p></div></div><div class="user-flow-grid">${flows.map((f,i)=>`<button class="user-flow-card" onclick="${esc(f.open)}"><span>${i+1}</span><strong>${esc(f.title)}</strong><small>${esc(f.text)}</small><b>${esc(f.action)}</b></button>`).join('')}</div>`;
 }
 function DashboardPriorityPanel(data){
   const brain=data.brain||{};
