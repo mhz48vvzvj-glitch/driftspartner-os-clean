@@ -605,6 +605,21 @@ body:not(.public-mode) td,body:not(.public-mode) th{word-break:break-word}
 .executive-hero h2{margin:0;color:#fff;font-size:30px;line-height:1.05}
 .executive-hero p{margin:9px 0 0;color:#c4d2e6;line-height:1.5;max-width:760px}
 .executive-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.dashboard-plan-card{padding:0!important;background:transparent!important;border:0!important;box-shadow:none!important}
+.plan-overview-card{display:grid;grid-template-columns:220px 1fr auto;gap:16px;align-items:stretch;border:1px solid #223149;border-radius:18px;background:linear-gradient(135deg,rgba(16,42,88,.42),rgba(8,18,32,.96));padding:16px;box-shadow:0 16px 44px rgba(0,0,0,.18)}
+.plan-overview-card.pro{border-color:rgba(45,114,255,.45);background:radial-gradient(circle at top left,rgba(45,114,255,.18),transparent 46%),linear-gradient(135deg,#101b2d,#07111f)}
+.plan-overview-card.premium{border-color:rgba(183,132,255,.48);background:radial-gradient(circle at top left,rgba(183,132,255,.22),transparent 48%),linear-gradient(135deg,#12162b,#07111f)}
+.plan-overview-card.start{border-color:rgba(53,208,113,.35);background:radial-gradient(circle at top left,rgba(53,208,113,.14),transparent 46%),linear-gradient(135deg,#0d1f27,#07111f)}
+.plan-overview-main{border:1px solid rgba(255,255,255,.08);border-radius:16px;background:rgba(5,11,20,.48);padding:14px;display:grid;gap:8px;align-content:center}
+.plan-overview-main small{color:#8ea0b8;font-size:11px;text-transform:uppercase;letter-spacing:.08em;font-weight:950}
+.plan-overview-main strong{color:#fff;font-size:34px;line-height:1}
+.plan-overview-main span{justify-self:start;border-radius:999px;background:#123c2a;color:#35d071;padding:6px 10px;font-size:12px;font-weight:950}
+.plan-overview-main span.warn{background:#3b2d08;color:#f8b51d}
+.plan-overview-details{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.plan-overview-details div{border:1px solid #1f2d44;border-radius:14px;background:#081220;padding:12px;min-width:0}
+.plan-overview-details b{display:block;color:#fff;font-size:13px;margin-bottom:5px}
+.plan-overview-details span{display:block;color:#aab8cc;font-size:12px;line-height:1.35;overflow-wrap:anywhere}
+.plan-overview-actions{display:flex;gap:10px;align-items:center;justify-content:flex-end;flex-wrap:wrap}
 .executive-card{position:relative;min-height:150px;text-align:left;cursor:pointer;border-left:4px solid #2d72ff;background:linear-gradient(180deg,rgba(17,27,44,.98),rgba(8,18,32,.98));display:flex;flex-direction:column;justify-content:space-between;gap:10px}
 .executive-card:hover{border-color:#6f45ff;transform:translateY(-1px)}
 .executive-card small{color:#9fb0c7;font-size:12px;font-weight:950;text-transform:uppercase;letter-spacing:.04em}
@@ -1089,6 +1104,8 @@ body:not(.public-mode) td,body:not(.public-mode) th{word-break:break-word}
   .executive-card{grid-column:span 12}
   .executive-hero{display:block}
   .executive-actions{justify-content:flex-start;margin-top:14px}
+  .plan-overview-card,.plan-overview-details{grid-template-columns:1fr}
+  .plan-overview-actions{justify-content:flex-start}
   .dashboard-flow .ops-budget-summary{grid-template-columns:1fr}
   .dashboard-priority-grid{grid-template-columns:1fr}
   .project-numbers{grid-template-columns:1fr}

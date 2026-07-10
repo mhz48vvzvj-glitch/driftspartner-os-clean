@@ -17,6 +17,7 @@
   ].filter(Boolean).join('');
   return `<div class="grid dashboard-page">
     <div class="card s12 executive-hero"><div><small>Styrets oversikt</small><h2>${esc(currentProperty()?.name||'Valgt eiendom')}</h2><p>Dette er det styret bør se først: saker som haster, dokumentasjon som mangler, økonomi og frister.</p></div><div class="executive-actions">${heroActions}</div></div>
+    <div class="card s12 dashboard-plan-card">${DashboardPlanOverview()}</div>
     <div class="card s12 user-flow-panel">${DashboardUserFlowPanel()}</div>
     ${focusCard('Hva haster?',critical||openDevs,critical?'Kritiske avvik må behandles først':openDevs?'Åpne avvik bør fordeles og følges opp':'Ingen åpne avvik nå',critical?'bad':openDevs?'warn':'ok','cases')}
     ${hasFinance?focusCard('Hva koster penger?',money(moneyRisk.amount),moneyRisk.caption,moneyRisk.amount>0?'bad':'ok','finance'):''}
@@ -35,6 +36,39 @@
     <div class="card s6 dashboard-list"><div class="dash-title"><h3>Siste dokumenter</h3><button class="action" onclick="openModule('documents')">Åpne arkiv</button></div>${documentList(docs)}</div>
     ${isInternal?`<div class="card s12 dashboard-activity">${DashboardActivityFeed()}</div>`:''}
   </div>`;
+}
+function DashboardPlanOverview(){
+  const p=currentProperty()||{},plan=subscriptionPlanId()||'',name=planLabel(plan),status=statusLabel(p.subscription_status||''),demo=typeof isDemoProperty==='function'&&isDemoProperty(p);
+  const quota=typeof aiQuotaStatus==='function'?aiQuotaStatus():{used:0,limit:0,remaining:0};
+  const modules=[
+    {label:'FDV',ok:true},
+    {label:'Avvik',ok:true},
+    {label:'Styre',ok:true},
+    {label:'Årshjul',ok:subscriptionHas('maintenance')},
+    {label:'Arbeidsordre',ok:subscriptionHas('work_orders')},
+    {label:'Økonomi',ok:subscriptionHas('finance')},
+    {label:'AI Director',ok:subscriptionHas('ai_director')},
+    {label:'Tilbud/RFQ',ok:subscriptionHas('rfq')},
+    {label:'Property Brain',ok:subscriptionHas('brain')}
+  ];
+  const visible=modules.filter(m=>m.ok).map(m=>m.label).join(' · ');
+  const locked=modules.filter(m=>!m.ok).slice(0,3).map(m=>m.label).join(' · ');
+  const changeButton=(typeof canManageCustomers==='function'&&canManageCustomers())||demo?`<button class="action" onclick="showSubscriptionPicker()">${demo?'Bytt demo-pakke':'Endre pakke'}</button>`:'';
+  const demoText=demo?'Demo/test-eiendom. Pakken kan byttes av intern bruker for salgsvisning.':'Kundens aktive pakke styrer menyene og funksjonene som vises.';
+  return `<section class="plan-overview-card ${esc(plan||'none')}">
+    <div class="plan-overview-main">
+      <small>Aktiv pakke</small>
+      <strong>${esc(name)}</strong>
+      <span class="${/aktiv|pilot|demo/i.test(status)?'ok':'warn'}">${esc(status)}</span>
+    </div>
+    <div class="plan-overview-details">
+      <div><b>Tilgang nå</b><span>${esc(visible||'Grunnmoduler')}</span></div>
+      <div><b>AI-klikk</b><span>${quota.used}/${quota.limit||0} brukt denne måneden · ${quota.remaining||0} igjen</span></div>
+      <div><b>${demo?'Demo':'Abonnement'}</b><span>${esc(demoText)}</span></div>
+      ${locked?`<div><b>Ikke i pakken</b><span>${esc(locked)}${modules.filter(m=>!m.ok).length>3?' · mer':''}</span></div>`:''}
+    </div>
+    <div class="plan-overview-actions">${changeButton}<button class="action" onclick="openModule('property')">Se eiendom</button></div>
+  </section>`;
 }
 function DashboardUserFlowPanel(){
   const flows=[
