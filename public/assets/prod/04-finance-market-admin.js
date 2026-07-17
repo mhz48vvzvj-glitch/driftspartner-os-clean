@@ -1203,6 +1203,101 @@ function subscriptionPlans(){
     {id:'premium',name:'Premium',firstYear:39990,yearTwo:47880,unit:'For større borettslag og eiendomsaktårer',fit:'100+ enheter',items:['Alt i Pro','Inntil 50 bygg','Opptil 1000 enheter','1000 beboere','Ubegrenset antall styremedlemmer','25 vaktmester/forvalter-brukere','500 leverandører','10 000 dokumenter / 100 GB','10 000 e-postmottakere per 30 dager','500 AI-klikk per måned','10 eiendommer per kunde','500 RFQ per måned','100 aktive prosjekter','100 signeringer per måned','Property Brain AI','Risikoanalyse','Tilbudsinnhenting (RFQ)','Prioritert support','Avanserte analyser','Enterprise-tillegg ved håyere bruk']}
   ];
 }
+
+function mailCaseRow(kind='general',caseId=''){
+  const devs=DP.cache.deviations||[],wos=DP.cache.work_orders||[];
+  if(kind==='workorder')return wos.find(w=>w.id===caseId)||wos.find(w=>w.deviation_id===caseId)||null;
+  if(kind==='deviation'||kind==='deviation_closed')return devs.find(d=>d.id===caseId)||null;
+  const wo=wos.find(w=>w.id===caseId)||null;
+  return wo||devs.find(d=>d.id===caseId)||null;
+}
+function mailCaseRef(kind='general',caseId=''){
+  const row=mailCaseRow(kind,caseId);
+  if(typeof dpShortCaseRef==='function'&&row)return dpShortCaseRef(row,kind==='workorder'?'work_order':'deviation');
+  if(!caseId)return '-';
+  return String(caseId).length>12?String(caseId).slice(0,8).toUpperCase():String(caseId);
+}
+function emailPayloadForCase(kind='general',caseId='',to=[],extra={}){
+  const p=currentProperty()||{},row=mailCaseRow(kind,caseId)||{},ref=mailCaseRef(kind,caseId);
+  const subject=mailSubject(kind,caseId);
+  const message=mailBody(kind,caseId,extra);
+  const board=(DP.cache.contacts||[]).find(c=>/styreleder|leder|styre/i.test(String(c.role||c.contact_role||''))&&String(c.email||'').includes('@'));
+  return {
+    to,
+    subject,
+    message,
+    kind,
+    caseId:ref,
+    property:p.name||'',
+    property_id:p.id||'',
+    reply_to:board?.email||p.customer_billing_email||DP.user?.email||'',
+    from_name:`${p.name||'Kunde'} via Driftspartner OS`,
+    metadata:{technical_case_id:caseId,case_ref:ref,title:row.title||''}
+  };
+}
+function collectMailRecipients(kind='general',caseId=''){
+  const contacts=DP.cache.contacts||[],suppliers=DP.suppliers||[],p=currentProperty(),row=mailCaseRow(kind,caseId)||{};
+  const rows=[];
+  const add=(email,label,group)=>{email=String(email||'').trim();if(email.includes('@')&&!rows.some(r=>r.email.toLowerCase()===email.toLowerCase()))rows.push({email,label:label||email,group:group||'Kontakt'})};
+  add(DP.user?.email,'Meg','Bruker');
+  add(p?.customer_billing_email,'Kunde/faktura','Kunde');
+  dpEmailList(row.assigned_to).forEach(e=>add(e,`Valgt på saken · ${e}`,'Sak'));
+  dpEmailList(row.reporter_email||row.reported_by_email||row.email).forEach(e=>add(e,`Innsender · ${e}`,'Sak'));
+  contacts.forEach(c=>{
+    const role=String(c.role||c.contact_role||'Kontakt');
+    if(kind==='all'){add(c.email,`${c.name||c.email} · ${role}`,'Eiendom');return}
+    if(kind==='board'&&!/styre|leder|vara/i.test(role))return;
+    if(kind==='resident'&&!/bebo|enhet|leilighet/i.test(role))return;
+    if(kind==='manager'&&!/forvalt|manager/i.test(role))return;
+    if(kind==='caretaker'&&!/vaktmester|drift|caretaker/i.test(role))return;
+    add(c.email,`${c.name||c.email} · ${role}`,'Eiendom');
+  });
+  if(kind==='all'||kind==='quote'||kind==='workorder'||kind==='contract'||kind==='general')suppliers.forEach(s=>add(s.email,`${s.name||s.email} · ${s.trade||'Leverandør'}`,'Leverandør'));
+  add('post@driftspartnernord.no','Driftspartner Nord','Admin');
+  return rows;
+}
+function mailSubject(kind='general',caseId=''){
+  const p=currentProperty(),name=p?.name||'valgt eiendom',row=mailCaseRow(kind,caseId)||{},ref=mailCaseRef(kind,caseId),title=row.title?` - ${row.title}`:'';
+  if(kind==='all')return `Viktig melding - ${name}`;
+  if(kind==='deviation')return `${ref} Avvik${title} - ${name}`;
+  if(kind==='deviation_closed')return `${ref} Avvik lukket${title} - ${name}`;
+  if(kind==='workorder')return `${ref} Arbeidsordre${title} - ${name}`;
+  if(kind==='quote')return `Tilbudsforespørsel - ${name}`;
+  if(kind==='board')return `Styresak - ${name}`;
+  if(kind==='manager')return `Oppfølging for forvalter - ${name}`;
+  if(kind==='caretaker')return `Driftsmelding til vaktmester - ${name}`;
+  if(kind==='contract')return `Kontrakt - ${name}`;
+  if(kind==='resident')return `Melding fra ${name}`;
+  return `Oppdatering - ${name}`;
+}
+function mailBody(kind='general',caseId='',extra={}){
+  const p=currentProperty(),name=p?.name||'valgt eiendom',address=p?.address||'',row=mailCaseRow(kind,caseId)||{},ref=mailCaseRef(kind,caseId);
+  const title=row.title||'',desc=row.description||'',status=extra.status||row.status||'',comment=extra.comment||'';
+  const hello='Hei,\n\n';
+  const sign='\n\nVennlig hilsen\nDriftspartner Nord';
+  const caseBlock=`Sak: ${ref}${title?`\nTittel: ${title}`:''}${status?`\nStatus: ${status}`:''}${desc?`\n\nBeskrivelse:\n${desc}`:''}`;
+  if(kind==='all')return `${hello}Dette er en felles melding til kontakter knyttet til ${name}${address?', '+address:''}.\n\nSkriv inn informasjonen som skal sendes her.${sign}`;
+  if(kind==='deviation')return `${hello}Det er registrert et avvik på ${name}${address?', '+address:''}.\n\n${caseBlock}\n\nVennligst se på saken og gi tilbakemelding.${sign}`;
+  if(kind==='deviation_closed')return `${hello}Avviket under er lukket i Driftspartner OS.\n\n${caseBlock}${comment?`\n\nKommentar:\n${comment}`:''}\n\nTa kontakt dersom noe fortsatt må følges opp.${sign}`;
+  if(kind==='workorder')return `${hello}Det er opprettet en arbeidsordre på ${name}${address?', '+address:''}.\n\n${caseBlock}${row.due_date?`\nFrist: ${row.due_date}`:''}\n\nOppgaven bes fulgt opp innen avtalt frist.${sign}`;
+  if(kind==='quote')return `${hello}Vi ønsker tilbud på arbeid knyttet til ${name}${address?', '+address:''}.\n\nSak: ${ref}\n\nSend pris, forbehold, leveringstid og relevant dokumentasjon.${sign}`;
+  if(kind==='board')return `${hello}Dette gjelder styresak for ${name}.\n\nSak: ${ref}\n\nSe saksgrunnlag og gi tilbakemelding/godkjenning.${sign}`;
+  if(kind==='resident')return `${hello}Dette er en melding til beboere i ${name}.\n\nSkriv inn informasjonen som skal sendes til beboerne her.${sign}`;
+  if(kind==='manager')return `${hello}Dette er en melding til forvalter for ${name}.\n\nSkriv inn hva som skal følges opp.${sign}`;
+  if(kind==='caretaker')return `${hello}Dette er en driftsmelding til vaktmester for ${name}.\n\nSkriv inn oppgaven eller informasjonen som skal følges opp.${sign}`;
+  if(kind==='contract')return `${hello}Vedlagt/lenket følger kontrakt eller avtalegrunnlag for ${name}.\n\nSak: ${ref}\n\nVennligst gjennomgå og bekreft videre prosess.${sign}`;
+  return `${hello}Dette gjelder ${name}${address?', '+address:''}.\n\nSak: ${ref}${sign}`;
+}
+function showEmailFlow(kind='general',caseId=''){
+  const recipients=collectMailRecipients(kind,caseId);
+  const checks=recipients.map((r,i)=>`<label class="check-row recipient-email"><input class="mailRecipient" type="checkbox" value="${esc(r.email)}" ${i===0?'checked':''}> <span>${esc(r.label)}</span><small>${esc(r.email)}</small></label>`).join('');
+  const p=currentProperty();
+  const board=(DP.cache.contacts||[]).find(c=>/styreleder|leder|styre/i.test(String(c.role||c.contact_role||''))&&String(c.email||'').includes('@'));
+  const reply=board?.email||p?.customer_billing_email||DP.user?.email||'';
+  const fromName=kind==='resident'||kind==='all'?`Styret i ${p?.name||'borettslaget'}`:`${p?.name||'Kunde'} via Driftspartner OS`;
+  const ref=mailCaseRef(kind,caseId);
+  showDrawer('Send e-post',`<div class="mail-compose"><div class="mail-template-head"><div><small>${esc(mailKindLabel(kind))}</small><h3>Send direkte fra Driftspartner OS</h3><p>E-posten bruker lesbart saksnummer (${esc(ref)}) slik at mottaker finner riktig sak uten teknisk ID.</p></div><span>${esc(currentProperty()?.name||'Eiendom')}</span></div><div class="mail-audience-grid"><button class="${kind==='all'?'active':''}" onclick="showEmailFlow('all','${esc(caseId)}')">Alle</button><button class="${kind==='resident'?'active':''}" onclick="showEmailFlow('resident','${esc(caseId)}')">Beboere</button><button class="${kind==='board'?'active':''}" onclick="showEmailFlow('board','${esc(caseId)}')">Styre</button><button class="${kind==='manager'?'active':''}" onclick="showEmailFlow('manager','${esc(caseId)}')">Forvalter</button><button class="${kind==='caretaker'?'active':''}" onclick="showEmailFlow('caretaker','${esc(caseId)}')">Vaktmester</button></div><div class="form-grid two"><label>Vis som avsender<input id="emailFromName" value="${esc(fromName)}"></label><label>Svar går til<input id="emailReplyTo" value="${esc(reply)}" placeholder="styreleder@kunde.no"></label></div><p class="mail-field-note">Mottaker ser navnet over som avsender. Teknisk sendes e-posten fra godkjent Driftspartner-domene for best leveringssikkerhet.</p><label>Mottakere</label><div class="choice-list">${checks||'<div class="empty-state"><strong>Ingen mottakere funnet.</strong><span>Legg inn styre, beboere, forvalter eller vaktmester med e-post først.</span></div>'}</div><label>Ekstra e-postadresser</label><input id="emailExtra" placeholder="post@kunde.no, styret@kunde.no"><p class="mail-field-note">Du kan sende til flere ved å skille e-postadresser med komma eller linjeskift.</p><label>Emne</label><input id="emailSubject" value="${esc(mailSubject(kind,caseId))}"><label>Melding</label><textarea id="emailBody">${esc(mailBody(kind,caseId))}</textarea><div class="module-actions"><button class="action primary" onclick="sendEmailLog('${esc(kind)}','${esc(caseId)}')">Send som kunde/styre</button><button class="action" onclick="location.href='mail-test.html'">Åpne e-posttest</button></div><div id="emailOut" class="output">Klar til sending.</div></div>`);
+}
 function selectedSubscriptionPlan(){return subscriptionPlans().find(p=>p.id===(DP.onboardingSubscription||'pro'))||subscriptionPlans()[1]}
 function renderSubscriptionCards(){
   const selected=selectedSubscriptionPlan().id;

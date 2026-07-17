@@ -306,6 +306,199 @@ async function saveDeviation(){
     await finishAction(id?'Avviket er oppdatert.':'Avviket er opprettet.','cases');
   }catch(e){showDrawer('Avvik ble ikke lagret',`<div class=\"output\">${esc(customerError(e))}</div>`)}
 }
+
+function dpShortCaseRef(row,type='deviation'){
+  const value=row?.case_number||row?.friendly_id||row?.number||row?.ref;
+  if(value)return String(value);
+  const prefix=type==='work_order'?'WO':'AVV';
+  const raw=String(row?.id||row?.title||Date.now()).replace(/[^a-zA-Z0-9]/g,'').slice(0,6).toUpperCase();
+  const year=new Date(row?.created_at||Date.now()).getFullYear();
+  return `${prefix}-${year}-${raw||'NY'}`;
+}
+function dpEmailList(value){
+  return String(value||'').split(/[,\n;\s]+/).map(x=>x.trim()).filter(x=>x.includes('@'));
+}
+function dpContactEmailChoices(selected=''){
+  const selectedSet=new Set(dpEmailList(selected).map(x=>x.toLowerCase()));
+  const rows=[];
+  const add=(email,label,group)=>{
+    email=String(email||'').trim();
+    if(!email.includes('@')||rows.some(r=>r.email.toLowerCase()===email.toLowerCase()))return;
+    rows.push({email,label:label||email,group:group||'Kontakt'});
+  };
+  (DP.cache.contacts||[]).forEach(c=>{
+    const role=String(c.role||c.contact_role||c.contact_type||'Kontakt');
+    add(c.email,`${c.name||c.email} · ${role}`,'Kontakter');
+  });
+  (DP.suppliers||[]).forEach(s=>add(s.email,`${s.name||s.email} · ${s.trade||'Leverandør'}`,'Leverandører'));
+  add(DP.user?.email,'Meg','Bruker');
+  if(!rows.length)return '<option value="">Ingen e-poster registrert</option>';
+  return rows.map(r=>`<option value="${esc(r.email)}" ${selectedSet.has(r.email.toLowerCase())?'selected':''}>${esc(r.label)}</option>`).join('');
+}
+function dpSelectedContactEmails(selectId,extraId=''){
+  const selected=[...document.querySelectorAll(`#${selectId} option:checked`)].map(o=>o.value).filter(x=>x&&x.includes('@'));
+  const extra=extraId?dpEmailList(document.getElementById(extraId)?.value):[];
+  return [...new Set([...selected,...extra].map(x=>x.trim()).filter(Boolean))];
+}
+function caseCard(r,type){
+  const hasWorkOrders=typeof subscriptionHas==='function'?subscriptionHas('work_orders'):true;
+  const hasRfq=typeof subscriptionHas==='function'?subscriptionHas('rfq'):true;
+  const isDev=type==='deviation',prio=priorityClass(r.priority),status=String(r.status||'Ny');
+  const ref=dpShortCaseRef(r,isDev?'deviation':'work_order');
+  const meta=isDev?[r.category,r.priority,status].filter(Boolean).join(' · '):[r.due_date?`Frist ${r.due_date}`:'Ingen frist',status].join(' · ');
+  const primary=isDev?(hasRfq?`showCaseFlow('${esc(r.id)}')`:`showCaseStatusForm('deviations','${esc(r.id)}','${esc(status)}')`):`showWorkOrderForm('${esc(r.deviation_id||'')}','${esc(r.id)}')`;
+  const primaryLabel=isDev?(hasRfq?'Åpne saksløp':'Endre status'):'Endre oppgave';
+  const extra=isDev?(hasWorkOrders?`<button class="action" onclick="showWorkOrderForm('${esc(r.id)}')">Lag oppgave</button>`:''):(hasRfq?`<button class="action" onclick="showRfqForm('${esc(r.id)}')">Tilbud</button>`:'');
+  return `<section class="case-card ${isDev?prio:statusClass(status)}"><div class="case-card-head"><div><small>${esc(ref)}</small><strong>${esc(r.title||'Uten tittel')}</strong><span>${esc(meta)}</span></div><b>${esc(status)}</b></div><p>${esc(r.description||'Ingen beskrivelse registrert.')}</p><div class="row-actions"><button class="action primary" onclick="${primary}">${primaryLabel}</button>${extra}<button class="action" onclick="showEmailFlow('${isDev?'deviation':'workorder'}','${esc(r.id)}')">E-post</button><button class="action" onclick="showCaseStatusForm('${type==='deviation'?'deviations':'work_orders'}','${esc(r.id)}','${esc(status)}')">Status</button><button class="action red" onclick="deleteRow('${type==='deviation'?'deviations':'work_orders'}','${esc(r.id)}')">Slett</button></div></section>`;
+}
+function showDeviationForm(id=''){
+  const d=(DP.cache.deviations||[]).find(x=>x.id===id)||{},buildings=DP.cache.buildings||[];
+  const buildingOptions=`<option value="">Hele eiendommen</option>${buildings.map(b=>`<option value="${esc(b.id)}" ${b.id===d.building_id?'selected':''}>${esc(b.name)}</option>`).join('')}`;
+  const photoHelp=id?'Du kan legge til ett eller flere nye bilder når du oppdaterer avviket.':'Ta ett eller flere bilder direkte med mobilkamera, eller velg bilder fra PC.';
+  const reporterEmail=d.reporter_email||d.reported_by_email||d.email||'';
+  showDrawer(id?'Endre avvik':'Nytt avvik',`<input id="devId" type="hidden" value="${esc(id)}">
+    <section class="quick-form deviation-photo-form">
+      <div class="form-step-note"><b>1. Hva gjelder saken?</b><span>Saken får et lesbart saksnummer i e-post, ikke teknisk ID.</span></div>
+      <label>Tittel<input id="devTitle" value="${esc(d.title||'')}" placeholder="For eksempel: Lekkasje i kjeller"></label>
+      <label>Beskrivelse<textarea id="devDesc" rows="4" placeholder="Hva har skjedd, hvor er det, og hva bør gjøres?">${esc(d.description||'')}</textarea></label>
+      <div class="form-step-note"><b>2. Legg ved bilder</b><span>${esc(photoHelp)}</span></div>
+      <label class="photo-capture-box"><span>Ta bilder / velg flere bilder</span><input id="devPhotos" type="file" accept="image/*" capture="environment" multiple><small>Bilder lagres som dokumentasjon på avviket.</small></label>
+      <div class="form-grid two">
+        <label>Tekst på bildet<input id="devPhotoText" value="${esc(d.title||'')}" placeholder="For eksempel: Lekkasje ved taknedløp"></label>
+        <label class="checkline"><input id="devPhotoDate" type="checkbox" checked> Legg dato og klokkeslett på bildet</label>
+      </div>
+      <div class="form-step-note"><b>3. Klassifiser saken</b><span>Kategori og prioritet styrer rapporter og Property Brain.</span></div>
+      <div class="form-grid two">
+        <label>Kategori<select id="devCat">${['Tak','VVS','Elektro','Brann','HMS','Heis','Uteområde','Bygg','Annet'].map(c=>`<option ${c===d.category?'selected':''}>${c}</option>`).join('')}</select></label>
+        <label>Prioritet<select id="devPrio">${['Lav','Medium','Høy','Kritisk'].map(c=>`<option ${c===d.priority?'selected':''}>${c}</option>`).join('')}</select></label>
+        <label>Bygg/anlegg<select id="devBuilding">${buildingOptions}</select></label>
+        <label>Leilighet/område<input id="devUnit" value="${esc(d.unit||d.area||'')}" placeholder="A-101, garasje, uteområde"></label>
+      </div>
+      <div class="form-step-note"><b>4. Varsling og oppfølging</b><span>Innsender kan få beskjed når avviket lukkes.</span></div>
+      <div class="form-grid two">
+        <label>Innsender<select id="devReporter">${['Styremedlem','Beboer','Vaktmester','Leverandør','Forvalter'].map(c=>`<option ${c===d.reporter_type?'selected':''}>${c}</option>`).join('')}</select></label>
+        <label>E-post til innsender<input id="devReporterEmail" value="${esc(reporterEmail)}" placeholder="innsender@kunde.no"></label>
+        <label class="span-2">Tildel/send til<input id="devAssign" value="${esc(d.assigned_to||'')}" placeholder="vaktmester@kunde.no, styret@kunde.no"></label>
+      </div>
+      <button class="action primary wide" onclick="saveDeviation()">${id?'Lagre avvik':'Lagre avvik'}</button>
+      <div id="devOut" class="output"></div>
+    </section>`);
+}
+async function saveDeviation(){
+  const out=document.getElementById('devOut');
+  try{
+    requireLive('lagre avvik');
+    const id=document.getElementById('devId')?.value||'';
+    const reporterEmail=String(document.getElementById('devReporterEmail')?.value||'').trim();
+    const base={property_id:currentProperty().id,title:devTitle.value.trim(),description:devDesc.value.trim(),category:devCat.value,priority:devPrio.value,status:id?undefined:'Ny',building_id:devBuilding.value||null,unit:devUnit.value.trim()||null,reporter_type:devReporter.value,reporter_email:reporterEmail||null,reported_by_email:reporterEmail||null,assigned_to:devAssign.value.trim()||null};
+    if(!base.title)throw new Error('Fyll inn tittel.');
+    if(out)out.textContent='Lagrer avvik...';
+    const variants=[
+      base,
+      {property_id:base.property_id,title:base.title,description:base.description,category:base.category,priority:base.priority,status:id?undefined:'Ny',building_id:base.building_id,unit:base.unit,reporter_type:base.reporter_type,assigned_to:base.assigned_to},
+      {property_id:base.property_id,title:base.title,description:base.description,category:base.category,priority:base.priority,status:id?undefined:'Ny',building_id:base.building_id},
+      {property_id:base.property_id,title:base.title,description:base.description,category:base.category,priority:base.priority,status:id?undefined:'Ny'}
+    ].map(x=>Object.fromEntries(Object.entries(x).filter(([,v])=>v!==undefined)));
+    let r,lastError=null;
+    for(const row of variants){
+      r=id?await db().from('deviations').update(row).eq('id',id).select().single():await db().from('deviations').insert(row).select().single();
+      if(!r.error)break;
+      lastError=r.error;
+      if(!isPeopleSchemaError(r.error))break;
+    }
+    if(r?.error)throw lastError||r.error;
+    const savedId=r.data?.id||id;
+    if(out)out.textContent='Lagrer eventuelle bilder...';
+    const photos=await uploadDeviationPhotos(savedId,base.title);
+    await insertActivity(id?'Avvik oppdatert':'Avvik opprettet','deviation',savedId);
+    const suffix=photos.count?` ${photos.count} bilde(r) er lagret på saken.`:'';
+    if(photos.errors.length)showNotice('Avviket ble lagret, men ett eller flere bilder kunne ikke lagres.','warn');
+    await finishAction((id?'Avviket er oppdatert.':'Avviket er opprettet.')+suffix,'cases');
+  }catch(e){
+    setOutputError(out,e,'Avvik ble ikke lagret. Prøv igjen, eller kontakt Driftspartner Nord.');
+  }
+}
+function showWorkOrderForm(deviationId='',id=''){
+  if(typeof subscriptionHas==='function'&&!subscriptionHas('work_orders')){showLockedFeature('Arbeidsordre','Pro','Pro gir oppgaver med ansvarlig, frist, status og oppfølging.');return}
+  const w=(DP.cache.work_orders||[]).find(x=>x.id===id)||{},devs=DP.cache.deviations||[];
+  const selectedDev=deviationId||w.deviation_id||'';
+  const devOptions=`<option value="">Ingen avvik</option>${devs.map(d=>`<option value="${esc(d.id)}" ${d.id===selectedDev?'selected':''}>${esc(dpShortCaseRef(d,'deviation'))} · ${esc(d.title)}</option>`).join('')}`;
+  showDrawer(id?'Endre oppgave':'Ny oppgave',`<input id="woId" type="hidden" value="${esc(id)}"><section class="quick-form">
+    <div class="form-step-note"><b>1. Hva skal gjøres?</b><span>Arbeidsordren får et kort WO-nummer i e-post.</span></div>
+    <label>Knytt til avvik<select id="woDev">${devOptions}</select></label>
+    <label>Tittel<input id="woTitle" value="${esc(w.title||devs.find(d=>d.id===selectedDev)?.title||'')}" placeholder="For eksempel: Kontrollere lekkasje"></label>
+    <label>Arbeidsbeskrivelse<textarea id="woDesc" rows="4">${esc(w.description||devs.find(d=>d.id===selectedDev)?.description||'')}</textarea></label>
+    <div class="form-step-note"><b>2. Ansvar, frist og varsling</b><span>Velg fra e-postene som allerede er lagt inn på eiendommen.</span></div>
+    <div class="form-grid two"><label>Frist<input id="woDue" type="date" value="${esc(w.due_date||'')}"></label><label>Status<select id="woStatus">${['Ny','Planlagt','I arbeid','Venter leverandør','Utført','Lukket'].map(s=>`<option ${s===w.status?'selected':''}>${s}</option>`).join('')}</select></label></div>
+    <label>Send arbeidsordre til<select id="woAssigneeSelect" multiple size="6">${dpContactEmailChoices(w.assigned_to||'')}</select></label>
+    <label>Ekstra e-postadresser<input id="woAssigneeExtra" value="${esc(w.assigned_to||'')}" placeholder="vaktmester@kunde.no, leverandør@firma.no"></label>
+    <button class="action primary wide" onclick="saveWorkOrder()">${id?'Lagre oppgave':'Lagre oppgave'}</button>
+  </section>`);
+}
+async function saveWorkOrder(){
+  try{
+    requireLive('lagre arbeidsordre');
+    const id=document.getElementById('woId')?.value||'';
+    const recipients=dpSelectedContactEmails('woAssigneeSelect','woAssigneeExtra');
+    const base={property_id:currentProperty().id,title:woTitle.value.trim(),description:woDesc.value.trim(),due_date:woDue.value||null,status:woStatus.value||'Ny',deviation_id:isUuid(woDev.value)?woDev.value:null,assigned_to:recipients.join(', ')||null};
+    if(!base.title)throw new Error('Fyll inn tittel.');
+    const variants=[base,{property_id:base.property_id,title:base.title,description:base.description,due_date:base.due_date,status:base.status,deviation_id:base.deviation_id},{property_id:base.property_id,title:base.title,description:base.description,due_date:base.due_date,status:base.status}];
+    let r,lastError=null;
+    for(const row of variants){
+      r=id?await db().from('work_orders').update(row).eq('id',id).select().single():await db().from('work_orders').insert(row).select().single();
+      if(!r.error)break;
+      lastError=r.error;
+      if(!isPeopleSchemaError(r.error))break;
+    }
+    if(r?.error)throw lastError||r.error;
+    const saved=r.data||base;
+    if(base.deviation_id&&!id)await db().from('deviations').update({status:'Arbeidsordre opprettet'}).eq('id',base.deviation_id);
+    await insertActivity(id?'Arbeidsordre oppdatert':'Arbeidsordre opprettet','work_order',saved.id||base.title);
+    if(recipients.length&&!id&&location.protocol!=='file:'&&!['localhost','127.0.0.1'].includes(location.hostname)){
+      try{await sendCaseNotificationEmail('workorder',saved.id||'',recipients)}catch(e){console.warn('Arbeidsordre e-post feilet',e)}
+    }
+    await finishAction(id?'Arbeidsordren er oppdatert.':'Arbeidsordren er opprettet.','cases');
+  }catch(e){
+    const raw=String(e?.message||e||'');
+    const msg=/row-level security|policy|permission|not authorized|42501/i.test(raw)
+      ? 'Brukeren mangler tilgang til å lagre arbeidsordre på denne eiendommen. Sjekk at brukeren har Pro/Premium-pakke og property_access til valgt eiendom.'
+      : customerError(e);
+    showDrawer('Arbeidsordre ble ikke lagret',`<div class=\"output\">${esc(msg)}</div>`);
+  }
+}
+function showCaseStatusForm(tableName,id,status='Ny'){
+  const options=['Ny','Under behandling','Venter leverandør','Arbeidsordre opprettet','I arbeid','Utført','Ferdig','Lukket'].map(s=>`<option ${s===status?'selected':''}>${esc(s)}</option>`).join('');
+  const isDeviation=tableName==='deviations';
+  const row=(isDeviation?DP.cache.deviations:DP.cache.work_orders||[]).find(x=>x.id===id)||{};
+  const reporter=row.reporter_email||row.reported_by_email||row.email||'';
+  showDrawer('Endre status',`<label>Status</label><select id="caseStatus">${options}</select><label>Kommentar</label><textarea id="caseStatusNote" rows="4" placeholder="Kort kommentar til endringen"></textarea>${isDeviation?`<label class="checkline"><input id="notifyReporterClosed" type="checkbox" checked> Varsle innsender når avviket lukkes</label><label>E-post til innsender<input id="notifyReporterEmail" value="${esc(reporter)}" placeholder="innsender@kunde.no"></label>`:''}<button class="action primary" onclick="updateCaseStatus('${esc(tableName)}','${esc(id)}')">Lagre status</button>`);
+}
+async function updateCaseStatus(tableName,id){
+  try{
+    requireLive('endre status');
+    const newStatus=caseStatus.value;
+    const r=await db().from(tableName).update({status:newStatus}).eq('id',id).select().single();
+    if(r.error)throw r.error;
+    await insertActivity(`Status endret til ${newStatus}`,'case',id);
+    const isClosing=/lukket|ferdig|utført|utfort|fullført|fullfort/i.test(newStatus);
+    if(tableName==='deviations'&&isClosing&&document.getElementById('notifyReporterClosed')?.checked){
+      const row=r.data||(DP.cache.deviations||[]).find(x=>x.id===id)||{};
+      const emails=[...new Set([...dpEmailList(document.getElementById('notifyReporterEmail')?.value),...dpEmailList(row.reporter_email||row.reported_by_email||row.assigned_to)].filter(Boolean))];
+      if(emails.length&&location.protocol!=='file:'&&!['localhost','127.0.0.1'].includes(location.hostname)){
+        await sendCaseNotificationEmail('deviation_closed',id,emails,{status:newStatus,comment:document.getElementById('caseStatusNote')?.value||''}).catch(e=>console.warn('Varsel til innsender feilet',e));
+      }
+    }
+    await finishAction('Status er oppdatert.','cases');
+  }catch(e){showDrawer('Status ble ikke lagret',`<div class=\"output\">${esc(customerError(e))}</div>`)}
+}
+async function sendCaseNotificationEmail(kind,caseId,to,extra={}){
+  if(typeof emailPayloadForCase!=='function')return;
+  const payload=emailPayloadForCase(kind,caseId,to,extra);
+  const res=await fetch('/.netlify/functions/send-email',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});
+  const data=await readJsonResponse(res,'E-postfunksjonen svarte ikke riktig.');
+  if(!res.ok||!data.ok)throw new Error(data.message||'E-post ble ikke sendt.');
+  await insertActivity(`E-post sendt: ${kind}`,'email',caseId||currentProperty()?.id||'-');
+}
 function showWorkOrderForm(deviationId='',id=''){
   if(typeof subscriptionHas==='function'&&!subscriptionHas('work_orders')){showDrawer('Arbeidsordre er Pro-funksjon','<div class="empty-state"><strong>Oppgrader til Pro for arbeidsordre.</strong><span>Start-pakken kan registrere og følge avvik.</span></div>');return}
   const w=(DP.cache.work_orders||[]).find(x=>x.id===id)||{},devs=DP.cache.deviations||[];
@@ -856,6 +1049,156 @@ function DocumentFolderGrid(docs,active='Alle'){
   ];
   const count=cat=>cat==='Alle'?docs.length:docs.filter(d=>String(d.category||'')===cat).length;
   return `<div class="document-folder-grid">${folders.map(f=>`<button class="${active===f[0]?'active':''}" onclick="DP.docCat='${esc(f[0])}';render()"><span>${esc(f[2])}</span><strong>${esc(f[1])}</strong><b>${count(f[0])}</b></button>`).join('')}</div>`;
+}
+
+function showDeviationForm(id=''){
+  const d=(DP.cache.deviations||[]).find(x=>x.id===id)||{},buildings=DP.cache.buildings||[];
+  const buildingOptions=`<option value="">Hele eiendommen</option>${buildings.map(b=>`<option value="${esc(b.id)}" ${b.id===d.building_id?'selected':''}>${esc(b.name)}</option>`).join('')}`;
+  const photoHelp=id?'Du kan legge til ett eller flere nye bilder når du oppdaterer avviket.':'Ta ett eller flere bilder direkte med mobilkamera, eller velg bilder fra PC.';
+  showDrawer(id?'Endre avvik':'Nytt avvik',`<input id="devId" type="hidden" value="${esc(id)}">
+    <section class="quick-form deviation-photo-form">
+      <div class="form-step-note"><b>1. Hva gjelder saken?</b><span>Hold det kort. Detaljer kan legges til senere.</span></div>
+      <label>Tittel<input id="devTitle" value="${esc(d.title||'')}" placeholder="For eksempel: Lekkasje i kjeller"></label>
+      <label>Beskrivelse<textarea id="devDesc" rows="4" placeholder="Hva har skjedd, hvor er det, og hva bør gjøres?">${esc(d.description||'')}</textarea></label>
+      <div class="form-step-note"><b>2. Legg ved bilder</b><span>${esc(photoHelp)}</span></div>
+      <label class="photo-capture-box"><span>Ta bilder / velg flere bilder</span><input id="devPhotos" type="file" accept="image/*" capture="environment" multiple><small>Bilder lagres som dokumentasjon på avviket.</small></label>
+      <div class="form-grid two">
+        <label>Tekst på bildet<input id="devPhotoText" value="${esc(d.title||'')}" placeholder="For eksempel: Lekkasje ved taknedløp"></label>
+        <label class="checkline"><input id="devPhotoDate" type="checkbox" checked> Legg dato og klokkeslett på bildet</label>
+      </div>
+      <div class="form-step-note"><b>3. Klassifiser saken</b><span>Kategori og prioritet styrer rapporter og Property Brain.</span></div>
+      <div class="form-grid two">
+        <label>Kategori<select id="devCat">${['Tak','VVS','Elektro','Brann','HMS','Heis','Uteområde','Bygg','Annet'].map(c=>`<option ${c===d.category?'selected':''}>${c}</option>`).join('')}</select></label>
+        <label>Prioritet<select id="devPrio">${['Lav','Medium','Høy','Kritisk'].map(c=>`<option ${c===d.priority?'selected':''}>${c}</option>`).join('')}</select></label>
+        <label>Bygg/anlegg<select id="devBuilding">${buildingOptions}</select></label>
+        <label>Leilighet/område<input id="devUnit" value="${esc(d.unit||d.area||'')}" placeholder="A-101, garasje, uteområde"></label>
+      </div>
+      <div class="form-step-note"><b>4. Hvem skal følge opp?</b><span>Kan være tomt, eller flere e-poster skilt med komma.</span></div>
+      <div class="form-grid two">
+        <label>Innsender<select id="devReporter">${['Styremedlem','Beboer','Vaktmester','Leverandør','Forvalter'].map(c=>`<option ${c===d.reporter_type?'selected':''}>${c}</option>`).join('')}</select></label>
+        <label>Tildel/send til<input id="devAssign" value="${esc(d.assigned_to||'')}" placeholder="vaktmester@kunde.no, styret@kunde.no"></label>
+      </div>
+      <button class="action primary wide" onclick="saveDeviation()">${id?'Lagre avvik':'Lagre avvik'}</button>
+      <div id="devOut" class="output"></div>
+    </section>`);
+}
+function storageSafeName(name){
+  return String(name||'bilde.jpg').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/æ/g,'ae').replace(/ø/g,'o').replace(/å/g,'a').replace(/Æ/g,'Ae').replace(/Ø/g,'O').replace(/Å/g,'A').replace(/[^a-zA-Z0-9._-]+/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'').slice(0,90)||'bilde.jpg';
+}
+function loadImageFromFile(file){
+  return new Promise((resolve,reject)=>{
+    const url=URL.createObjectURL(file);
+    const img=new Image();
+    img.onload=()=>{URL.revokeObjectURL(url);resolve(img)};
+    img.onerror=()=>{URL.revokeObjectURL(url);reject(new Error('Kunne ikke lese bildet.'))};
+    img.src=url;
+  });
+}
+function wrapCanvasText(ctx,text,maxWidth){
+  const words=String(text||'').split(/\s+/).filter(Boolean),lines=[];
+  let line='';
+  words.forEach(word=>{
+    const test=line?`${line} ${word}`:word;
+    if(ctx.measureText(test).width>maxWidth&&line){lines.push(line);line=word}
+    else line=test;
+  });
+  if(line)lines.push(line);
+  return lines.slice(0,3);
+}
+async function watermarkDeviationPhoto(file,{title='',text='',withDate=true,index=0}={}){
+  if(!/^image\//i.test(file.type||''))return file;
+  const img=await loadImageFromFile(file);
+  const maxSide=1800,scale=Math.min(1,maxSide/Math.max(img.width,img.height));
+  const width=Math.max(1,Math.round(img.width*scale)),height=Math.max(1,Math.round(img.height*scale));
+  const canvas=document.createElement('canvas');
+  canvas.width=width;canvas.height=height;
+  const ctx=canvas.getContext('2d');
+  ctx.drawImage(img,0,0,width,height);
+  const stamp=[text||title,withDate?new Date().toLocaleString('nb-NO'):'' ].filter(Boolean).join(' · ');
+  if(stamp){
+    const pad=Math.max(18,Math.round(width*.025));
+    const fontSize=Math.max(22,Math.round(width*.03));
+    ctx.font=`700 ${fontSize}px Arial, sans-serif`;
+    const lines=wrapCanvasText(ctx,stamp,width-pad*2);
+    const lineHeight=Math.round(fontSize*1.28);
+    const boxHeight=pad*1.45+lineHeight*lines.length;
+    const y=height-boxHeight;
+    ctx.fillStyle='rgba(4,10,20,.72)';
+    ctx.fillRect(0,y,width,boxHeight);
+    ctx.fillStyle='#ffffff';
+    ctx.shadowColor='rgba(0,0,0,.55)';
+    ctx.shadowBlur=4;
+    lines.forEach((line,i)=>ctx.fillText(line,pad,y+pad+lineHeight*(i+.55)));
+    ctx.shadowBlur=0;
+  }
+  const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',.88));
+  if(!blob)return file;
+  return new File([blob],`${storageSafeName(file.name).replace(/\.[^.]+$/,'') || 'avvik'}-vannmerke-${index+1}.jpg`,{type:'image/jpeg'});
+}
+async function uploadDeviationPhotos(deviationId,title){
+  const input=document.getElementById('devPhotos');
+  const files=Array.from(input?.files||[]);
+  if(!files.length)return {count:0,errors:[]};
+  const watermarkText=String(document.getElementById('devPhotoText')?.value||title||'').trim();
+  const withDate=Boolean(document.getElementById('devPhotoDate')?.checked);
+  const errors=[],propertyId=currentProperty().id;
+  let count=0;
+  for(const [index,file] of files.entries()){
+    try{
+      const uploadFile=await watermarkDeviationPhoto(file,{title,text:watermarkText,withDate,index});
+      const path=`${propertyId}/Bilde/${Date.now()}-${index}-${storageSafeName(uploadFile.name)}`;
+      const up=await db().storage.from('documents').upload(path,uploadFile,{upsert:false,contentType:uploadFile.type||file.type||undefined});
+      if(up.error)throw up.error;
+      const noteParts=[`Bilde lagt ved avvik: ${title||deviationId}`];
+      if(watermarkText)noteParts.push(`Bildetekst: ${watermarkText}`);
+      if(withDate)noteParts.push(`Datomerket: ${new Date().toLocaleString('nb-NO')}`);
+      const row={property_id:propertyId,title:`Bilde ${index+1} - ${title||'avvik'}`,category:'Bilde',storage_path:path,mime_type:uploadFile.type||file.type||null,status:'Arkivert',version:1,deviation_id:deviationId,notes:noteParts.join('\n')};
+      const variants=[
+        row,
+        {property_id:row.property_id,title:row.title,category:row.category,storage_path:row.storage_path,mime_type:row.mime_type,status:row.status,version:row.version,notes:row.notes},
+        {property_id:row.property_id,title:row.title,category:row.category,storage_path:row.storage_path,mime_type:row.mime_type,status:row.status}
+      ];
+      let r,lastError=null;
+      for(const variant of variants){
+        r=await db().from('documents').insert(variant).select().single();
+        if(!r.error)break;
+        lastError=r.error;
+        if(!isPeopleSchemaError(r.error))break;
+      }
+      if(r?.error)throw lastError||r.error;
+      count++;
+    }catch(e){errors.push(customerError(e,'Bildet kunne ikke lagres.'))}
+  }
+  if(count)await insertActivity(`${count} bilde(r) lagt ved avvik`,'document',deviationId);
+  return {count,errors};
+}
+async function saveDeviation(){
+  const out=document.getElementById('devOut');
+  try{
+    requireLive('lagre avvik');
+    const id=document.getElementById('devId')?.value||'';
+    const base={property_id:currentProperty().id,title:devTitle.value.trim(),description:devDesc.value.trim(),category:devCat.value,priority:devPrio.value,status:id?undefined:'Ny',building_id:devBuilding.value||null,unit:devUnit.value.trim()||null,reporter_type:devReporter.value,assigned_to:devAssign.value.trim()||null};
+    if(!base.title)throw new Error('Fyll inn tittel.');
+    if(out)out.textContent='Lagrer avvik...';
+    const variants=[base,{property_id:base.property_id,title:base.title,description:base.description,category:base.category,priority:base.priority,status:id?undefined:'Ny',building_id:base.building_id},{property_id:base.property_id,title:base.title,description:base.description,category:base.category,priority:base.priority,status:id?undefined:'Ny'}].map(x=>Object.fromEntries(Object.entries(x).filter(([,v])=>v!==undefined)));
+    let r,lastError=null;
+    for(const row of variants){
+      r=id?await db().from('deviations').update(row).eq('id',id).select().single():await db().from('deviations').insert(row).select().single();
+      if(!r.error)break;
+      lastError=r.error;
+      if(!isPeopleSchemaError(r.error))break;
+    }
+    if(r?.error)throw lastError||r.error;
+    const savedId=r.data?.id||id;
+    if(out)out.textContent='Lagrer eventuelle bilder...';
+    const photos=await uploadDeviationPhotos(savedId,base.title);
+    await insertActivity(id?'Avvik oppdatert':'Avvik opprettet','deviation',savedId);
+    const suffix=photos.count?` ${photos.count} bilde(r) er lagret på saken.`:'';
+    if(photos.errors.length)showNotice('Avviket ble lagret, men ett eller flere bilder kunne ikke lagres.','warn');
+    await finishAction((id?'Avviket er oppdatert.':'Avviket er opprettet.')+suffix,'cases');
+  }catch(e){
+    setOutputError(out,e,'Avvik ble ikke lagret. Prøv igjen, eller kontakt Driftspartner Nord.');
+  }
 }
 
 
