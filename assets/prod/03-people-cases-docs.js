@@ -307,6 +307,83 @@ async function saveDeviation(){
   }catch(e){showDrawer('Avvik ble ikke lagret',`<div class=\"output\">${esc(customerError(e))}</div>`)}
 }
 
+async function sendAssignedDeviationEmail(deviation,to){
+  const p=currentProperty()||{},ref=typeof dpShortCaseRef==='function'?dpShortCaseRef(deviation,'deviation'):`AVV-${String(deviation.id||'').slice(0,6).toUpperCase()}`;
+  const subject=`${ref} Avvik - ${deviation.title||p.name||'eiendom'}`;
+  const message=[
+    'Hei,',
+    '',
+    `Du er satt som mottaker/ansvarlig på et avvik i Driftspartner OS.`,
+    '',
+    `Eiendom: ${p.name||'-'}`,
+    `Sak: ${ref}`,
+    `Tittel: ${deviation.title||'-'}`,
+    `Kategori: ${deviation.category||'-'}`,
+    `Prioritet: ${deviation.priority||'-'}`,
+    deviation.unit?`Sted/enhet: ${deviation.unit}`:'',
+    '',
+    deviation.description?`Beskrivelse:\n${deviation.description}`:'',
+    '',
+    'Vennligst følg opp saken eller gi tilbakemelding til styret.',
+    '',
+    'Vennlig hilsen',
+    p.name||'Driftspartner OS'
+  ].filter(x=>x!==null&&x!==undefined).join('\n');
+  const board=(DP.cache.contacts||[]).find(c=>/styreleder|leder|styre/i.test(String(c.role||c.contact_role||''))&&String(c.email||'').includes('@'));
+  const payload={to,subject,message,kind:'deviation',caseId:ref,property:p.name||'',property_id:p.id||'',reply_to:board?.email||p.customer_billing_email||DP.user?.email||'',from_name:`${p.name||'Kunde'} via Driftspartner OS`,metadata:{technical_case_id:deviation.id,case_ref:ref,title:deviation.title||''}};
+  const res=await fetch('/.netlify/functions/send-email',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});
+  const data=await readJsonResponse(res,'E-postfunksjonen svarte ikke riktig.');
+  if(!res.ok||!data.ok)throw new Error(data.message||'E-post ble ikke sendt.');
+  await insertActivity(`Avvik sendt til ansvarlig: ${ref}`,'email',deviation.id||ref);
+}
+async function saveDeviation(){
+  const out=document.getElementById('devOut');
+  try{
+    requireLive('lagre avvik');
+    const id=document.getElementById('devId')?.value||'';
+    const reporterEmail=String(document.getElementById('devReporterEmail')?.value||'').trim();
+    const assigned=String(document.getElementById('devAssign')?.value||'').trim();
+    const base={property_id:currentProperty().id,title:devTitle.value.trim(),description:devDesc.value.trim(),category:devCat.value,priority:devPrio.value,status:id?undefined:'Ny',building_id:devBuilding.value||null,unit:devUnit.value.trim()||null,reporter_type:devReporter.value,reporter_email:reporterEmail||null,reported_by_email:reporterEmail||null,assigned_to:assigned||null};
+    if(!base.title)throw new Error('Fyll inn tittel.');
+    if(out)out.textContent='Lagrer avvik...';
+    const variants=[
+      base,
+      {property_id:base.property_id,title:base.title,description:base.description,category:base.category,priority:base.priority,status:id?undefined:'Ny',building_id:base.building_id,unit:base.unit,reporter_type:base.reporter_type,assigned_to:base.assigned_to},
+      {property_id:base.property_id,title:base.title,description:base.description,category:base.category,priority:base.priority,status:id?undefined:'Ny',building_id:base.building_id},
+      {property_id:base.property_id,title:base.title,description:base.description,category:base.category,priority:base.priority,status:id?undefined:'Ny'}
+    ].map(x=>Object.fromEntries(Object.entries(x).filter(([,v])=>v!==undefined)));
+    let r,lastError=null;
+    for(const row of variants){
+      r=id?await db().from('deviations').update(row).eq('id',id).select().single():await db().from('deviations').insert(row).select().single();
+      if(!r.error)break;
+      lastError=r.error;
+      if(!isPeopleSchemaError(r.error))break;
+    }
+    if(r?.error)throw lastError||r.error;
+    const saved={...base,...(r.data||{}),id:r.data?.id||id};
+    if(out)out.textContent='Lagrer eventuelle bilder...';
+    const photos=await uploadDeviationPhotos(saved.id,base.title);
+    await insertActivity(id?'Avvik oppdatert':'Avvik opprettet','deviation',saved.id);
+    const assignedEmails=typeof dpEmailList==='function'?dpEmailList(assigned):String(assigned).split(/[,\s;]+/).filter(x=>x.includes('@'));
+    let mailText='';
+    if(assignedEmails.length&&!id&&location.protocol!=='file:'&&!['localhost','127.0.0.1'].includes(location.hostname)){
+      try{
+        if(out)out.textContent='Sender e-post til ansvarlig...';
+        await sendAssignedDeviationEmail(saved,assignedEmails);
+        mailText=` E-post sendt til ${assignedEmails.length} mottaker${assignedEmails.length===1?'':'e'}.`;
+      }catch(e){
+        console.warn('Avviksvarsel feilet',e);
+        mailText=' Avviket ble lagret, men e-post til ansvarlig kunne ikke sendes.';
+      }
+    }
+    const suffix=photos.count?` ${photos.count} bilde(r) er lagret på saken.`:'';
+    if(photos.errors.length)showNotice('Avviket ble lagret, men ett eller flere bilder kunne ikke lagres.','warn');
+    await finishAction((id?'Avviket er oppdatert.':'Avviket er opprettet.')+suffix+mailText,'cases');
+  }catch(e){
+    setOutputError(out,e,'Avvik ble ikke lagret. Prøv igjen, eller kontakt Driftspartner Nord.');
+  }
+}
+
 function dpShortCaseRef(row,type='deviation'){
   const value=row?.case_number||row?.friendly_id||row?.number||row?.ref;
   if(value)return String(value);
