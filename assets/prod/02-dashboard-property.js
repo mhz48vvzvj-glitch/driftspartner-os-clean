@@ -786,6 +786,65 @@ async function saveBuilding(id=''){
   try{requireLive('lagre bygg');const quota=typeof buildingQuotaStatus==='function'?buildingQuotaStatus():{blocked:false,used:0,limit:1};if(!id&&quota.blocked)throw new Error(`${planLabel(subscriptionPlanId())} inkluderer ${quota.limit} bygg. Oppgrader pakken eller slett et bygg før du oppretter et nytt.`);const row={property_id:currentProperty().id,name:buildingName.value.trim(),building_type:buildingType.value.trim()||null,address:buildingAddress.value.trim()||null,built_year:+buildingYear.value||null,gross_area:+buildingArea.value||0,technical_summary:buildingTech.value.trim()||null};if(!row.name)throw new Error('Fyll inn navn på bygg.');const q=id?db().from('buildings').update(row).eq('id',id).select().single():db().from('buildings').insert(row).select().single();const r=await q;if(r.error)throw r.error;await insertActivity(id?'Bygg oppdatert':'Bygg opprettet','building',r.data.id);await finishAction(id?'Bygget er lagret.':'Bygget er opprettet.','property')}catch(e){showDrawer('Bygg ble ikke lagret',`<div class=\"output\">${esc(customerError(e))}</div>`)}}
 async function deleteBuilding(id){if(!confirm('Slette bygg Dokumenter og saker beholder eiendommen, men mister byggkoblingen.'))return;try{requireLive('slette bygg');const r=await db().from('buildings').delete().eq('id',id);if(r.error)throw r.error;await insertActivity('Bygg slettet','building',id);await finishAction('Bygget er slettet.','property')}catch(e){showDrawer('Bygg ble ikke slettet',`<div class=\"output\">${esc(customerError(e))}</div>`)}}
 
+function DashboardPage(){
+  const devs=DP.cache.deviations||[],wos=DP.cache.work_orders||[],docs=DP.cache.documents||[],rfqs=DP.cache.quote_requests||[],offers=DP.cache.offers||[];
+  const open=x=>!['lukket','ferdig','utført','utfort','fullført','fullfort'].includes(String(x.status||'').toLowerCase());
+  const critical=devs.filter(d=>open(d)&&String(d.priority||'').toLowerCase().includes('kritisk')).length;
+  const openDevs=devs.filter(open).length,openWos=wos.filter(open).length;
+  const moneyRisk=dashboardMoneyRisk(),missingDocs=missingDocumentCount(docs);
+  const boardDecisions=rfqs.filter(q=>String(q.status||'').toLowerCase().includes('utkast')).length+offers.length;
+  const brain=typeof propertyBrainAnalysis==='function'?propertyBrainAnalysis():null;
+  const hasFinance=subscriptionHas('finance'),hasRfq=subscriptionHas('rfq'),hasWorkOrders=subscriptionHas('work_orders'),hasAiDirector=subscriptionHas('ai_director');
+  const isInternal=typeof canManageCustomers==='function'&&canManageCustomers();
+  const heroActions=[
+    `<button class="action primary" onclick="showDeviationForm()">Registrer avvik</button>`,
+    `<button class="action" onclick="showDocForm()">Last opp dokument</button>`,
+    `<button class="action" onclick="showEmailFlow('board')">Send til styret</button>`,
+    hasAiDirector?`<button class="action" onclick="runAiDirector('styrapport')">Lag styrerapport</button>`:'',
+    '<button class="action" onclick="hydrateAll().then(render)">Oppdater</button>'
+  ].filter(Boolean).join('');
+  return `<div class="grid dashboard-page dashboard-clean">
+    <div class="card s12 executive-hero"><div><small>Styrets oversikt</small><h2>${esc(currentProperty()?.name||'Valgt eiendom')}</h2><p>Her ser styret hva som haster, hva som mangler dokumentasjon, hva som påvirker økonomien og hva neste steg bør være.</p></div><div class="executive-actions">${heroActions}</div></div>
+    <div class="card s12 dashboard-plan-card">${DashboardPlanOverview()}</div>
+    <div class="card s12 board-start-wizard">${BoardLeaderStartWizard()}</div>
+    ${focusCard('Hva haster?',critical||openDevs,critical?'Kritiske avvik må behandles først':openDevs?'Åpne avvik bør fordeles og følges opp':'Ingen åpne avvik nå',critical?'bad':openDevs?'warn':'ok','cases')}
+    ${hasFinance?focusCard('Hva koster penger?',money(moneyRisk.amount),moneyRisk.caption,moneyRisk.amount>0?'bad':'ok','finance'):DashboardLockedSummary('Økonomi','Pro','Budsjett, faktisk kostnad og styrerapport.')}
+    ${focusCard('Hva mangler dokumentasjon?',missingDocs,missingDocs?'FDV, HMS, kontrakt eller styrepapir mangler':'Dokumentasjonen ser ryddig ut',missingDocs?'warn':'ok','documents')}
+    ${hasRfq?focusCard('Hva må styret beslutte?',boardDecisions,boardDecisions?'Tilbud, RFQ eller sak bør avklares':'Ingen åpne beslutningspunkter',boardDecisions?'info':'ok','market'):DashboardLockedSummary('Tilbud/RFQ','Premium','Innhent tilbud, sammenlign og dokumenter valg.')}
+    <div class="card s12 dashboard-priority">${DashboardPriorityPanel({brain,critical,openDevs,openWos,moneyRisk,missingDocs,boardDecisions})}</div>
+    ${hasFinance?`<div class="card s7 premium-finance-card">${DashboardFinanceChart()}</div>`:''}
+    <div class="card ${hasFinance?'s5':'s12'} premium-deviation-card">${DashboardDeviationPie(devs)}</div>
+    <div class="card s12 dashboard-trend">${DashboardTrend30()}</div>
+    <div class="card s6 dashboard-deadlines">${DashboardDeadlines()}</div>
+    <div class="card s6 dashboard-controls">${DashboardControls()}</div>
+    ${hasWorkOrders||hasRfq?`<div class="card s12 dashboard-flow"><div class="dash-title"><div><h3>Saksløp</h3><p class="muted">Følg saken fra avvik til dokumentasjon og rapport.</p></div><button class="action primary" onclick="openModule('cases')">Åpne sak</button></div>${ProductionFlowMini()}</div>`:''}
+    ${hasAiDirector?`<div class="card s12 dashboard-ai">${AiDirectorCard()}</div>`:DashboardLockedAiDirector()}
+    <div class="card s6 dashboard-list"><div class="dash-title"><h3>Siste avvik</h3><button class="action" onclick="openModule('cases')">Åpne avvik</button></div>${caseList(devs)}</div>
+    <div class="card s6 dashboard-list"><div class="dash-title"><h3>Siste dokumenter</h3><button class="action" onclick="openModule('documents')">Åpne arkiv</button></div>${documentList(docs)}</div>
+    ${isInternal?`<div class="card s12 dashboard-activity">${DashboardActivityFeed()}</div>`:''}
+  </div>`;
+}
+function DashboardLockedSummary(title,plan,text){
+  return `<button class="card s3 focus-card locked-focus" onclick="showLockedFeature('${esc(title)}','${esc(plan)}','${esc(text)}')"><small>${esc(title)}</small><strong>${esc(plan)}</strong><span>${esc(text)}</span></button>`;
+}
+function DashboardLockedAiDirector(){
+  return `<div class="card s12 locked-dashboard-panel"><div><small>Pro-funksjon</small><h3>AI Director</h3><p>AI Director analyserer live data og lager prioriteringer for styret. I Start vises dette som en pen oppgradering, ikke som en feil.</p></div><button class="action primary" onclick="showLockedFeature('AI Director','Pro','AI Director følger opp avvik, arbeidsordre, dokumentasjon, økonomi og frister.')">Se Pro</button></div>`;
+}
+function BoardLeaderStartWizard(){
+  const docs=DP.cache.documents||[],contacts=DP.cache.contacts||[],devs=DP.cache.deviations||[],finance=DP.cache.finance||[],budgets=DP.cache.budget_lines||[];
+  const hasBoard=contacts.some(c=>/styre|leder|vara/i.test(String(c.role||c.contact_role||c.contact_type||c.type||'')));
+  const hasDocs=docs.length>0,hasDev=devs.length>0,hasFinance=finance.length>0||budgets.length>0;
+  const steps=[
+    {title:'Sjekk eiendomskort',text:'Navn, adresse, bygg og kontaktinformasjon.',ok:!!currentProperty()?.name,action:'Åpne eiendom',open:"openModule('property')"},
+    {title:'Legg inn styret',text:'Minst én styreleder med e-post bør være registrert.',ok:hasBoard,action:'Styre og beboere',open:"openModule('people')"},
+    {title:'Last opp nøkkeldokumenter',text:'FDV, HMS, tegninger, kontrakter og styrepapirer.',ok:hasDocs,action:'Dokumentarkiv',open:"openModule('documents')"},
+    {title:'Registrer første sak',text:'Opprett et avvik hvis noe må følges opp.',ok:hasDev,action:'Nytt avvik',open:"showDeviationForm()"},
+    {title:'Sett økonomigrunnlag',text:'Bank/konto, budsjett og faktiske kostnader.',ok:hasFinance,action:'Økonomi',open:"openModule('finance')"}
+  ];
+  const done=steps.filter(s=>s.ok).length;
+  return `<div class="dash-title"><div><h3>Kom i gang</h3><p class="muted">En enkel sjekkliste for ny styreleder. Fullfør disse punktene først.</p></div><strong class="wizard-score">${done}/${steps.length}</strong></div><div class="start-wizard-steps">${steps.map((s,i)=>`<button class="${s.ok?'ok':'todo'}" onclick="${esc(s.open)}"><span>${s.ok?'✓':i+1}</span><div><strong>${esc(s.title)}</strong><small>${esc(s.text)}</small></div><b>${esc(s.ok?'Klart':s.action)}</b></button>`).join('')}</div>`;
+}
+
 
 
 

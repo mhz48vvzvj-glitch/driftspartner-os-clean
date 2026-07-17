@@ -395,6 +395,54 @@ if(!window.__dpOpsClickFallback){
   },true);
 }
 
+function lockedFeatureInfo(id){
+  const labels=Object.fromEntries((DP.menus||[]).map(m=>[m[0],m[1]]));
+  const info={
+    maintenance:{plan:'Pro',title:'Årshjul og vedlikeholdsplan',text:'Pro gir årshjul, vedlikeholdsplan og bedre styring av frister og kontroller.'},
+    finance:{plan:'Pro',title:'Økonomi og styrerapport',text:'Pro gir bank/konto, budsjett, faktiske kostnader, prosjektøkonomi og styrerapport.'},
+    reports:{plan:'Pro',title:'Rapporter',text:'Pro gir rapporter for styret, økonomi og aktivitet på eiendommen.'},
+    market:{plan:'Premium',title:'Tilbud og RFQ',text:'Premium gir tilbudsforespørsler, leverandørvalg, tilbudsvurdering og dokumentert innkjøpsflyt.'},
+    brain:{plan:'Premium',title:'Property Brain',text:'Premium gir risikoanalyse, dokumentasjonsgrad, vedlikeholdsforslag og beslutningsstøtte.'}
+  };
+  return info[id]||{plan:'riktig pakke',title:labels[id]||'Funksjon',text:'Denne funksjonen er ikke tilgjengelig for rollen eller pakken som er valgt.'};
+}
+function showLockedFeature(title='Funksjon',plan='Pro',text='Denne funksjonen er ikke med i valgt pakke.'){
+  const current=planLabel(typeof subscriptionPlanId==='function'?subscriptionPlanId():'');
+  const canRequest=typeof showSubscriptionPicker==='function';
+  showDrawer(`${title} ligger i ${plan}`,`<section class="locked-feature-card">
+    <div class="locked-feature-icon">+</div>
+    <small>Ikke låst av feil</small>
+    <h3>${esc(title)}</h3>
+    <p>${esc(text)}</p>
+    <div class="property-key-grid">
+      <div><small>Aktiv pakke</small><b>${esc(current)}</b></div>
+      <div><small>Krever</small><b>${esc(plan)}</b></div>
+    </div>
+    <div class="row-actions">
+      ${canRequest?`<button class="action primary" onclick="showSubscriptionPicker()">Se pakker</button>`:''}
+      <button class="action" onclick="hideDrawer()">Lukk</button>
+    </div>
+  </section>`);
+}
+function openModule(id){
+  DP.closePanelsOnRender=true;
+  closeTransientPanels();
+  const roleAllowed=(ROLE_MENUS[appRole()]||[]).includes(id);
+  if(canOpenModule(id)){
+    DP.module=id;
+    DP.tab='';
+    render();
+    closeTransientPanels();
+    return;
+  }
+  const info=lockedFeatureInfo(id);
+  if(roleAllowed&&info){
+    showLockedFeature(info.title,info.plan,info.text);
+    return;
+  }
+  showDrawer('Ikke tilgjengelig',`<div class="empty-state"><strong>Denne delen er ikke tilgjengelig for rollen din.</strong><span>Kontakt Driftspartner Nord hvis du mener du skal ha tilgang.</span></div>`);
+}
+
 window.DP=DP;
 window.renderPublic=renderPublic;
 window.render=render;

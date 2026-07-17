@@ -748,5 +748,115 @@ function documentVersionCards(versions){
   return `<div class="document-version-list">${versions.map(v=>`<button onclick="openDocumentVersion('${esc(v.storage_path)}')"><span>v${esc(v.version||'-')}</span><div><strong>${esc(v.file_name||'Dokumentversjon')}</strong><small>${esc(v.created_at||'-')}</small></div></button>`).join('')}</div>`;
 }
 
+function CasesPage(){
+  const devs=DP.cache.deviations||[],wos=DP.cache.work_orders||[];
+  const hasWorkOrders=typeof subscriptionHas==='function'?subscriptionHas('work_orders'):true;
+  const hasRfq=typeof subscriptionHas==='function'?subscriptionHas('rfq'):true;
+  const open=x=>!['lukket','ferdig','utført','utfort','fullført','fullfort'].includes(String(x.status||'').toLowerCase());
+  const critical=devs.filter(d=>open(d)&&/kritisk|høy|hoy/i.test(String(d.priority||''))).length;
+  const overdue=wos.filter(w=>open(w)&&w.due_date&&new Date(w.due_date)<new Date()).length;
+  const workOrderAction=hasWorkOrders?`<button class="action" onclick="showWorkOrderForm()">Ny oppgave</button>`:`<button class="action" onclick="showLockedFeature('Arbeidsordre','Pro','Pro gir oppgaver med ansvarlig, frist og status.')">Arbeidsordre</button>`;
+  const fullFlowAction=hasRfq?`<button class="action" onclick="showCaseFlow()">Full flyt</button>`:`<button class="action" onclick="showLockedFeature('Tilbud og saksløp','Premium','Premium gir RFQ, tilbud, vurdering, kontrakt og FDV-oppdatering.')">Premium-flyt</button>`;
+  return `<div class="grid cases-page premium-cases cases-simple">
+    <div class="card s12 module-hero cases-hero"><div><small>Avvik og oppgaver</small><h2>Følg opp det som må gjøres</h2><p>Start enkelt: registrer en sak, fordel ansvar, legg inn frist og lukk saken når dokumentasjonen er på plass.</p></div><div class="module-actions"><button class="action primary" onclick="showDeviationForm()">Nytt avvik</button>${workOrderAction}<button class="action" onclick="showEmailFlow('deviation')">Send e-post</button>${fullFlowAction}</div></div>
+    <div class="card s12 simple-flow-card">${CasesSimpleFlow(hasWorkOrders,hasRfq)}</div>
+    ${caseSummaryCard('Åpne avvik',devs.filter(open).length,'Saker som må følges opp','showDeviationForm()','info')}
+    ${caseSummaryCard('Kritisk/høy',critical,'Bør tas først','openCaseFilter("critical")','bad')}
+    ${hasWorkOrders?caseSummaryCard('Oppgaver',wos.filter(open).length,'Pågående arbeidsordre','showWorkOrderForm()','warn'):DashboardLockedCaseCard('Oppgaver','Pro')}
+    ${hasWorkOrders?caseSummaryCard('Forfalt',overdue,'Frister som er passert','openCaseFilter("overdue")','bad'):DashboardLockedCaseCard('Frister','Pro')}
+    <div class="card s7 case-section"><div class="dash-title"><div><h3>Avvik</h3><p class="muted">Dette er saker styret, beboer eller drift har meldt inn.</p></div><button class="action primary" onclick="showDeviationForm()">Nytt avvik</button></div>${caseCards(devs,'deviation')}</div>
+    <div class="card s5 case-priority-board"><div class="dash-title"><div><h3>Neste oppfølging</h3><p class="muted">Systemet løfter frem det viktigste først.</p></div></div>${casePriorityList(devs,wos)}</div>
+    ${hasWorkOrders?`<div class="card s12 case-section"><div class="dash-title"><div><h3>Arbeidsordre og oppgaver</h3><p class="muted">Oppgaver med ansvarlig, frist og status.</p></div><button class="action primary" onclick="showWorkOrderForm()">Ny oppgave</button></div>${caseCards(wos,'work_order')}</div>`:''}
+  </div>`;
+}
+function DashboardLockedCaseCard(title,plan){
+  return `<button class="card s3 case-summary locked-focus" onclick="showLockedFeature('${esc(title)}','${esc(plan)}','Denne delen gir mer kontroll på ansvar, frister og oppfølging.')"><small>${esc(title)}</small><strong>${esc(plan)}</strong><span>Ikke i valgt pakke</span></button>`;
+}
+function CasesSimpleFlow(hasWorkOrders=true,hasRfq=true){
+  const steps=[
+    {n:'1',title:'Meld inn sak',text:'Hva har skjedd og hvor gjelder det?',action:'Nytt avvik',open:'showDeviationForm()',enabled:true},
+    {n:'2',title:'Fordel ansvar',text:'Velg hvem som følger opp og sett frist.',action:'Lag oppgave',open:'showWorkOrderForm()',enabled:hasWorkOrders,plan:'Pro'},
+    {n:'3',title:'Dokumenter',text:'Legg ved bilder, rapport, FDV eller kontrakt.',action:'Last opp',open:'showDocForm()',enabled:true},
+    {n:'4',title:'Beslutning',text:'Ved behov: tilbud, styrevedtak og signering.',action:'Full flyt',open:'showCaseFlow()',enabled:hasRfq,plan:'Premium'}
+  ];
+  return `<div class="dash-title"><div><h3>Superenkel flyt</h3><p class="muted">Fire steg som styret og vaktmester kjenner igjen.</p></div></div><div class="simple-flow-steps case-flow-simple">${steps.map(s=>`<button class="${s.enabled?'':'locked'}" onclick="${s.enabled?s.open:`showLockedFeature('${esc(s.title)}','${esc(s.plan||'Pro')}','Denne funksjonen ligger i en høyere pakke.')`}"><span>${esc(s.n)}</span><strong>${esc(s.title)}</strong><small>${esc(s.text)}</small><b>${esc(s.enabled?s.action:s.plan)}</b></button>`).join('')}</div>`;
+}
+function showDeviationForm(id=''){
+  const d=(DP.cache.deviations||[]).find(x=>x.id===id)||{},buildings=DP.cache.buildings||[];
+  const buildingOptions=`<option value="">Hele eiendommen</option>${buildings.map(b=>`<option value="${esc(b.id)}" ${b.id===d.building_id?'selected':''}>${esc(b.name)}</option>`).join('')}`;
+  showDrawer(id?'Endre avvik':'Nytt avvik',`<input id="devId" type="hidden" value="${esc(id)}">
+    <section class="quick-form">
+      <div class="form-step-note"><b>1. Hva gjelder saken?</b><span>Hold det kort. Detaljer kan legges til senere.</span></div>
+      <label>Tittel<input id="devTitle" value="${esc(d.title||'')}" placeholder="For eksempel: Lekkasje i kjeller"></label>
+      <label>Beskrivelse<textarea id="devDesc" rows="4" placeholder="Hva har skjedd, hvor er det, og hva bør gjøres?">${esc(d.description||'')}</textarea></label>
+      <div class="form-step-note"><b>2. Klassifiser saken</b><span>Kategori og prioritet styrer rapporter og Property Brain.</span></div>
+      <div class="form-grid two">
+        <label>Kategori<select id="devCat">${['Tak','VVS','Elektro','Brann','HMS','Heis','Uteområde','Bygg','Annet'].map(c=>`<option ${c===d.category?'selected':''}>${c}</option>`).join('')}</select></label>
+        <label>Prioritet<select id="devPrio">${['Lav','Medium','Høy','Kritisk'].map(c=>`<option ${c===d.priority?'selected':''}>${c}</option>`).join('')}</select></label>
+        <label>Bygg/anlegg<select id="devBuilding">${buildingOptions}</select></label>
+        <label>Leilighet/område<input id="devUnit" value="${esc(d.unit||d.area||'')}" placeholder="A-101, garasje, uteområde"></label>
+      </div>
+      <div class="form-step-note"><b>3. Hvem skal følge opp?</b><span>Kan være tomt, eller flere e-poster skilt med komma.</span></div>
+      <div class="form-grid two">
+        <label>Innsender<select id="devReporter">${['Styremedlem','Beboer','Vaktmester','Leverandør','Forvalter'].map(c=>`<option ${c===d.reporter_type?'selected':''}>${c}</option>`).join('')}</select></label>
+        <label>Tildel/send til<input id="devAssign" value="${esc(d.assigned_to||'')}" placeholder="vaktmester@kunde.no, styret@kunde.no"></label>
+      </div>
+      <button class="action primary wide" onclick="saveDeviation()">${id?'Lagre avvik':'Lagre avvik'}</button>
+    </section>`);
+}
+function showWorkOrderForm(deviationId='',id=''){
+  if(typeof subscriptionHas==='function'&&!subscriptionHas('work_orders')){showLockedFeature('Arbeidsordre','Pro','Pro gir oppgaver med ansvarlig, frist, status og oppfølging.');return}
+  const w=(DP.cache.work_orders||[]).find(x=>x.id===id)||{},devs=DP.cache.deviations||[];
+  const selectedDev=deviationId||w.deviation_id||'';
+  const devOptions=`<option value="">Ingen avvik</option>${devs.map(d=>`<option value="${esc(d.id)}" ${d.id===selectedDev?'selected':''}>${esc(d.title)}</option>`).join('')}`;
+  showDrawer(id?'Endre oppgave':'Ny oppgave',`<input id="woId" type="hidden" value="${esc(id)}"><section class="quick-form">
+    <div class="form-step-note"><b>1. Hva skal gjøres?</b><span>Oppgaven kan knyttes til et avvik eller stå alene.</span></div>
+    <label>Knytt til avvik<select id="woDev">${devOptions}</select></label>
+    <label>Tittel<input id="woTitle" value="${esc(w.title||devs.find(d=>d.id===selectedDev)?.title||'')}" placeholder="For eksempel: Kontrollere lekkasje"></label>
+    <label>Arbeidsbeskrivelse<textarea id="woDesc" rows="4">${esc(w.description||devs.find(d=>d.id===selectedDev)?.description||'')}</textarea></label>
+    <div class="form-step-note"><b>2. Ansvar og frist</b><span>Dette gjør oppgaven tydelig for vaktmester, styret eller leverandør.</span></div>
+    <div class="form-grid two"><label>Frist<input id="woDue" type="date" value="${esc(w.due_date||'')}"></label><label>Status<select id="woStatus">${['Ny','Planlagt','I arbeid','Venter leverandør','Utført','Lukket'].map(s=>`<option ${s===w.status?'selected':''}>${s}</option>`).join('')}</select></label></div>
+    <label>Ansvarlig / send til<input id="woAssignee" value="${esc(w.assigned_to||'')}" placeholder="vaktmester@kunde.no, leverandør@firma.no"></label>
+    <button class="action primary wide" onclick="saveWorkOrder()">${id?'Lagre oppgave':'Lagre oppgave'}</button>
+  </section>`);
+}
+function DocumentsPage(){
+  const docs=DP.cache.documents||[],versions=DP.cache.document_versions||[];
+  const active=DP.docCat||'Alle';
+  const filtered=active==='Alle'?docs:docs.filter(d=>String(d.category||'')===active);
+  const required=['FDV','HMS','Tegning','Kontrakt','Styrepapir'];
+  const missing=required.filter(c=>!docs.some(d=>String(d.category||'')===c));
+  const expiring=documentsExpiring(docs);
+  const hasBrain=typeof subscriptionHas==='function'?subscriptionHas('brain'):true;
+  const brainAction=hasBrain?`<button class="action" onclick="openModule('brain')">Property Brain</button>`:`<button class="action" onclick="showLockedFeature('Property Brain','Premium','Premium analyserer dokumentmangler, risiko og anbefalte tiltak.')">Property Brain</button>`;
+  return `<div class="grid documents-page premium-documents documents-folder-first">
+    <div class="card s12 module-hero documents-hero"><div><small>Dokumenter</small><h2>Mappebasert arkiv</h2><p>Finn FDV, HMS, tegninger, kontrakter, styrepapirer, bilder og tilbud uten å lete i en stor liste.</p></div><div class="module-actions"><button class="action primary" onclick="showDocForm()">Last opp</button><button class="action" onclick="showScanDocumentForm()">Skann</button><button class="action" onclick="showStandaloneContractForm()">Lag kontrakt</button><button class="action" onclick="showSignatureRequestForm('Kontrakt')">Signer</button>${brainAction}</div></div>
+    <div class="card s12 simple-flow-card">${DocumentsSimpleFlow(missing,expiring)}</div>
+    ${docSummaryCard('Dokumenter',docs.length,'Lagret på eiendommen','showDocForm()','info')}
+    ${docSummaryCard('Dokumentasjonsgrad',`${required.length-missing.length}/${required.length}`,missing.length?'Mangler nøkkeldokumenter':'Nøkkeldokumenter finnes','openModule("documents")',missing.length?'warn':'ok')}
+    ${docSummaryCard('Utløper snart',expiring.length,'Kontroller, avtaler og frister','showExpiringDocuments()','warn')}
+    ${docSummaryCard('Versjoner',versions.length,'Registrerte dokumentversjoner','DP.docCat="Alle";render()','purple')}
+    <div class="card s12 document-folder-card-wrap"><div class="dash-title"><div><h3>Mapper</h3><p class="muted">Velg mappe først. Dokumentene under filtreres automatisk.</p></div><button class="action primary" onclick="showDocForm()">Last opp i mappe</button></div>${DocumentFolderGrid(docs,active)}</div>
+    <div class="card s8 document-health-card"><div class="dash-title"><div><h3>Arkivstatus</h3><p class="muted">Nøkkeldokumenter styret bør ha kontroll på.</p></div></div>${documentHealthGrid(required,docs)}</div>
+    <div class="card s4 document-deadline-card"><h3>Kommende kontroller</h3>${documentDeadlineList(expiring)}</div>
+    <div class="card s12"><div class="dash-title"><div><h3>${esc(active==='Alle'?'Alle dokumenter':active)}</h3><p class="muted">Åpne, se detaljer, lag ny versjon eller slett dokumenter fra valgt mappe.</p></div><button class="action primary" onclick="showDocForm()">Last opp</button></div>${documentCards(filtered)}</div>
+  </div>`;
+}
+function DocumentFolderGrid(docs,active='Alle'){
+  const folders=[
+    ['Alle','Alle dokumenter','Arkiv'],
+    ['FDV','FDV','Drift'],
+    ['HMS','HMS','Sikkerhet'],
+    ['Tegning','Tegninger','Bygg'],
+    ['Kontrakt','Kontrakter','Avtaler'],
+    ['Styrepapir','Styrepapirer','Styre'],
+    ['Tilbud','Tilbud','Innkjøp'],
+    ['Bilde','Bilder','Foto'],
+    ['Annet','Annet','Diverse']
+  ];
+  const count=cat=>cat==='Alle'?docs.length:docs.filter(d=>String(d.category||'')===cat).length;
+  return `<div class="document-folder-grid">${folders.map(f=>`<button class="${active===f[0]?'active':''}" onclick="DP.docCat='${esc(f[0])}';render()"><span>${esc(f[2])}</span><strong>${esc(f[1])}</strong><b>${count(f[0])}</b></button>`).join('')}</div>`;
+}
+
 
 
